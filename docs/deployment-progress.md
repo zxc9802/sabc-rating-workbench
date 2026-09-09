@@ -52,3 +52,7 @@
 - 首次启动因安装继承umask077、代码目录不可读而重启；已停止服务，修复仅代码和venv读取权限，并修正安装脚本。00:33:16重新启动后持续运行，uvicorn启动完成、TLS8443监听；密钥仍保留640/root专用组权限。
 - computer-use新增TCP8443入站规则，其他规则未更改。信任指定证书的外部健康检查：匿名401、Bearer鉴权200且region=ap-shanghai。
 - 上海实际采集宿迁商务统计成功（job 336d222730374cbfa262003f7c8bfc6c，0.8秒），阿克苏2025GDP成功（job 7434c0cc57a04303bda93b5c35eb88a0，1.0秒）；原始返回保存在artifacts/phase4。尚未连接Zeabur，不能计作整链路验收。
+- Zeabur部署6aa18b7181898898b92bf7b3运行；云端sources.py、remote_collector.py哈希与db9b35b一致，新增三项采集环境变量已通过computer-use保存。
+- 整链路43例完成，41例成功且重新读取项目验证证据、E0/unverified、上海任务ID和source_runs关联。攀枝花3次HTTP500暂缓；Google Trends上海连接失败，180秒硬超时，Zeabur保存504失败记录。报告artifacts/phase4/zeabur-audit。
+- 网页阿克苏首次因并发429暂缓，重试成功；UI显示四季度GDP、三次产业、亿元单位及累计/地区限制，证据d981650101984feebd8425b8cf32e3f7对应上海job47ac723f124248f788a0bf0de7fe7d36。失败和成功均留截图。
+- 发现Google长请求外层连接约32秒中断，后台到180秒仍正确记录失败。正在修复为持久化后台任务、短连接轮询、同请求编号去重和刷新后恢复结果；尚待新版本线上长请求验证。第四阶段未完成，第五阶段尚未开始。

@@ -14,6 +14,7 @@ from sabc.key_storage import encrypt_key, decrypt_key
 from sabc.llm import analyze, guide
 from sabc import planner
 from sabc import auth
+from sabc.jobs import jobs
 from sabc.rating import assess, DIMENSIONS, TYPES, RULE_VERSION, PROJECT_FIELDS
 from sabc.store import Store, utcnow
 from sabc.schema import validate_amounts, validate_proposal
@@ -119,7 +120,8 @@ def create_project(body:dict):
 def get_project(pid:str):
     p=project_or_404(pid)
     return {'project':p,'evidence':evidence_for(pid),
-            'assessments':[r for r in store.list('assessments') if r['project_id']==pid]}
+            'assessments':[r for r in store.list('assessments') if r['project_id']==pid],
+            'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running']}
 
 
 @app.patch('/api/projects/{pid}')
@@ -209,6 +211,32 @@ class SourceQuery(BaseModel):
 def fetch_source(pid:str,source:str,body:SourceQuery):
     project_or_404(pid)
     return collect(store,pid,source,body.query)
+
+
+class SlowOperation(BaseModel):
+    id:str=Field(pattern=r'^[a-f0-9-]{36}$')
+    operation:str=Field(pattern=r'^(chat|source)$')
+    source:str=''
+    payload:dict
+
+
+@app.post('/api/projects/{pid}/jobs',status_code=202)
+def start_job(pid:str,body:SlowOperation):
+    project_or_404(pid)
+    if body.operation=='chat':
+        parsed=Chat.model_validate(body.payload)
+        action=lambda: chat(pid,parsed)
+    else:
+        parsed=SourceQuery.model_validate(body.payload)
+        from sabc.sources import request_spec
+        request_spec(body.source,parsed.query)
+        action=lambda: fetch_source(pid,body.source,parsed)
+    return jobs.submit(store,body.id,pid,body.model_dump(exclude={'id'}),action)
+
+
+@app.get('/api/jobs/{ident}')
+def get_job(ident:str):
+    return jobs.read(store,ident)
 
 
 @app.get('/api/source-runs')

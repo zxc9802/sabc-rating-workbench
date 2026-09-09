@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { ArrowUpRight, ArrowUp, ArrowLeft, Plus, PanelLeft, FolderOpen, Building2, Database, Settings2, Check, ChevronRight, FileText, MessageSquare, ShieldCheck, CircleHelp, LoaderCircle, Paperclip, RefreshCw, X, Search, ExternalLink, TriangleAlert } from 'lucide-react';
-import { api, Bootstrap, Detail, Project, RecordData, Settings, displayDate, text } from '../lib/types';
+import { api, waitForJob, Bootstrap, Detail, Project, RecordData, Settings, displayDate, text } from '../lib/types';
 import { CompanyForm, EvidencePanel, ProjectForm, SettingsForm } from './workbench-forms';
 import { ReportPanel } from './report-panel';
 import { SessionGate } from './session-gate';
@@ -26,22 +26,34 @@ function Workbench() {
   const [message, setMessage] = useState('');
   const [filter, setFilter] = useState('');
   const chatEnd = useRef<HTMLDivElement>(null);
+  const running = useRef(false);
 
   async function reload() { const fresh = await api<Bootstrap>('/bootstrap'); setData(fresh); return fresh; }
-  useEffect(() => { reload().catch(e => setError(e.message)); }, []);
+  useEffect(() => { reload().then(() => { const id = sessionStorage.getItem('sabc-project'); if (id) return openProject(id); }).catch(e => setError(e.message)); }, []);
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [detail?.project.messages.length]);
   async function run(action: () => Promise<void>, success = '') {
+    if (running.current) return;
+    running.current = true;
     setBusy(true); setError(''); setNotice('');
     try { await action(); if (success) setNotice(success); }
     catch (e) { setError(e instanceof Error ? e.message : '操作失败，请重试。'); }
-    finally { setBusy(false); }
+    finally { running.current = false; setBusy(false); }
   }
-  async function openProject(id: string) { await run(async () => { setDetail(await api<Detail>('/projects/' + id)); setPage('projects'); setTab('chat'); }); }
+  async function openProject(id: string) { await run(async () => {
+    sessionStorage.setItem('sabc-project', id);
+    const fresh = await api<Detail>('/projects/' + id);
+    setDetail(fresh); setPage('projects'); setTab('chat');
+    if (fresh.active_jobs?.length) {
+      try { for (const job of fresh.active_jobs) await waitForJob(job.id); }
+      finally { setDetail(await api<Detail>('/projects/' + id)); await reload(); }
+    }
+  }); }
   async function refreshProject() { if (detail) setDetail(await api<Detail>('/projects/' + detail.project.id)); await reload(); }
   async function createProject() {
     if (!description.trim()) { setError('先描述你想做的项目。'); return; }
     await run(async () => {
       const p = await api<Project>('/projects', 'POST', { name: name.trim() || description.trim().slice(0, 24), description, project_type: kind });
+      sessionStorage.setItem('sabc-project', p.id);
       setDetail(await api<Detail>('/projects/' + p.id)); setTab('chat'); setDescription(''); setName(''); await reload();
     });
   }
@@ -62,7 +74,7 @@ function Workbench() {
   return <div className="workspace">
     <aside className="sidebar">
       <a className="brand" href="/" aria-label="SABC 项目评级首页"><span className="brand-symbol"><span /><span /><span /><span /></span><strong>SABC<span>项目评级工作台</span></strong></a>
-      <button className="new-project" onClick={() => { setPage('projects'); setDetail(null); }}><Plus size={18} /> 新建项目评估</button>
+      <button className="new-project" onClick={() => { sessionStorage.removeItem('sabc-project'); setPage('projects'); setDetail(null); }}><Plus size={18} /> 新建项目评估</button>
       <nav aria-label="主导航">{nav.map(item => <button key={item.id} className={page === item.id ? 'nav-item active' : 'nav-item'} onClick={() => { setPage(item.id); setNotice(''); setError(''); }}><item.icon size={18} />{item.title}{item.id === 'projects' && !!data?.projects.length && <span className="nav-count">{data.projects.length}</span>}</button>)}</nav>
       <div className="sidebar-note"><ShieldCheck size={18} /><p>先看依据，再做决定<span>每次评级保留公司版本与证据。</span></p></div>
       <div className="sidebar-footer"><span className="workspace-avatar">本</span><div>私有工作空间<small>单公司 · 数据持久保存</small></div></div>
@@ -82,7 +94,7 @@ function Workbench() {
           {!companyReady && <button className="company-prompt" onClick={() => setPage('company')}><Building2 size={21} /><span><strong>补充公司资料，让判断更贴近实际</strong><small>当前战略、可用预算和团队能力，会直接影响同一个项目的评级。</small></span><ArrowUpRight size={18} /></button>}
           <section className="recent-projects"><div className="section-heading"><h2>项目记录 <span>{data.projects.length}</span></h2>{!!data.projects.length && <label className="search-input"><Search size={16} /><input aria-label="搜索项目" placeholder="搜索项目" value={filter} onChange={e => setFilter(e.target.value)} /></label>}</div>{data.projects.length ? <div className="project-list">{data.projects.filter(p => p.name.includes(filter)).map(p => <button className="project-row" key={p.id} onClick={() => openProject(p.id)}><span className="document-icon"><FileText size={22} /></span><span className="project-row-title"><strong>{p.name}</strong><small>{data.types[p.project_type]} · {displayDate(p.updated_at)} 更新</small></span><span className={'grade-badge grade-' + (p.last_grade || 'NR')}>{p.last_grade || '待评估'}</span><ChevronRight size={17} /></button>)}</div> : <div className="empty-records"><FolderOpen size={25} /><p>你的第一份评估，会保存在这里。</p><span>可以随时补充证据，回来看评级如何变化。</span></div>}</section>
         </main> : <main className="page-content project-detail">
-          <button className="back-link" onClick={() => setDetail(null)}><ArrowLeft size={15} /> 全部项目</button><div className="project-title"><div><h1>{detail.project.name}</h1><p>{data.types[detail.project.project_type]}<span>·</span> 项目 v{detail.project.version}<span>·</span> {displayDate(detail.project.updated_at)} 更新</p></div><span className={'grade-badge large grade-' + (detail.project.last_grade || 'NR')}>{detail.project.last_grade || '待评估'}</span></div>
+          <button className="back-link" onClick={() => { sessionStorage.removeItem('sabc-project'); setDetail(null); }}><ArrowLeft size={15} /> 全部项目</button><div className="project-title"><div><h1>{detail.project.name}</h1><p>{data.types[detail.project.project_type]}<span>·</span> 项目 v{detail.project.version}<span>·</span> {displayDate(detail.project.updated_at)} 更新</p></div><span className={'grade-badge large grade-' + (detail.project.last_grade || 'NR')}>{detail.project.last_grade || '待评估'}</span></div>
           <div className="project-tabs" role="tablist" aria-label="项目工作区">{[{ id: 'chat' as ProjectTab, label: '项目访谈', icon: MessageSquare }, { id: 'facts' as ProjectTab, label: '项目资料', icon: FileText }, { id: 'evidence' as ProjectTab, label: '证据资料', icon: Paperclip }, { id: 'report' as ProjectTab, label: '评级报告', icon: ShieldCheck }].map(t => <button role="tab" aria-selected={tab === t.id} key={t.id} className={tab === t.id ? 'selected' : ''} onClick={() => setTab(t.id)}><t.icon size={16} />{t.label}{t.id === 'evidence' && <span>{detail.evidence.length}</span>}</button>)}</div>
           {tab === 'chat' ? <div className="interview-layout"><section className="conversation"><div className="conversation-heading"><span className="assistant-mark">S</span><div><strong>项目分析助手</strong><small>{data.settings.configured ? '根据已有资料，追问关键问题' : '结构化引导 · 分析模型尚未连接'}</small></div></div><div className="messages">{!detail.project.messages.length && <><div className="message user"><div className="message-label">项目描述</div><p>{text(detail.project.description)}</p></div><div className="message assistant"><div className="message-label">分析助手</div><p>{data.settings.configured ? '说说你最想确认的问题，我会结合项目描述与公司资料继续分析。' : '我们先把项目的信息整理完整。点击下方发送“开始整理”，按顺序补充关键信息。连接分析模型后，可以进行自由对话和评分分析。'}</p></div></>}{detail.project.messages.map((m, i) => <div className={'message ' + m.role} key={i}><div className="message-label">{m.role === 'user' ? '你' : '分析助手'}</div><p>{m.content}</p></div>)}{busy && <div className="thinking"><LoaderCircle size={15} className="spin" />正在处理…</div>}<div ref={chatEnd} /></div><form className="chat-form" onSubmit={e => { e.preventDefault(); sendMessage(); }}><label className="sr-only" htmlFor="message">回答或补充项目内容</label><textarea id="message" value={message} onChange={e => setMessage(e.target.value)} placeholder={detail.project.messages.length ? '回答问题，或补充新的项目信息…' : '输入“开始整理”，或说说你最关心的问题…'} rows={2} maxLength={12000} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }} /><div><span>Enter 发送 · Shift + Enter 换行</span><button className="send-button" aria-label="发送消息" disabled={busy || !message.trim()} type="submit"><ArrowUp size={20} /></button></div></form></section>
           <aside className="context-panel"><h2>这次评估的依据</h2><div className="context-block"><span>公司现状</span><strong>{text(data.company.name) || '尚未建立公司资料'}</strong><button className="text-button" onClick={() => setPage('company')}>{companyReady ? '查看公司基线' : '补充公司资料'}<ChevronRight size={14} /></button></div><div className="context-block"><span>项目关键信息</span><strong>{completed} / 7 项已整理</strong><div className="fact-progress" aria-label={`7项信息中已整理${completed}项`}>{projectFields.map(k => <i key={k} className={text(detail.project[k]) ? 'complete' : ''} />)}</div><button className="text-button" onClick={() => setTab('facts')}>检查项目资料<ChevronRight size={14} /></button></div><div className="context-block"><span>证据资料</span><strong>{detail.evidence.length} 条已保存</strong><button className="text-button" onClick={() => setTab('evidence')}>添加或核验资料<ChevronRight size={14} /></button></div><div className="context-tip"><CircleHelp size={17} /><p>不确定的信息可以直说。关键依据不足时，先补资料，不急着给等级。</p></div>{detail.project.pending_patch && Object.keys(detail.project.pending_patch).length > 0 && <button className="secondary" onClick={() => setTab('facts')}>核对模型整理的事实</button>}<button className="primary full" onClick={() => setTab('report')}>查看评级与下一步<ArrowUpRight size={16} /></button></aside></div> :
