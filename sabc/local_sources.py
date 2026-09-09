@@ -11,7 +11,7 @@ from sabc.store import utcnow
 
 REGIONS = [
     dict(id='suqian',name='宿迁（江苏）',url='https://data.suqian.gov.cn/sjkfpt.shtml',method='公开统计文章搜索',note='当前列表首篇匹配文章，非全量历史检索；累计口径见原文',example='suqian/search:商务统计'),
-    dict(id='aksu',name='阿克苏（新疆）',url='https://www.aks.gov.cn/sjkf/index.html',method='公开统计图表接口',note='地区生产总值及三次产业；季度可能为累计值，不代表全疆',example='aksu/gdp:2025'),
+    dict(id='aksu',name='阿克苏地区（新疆）',url='https://www.aks.gov.cn/sjkf/index.html',method='公开统计图表接口',note='覆盖阿克苏地区，不是阿克苏市单独统计，也不代表全疆；地区生产总值及三次产业，单位亿元；季度可能为累计值，不能相加或当作单季值',example='aksu/gdp:2025'),
     dict(id='hangzhou',name='杭州',url='https://data.hangzhou.gov.cn/',method='浏览器预览',note='已取富阳市场8行；完整下载需确认许可协议'),
     dict(id='shanghai',name='上海',url='https://data.sh.gov.cn/',method='暂缓',note='程序返回412，浏览器空白；尚未取得数据'),
     dict(id='guangzhou',name='广州',url='https://gddata.gd.gov.cn/index',method='浏览器预览',note='通过开放广东；已取养老机构预览10行，非全量'),
