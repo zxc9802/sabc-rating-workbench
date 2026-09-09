@@ -1,0 +1,1047 @@
+{
+  "version": 1,
+  "reserved_until_main_regression_passes": true,
+  "note": "模型回答独立评分；人工固定建议只用于规则与UI回归，不冒充模型输出质量。证据ID由实际网页保存结果替换。",
+  "cases": [
+    {
+      "id": "H01",
+      "name": "QA5-H01-外部报告封顶",
+      "project_type": "growth",
+      "description": "独立留出合成验收，非真实业务资料。两份行业报告只描述行业增长，没有本项目付费试点",
+      "project_fields": {
+        "target_user": "本项目限定的测试用户或内部员工",
+        "business_goal": "验证可持续经营价值",
+        "value_mechanism": "按本例实际试点口径兑现收入或节省工时",
+        "success_metric": "下一阶段复核本例指标并保持口径",
+        "timeframe": "8周",
+        "budget_requested": 10000,
+        "risks": "样本变化、资源排期与本例专属风险"
+      },
+      "evidence": {
+        "title": "QA5 H01 合成记录",
+        "source_locator": "qa-fixture:H01",
+        "source_type": "market",
+        "level": 1,
+        "verification_status": "verified",
+        "repeat_verified": false,
+        "data_period": "2026年6月至8月",
+        "valid_until": "2030-01-01",
+        "scope": "仅限此合成验收项目",
+        "content": "合成测试资料，不是真实经营结果。两份行业报告只描述行业增长，没有本项目付费试点"
+      },
+      "company_confirmed": true,
+      "expected_report_after_manual_review": "B",
+      "critical_check": "外部资料即使已核验仍最多E1",
+      "manual_rule_proposal": {
+        "dimensions": {
+          "strategy": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "market": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "return": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "resources": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "replication": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "cash": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "risk": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "opportunity": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        },
+        "assumptions": [
+          {
+            "id": "assumption1",
+            "claim": "合成试点条件可在下一阶段保持",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ],
+            "validation_method": "在相同口径下复测",
+            "pass_threshold": "达成本例已记录指标",
+            "fail_threshold": "触及本例亏损或风险条件"
+          }
+        ],
+        "pros": [
+          "具备明确目标",
+          "已有合成材料可核对",
+          "有明确验证阶段"
+        ],
+        "cons": [
+          "样本条件可能变化",
+          "资源排期需要复核",
+          "投入仍需负责人批准"
+        ],
+        "policy_caps": [],
+        "vetoes": [],
+        "s_conditions": {
+          "repeatable": true,
+          "resources_available": true,
+          "portfolio_feasible": true,
+          "review_complete": true
+        }
+      },
+      "model_message": "请独立分析本例材料的依据、局限、风险和可执行下一步。合成材料只能证明测试条件。不要直接套用目标等级；缺信息就保留未知，指出需要人工核对的内容。"
+    },
+    {
+      "id": "H02",
+      "name": "QA5-H02-多周期服务验证",
+      "project_type": "growth",
+      "description": "独立留出合成验收，非真实业务资料。合成试点连续3个月各20家付费客户，每月收入20000元、变动成本12000元；三月留存均80%；专人排期、现金与组合机会成本已核对",
+      "project_fields": {
+        "target_user": "本项目限定的测试用户或内部员工",
+        "business_goal": "验证可持续经营价值",
+        "value_mechanism": "按本例实际试点口径兑现收入或节省工时",
+        "success_metric": "下一阶段复核本例指标并保持口径",
+        "timeframe": "8周",
+        "budget_requested": 10000,
+        "risks": "样本变化、资源排期与本例专属风险"
+      },
+      "evidence": {
+        "title": "QA5 H02 合成记录",
+        "source_locator": "qa-fixture:H02",
+        "source_type": "experiment",
+        "level": 3,
+        "verification_status": "verified",
+        "repeat_verified": true,
+        "data_period": "2026年6月至8月",
+        "valid_until": "2030-01-01",
+        "scope": "仅限此合成验收项目",
+        "content": "合成测试资料，不是真实经营结果。合成试点连续3个月各20家付费客户，每月收入20000元、变动成本12000元；三月留存均80%；专人排期、现金与组合机会成本已核对"
+      },
+      "company_confirmed": true,
+      "expected_report_after_manual_review": "S",
+      "critical_check": "人工核验直接重复证据和四项S门槛后才可S",
+      "manual_rule_proposal": {
+        "dimensions": {
+          "strategy": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "market": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "return": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "resources": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "replication": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "cash": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "risk": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "opportunity": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        },
+        "assumptions": [
+          {
+            "id": "assumption1",
+            "claim": "合成试点条件可在下一阶段保持",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ],
+            "validation_method": "在相同口径下复测",
+            "pass_threshold": "达成本例已记录指标",
+            "fail_threshold": "触及本例亏损或风险条件"
+          }
+        ],
+        "pros": [
+          "具备明确目标",
+          "已有合成材料可核对",
+          "有明确验证阶段"
+        ],
+        "cons": [
+          "样本条件可能变化",
+          "资源排期需要复核",
+          "投入仍需负责人批准"
+        ],
+        "policy_caps": [],
+        "vetoes": [],
+        "s_conditions": {
+          "repeatable": true,
+          "resources_available": true,
+          "portfolio_feasible": true,
+          "review_complete": true
+        }
+      },
+      "model_message": "请独立分析本例材料的依据、局限、风险和可执行下一步。合成材料只能证明测试条件。不要直接套用目标等级；缺信息就保留未知，指出需要人工核对的内容。"
+    },
+    {
+      "id": "H03",
+      "name": "QA5-H03-内部节时直接试点",
+      "project_type": "internal",
+      "description": "独立留出合成验收，非真实业务资料。合成内部试点连续4周，10名员工每周每人节约2小时，总计80小时；单人每小时成本100元；质量抽检未下降",
+      "project_fields": {
+        "target_user": "本项目限定的测试用户或内部员工",
+        "business_goal": "验证可持续经营价值",
+        "value_mechanism": "按本例实际试点口径兑现收入或节省工时",
+        "success_metric": "下一阶段复核本例指标并保持口径",
+        "timeframe": "8周",
+        "budget_requested": 10000,
+        "risks": "样本变化、资源排期与本例专属风险"
+      },
+      "evidence": {
+        "title": "QA5 H03 合成记录",
+        "source_locator": "qa-fixture:H03",
+        "source_type": "experiment",
+        "level": 2,
+        "verification_status": "verified",
+        "repeat_verified": false,
+        "data_period": "2026年6月至8月",
+        "valid_until": "2030-01-01",
+        "scope": "仅限此合成验收项目",
+        "content": "合成测试资料，不是真实经营结果。合成内部试点连续4周，10名员工每周每人节约2小时，总计80小时；单人每小时成本100元；质量抽检未下降"
+      },
+      "company_confirmed": true,
+      "expected_report_after_manual_review": "A",
+      "critical_check": "内部收益无需对外付费；节约工时80、对应成本8000",
+      "manual_rule_proposal": {
+        "dimensions": {
+          "strategy": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "market": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "return": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "resources": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "replication": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "cash": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "risk": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "opportunity": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        },
+        "assumptions": [
+          {
+            "id": "assumption1",
+            "claim": "合成试点条件可在下一阶段保持",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ],
+            "validation_method": "在相同口径下复测",
+            "pass_threshold": "达成本例已记录指标",
+            "fail_threshold": "触及本例亏损或风险条件"
+          }
+        ],
+        "pros": [
+          "具备明确目标",
+          "已有合成材料可核对",
+          "有明确验证阶段"
+        ],
+        "cons": [
+          "样本条件可能变化",
+          "资源排期需要复核",
+          "投入仍需负责人批准"
+        ],
+        "policy_caps": [],
+        "vetoes": [],
+        "s_conditions": {
+          "repeatable": true,
+          "resources_available": true,
+          "portfolio_feasible": true,
+          "review_complete": true
+        }
+      },
+      "model_message": "请独立分析本例材料的依据、局限、风险和可执行下一步。合成材料只能证明测试条件。不要直接套用目标等级；缺信息就保留未知，指出需要人工核对的内容。"
+    },
+    {
+      "id": "H04",
+      "name": "QA5-H04-缺失方向性判断",
+      "project_type": "internal",
+      "description": "独立留出合成验收，非真实业务资料。合成试点仅记录参与人数，没有处理时间或成本基线，经营回报方向无法判断",
+      "project_fields": {
+        "target_user": "本项目限定的测试用户或内部员工",
+        "business_goal": "验证可持续经营价值",
+        "value_mechanism": "按本例实际试点口径兑现收入或节省工时",
+        "success_metric": "下一阶段复核本例指标并保持口径",
+        "timeframe": "8周",
+        "budget_requested": 10000,
+        "risks": "样本变化、资源排期与本例专属风险"
+      },
+      "evidence": {
+        "title": "QA5 H04 合成记录",
+        "source_locator": "qa-fixture:H04",
+        "source_type": "experiment",
+        "level": 2,
+        "verification_status": "verified",
+        "repeat_verified": false,
+        "data_period": "2026年6月至8月",
+        "valid_until": "2030-01-01",
+        "scope": "仅限此合成验收项目",
+        "content": "合成测试资料，不是真实经营结果。合成试点仅记录参与人数，没有处理时间或成本基线，经营回报方向无法判断"
+      },
+      "company_confirmed": true,
+      "expected_report_after_manual_review": "NR",
+      "critical_check": "回报维度保留null/unknown，不补造分数",
+      "manual_rule_proposal": {
+        "dimensions": {
+          "strategy": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "market": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "return": {
+            "score": null,
+            "reason": "缺少处理时间与成本基线",
+            "basis": "unknown",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "resources": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "replication": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "cash": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "risk": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "opportunity": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        },
+        "assumptions": [
+          {
+            "id": "assumption1",
+            "claim": "合成试点条件可在下一阶段保持",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ],
+            "validation_method": "在相同口径下复测",
+            "pass_threshold": "达成本例已记录指标",
+            "fail_threshold": "触及本例亏损或风险条件"
+          }
+        ],
+        "pros": [
+          "具备明确目标",
+          "已有合成材料可核对",
+          "有明确验证阶段"
+        ],
+        "cons": [
+          "样本条件可能变化",
+          "资源排期需要复核",
+          "投入仍需负责人批准"
+        ],
+        "policy_caps": [],
+        "vetoes": [],
+        "s_conditions": {
+          "repeatable": true,
+          "resources_available": true,
+          "portfolio_feasible": true,
+          "review_complete": true
+        }
+      },
+      "model_message": "请独立分析本例材料的依据、局限、风险和可执行下一步。合成材料只能证明测试条件。不要直接套用目标等级；缺信息就保留未知，指出需要人工核对的内容。"
+    },
+    {
+      "id": "H05",
+      "name": "QA5-H05-过期直接验证",
+      "project_type": "strategic",
+      "description": "独立留出合成验收，非真实业务资料。合成能力项目只有2023年的内部试点；有效复核日期为2024-12-31，没有续验",
+      "project_fields": {
+        "target_user": "本项目限定的测试用户或内部员工",
+        "business_goal": "验证可持续经营价值",
+        "value_mechanism": "按本例实际试点口径兑现收入或节省工时",
+        "success_metric": "下一阶段复核本例指标并保持口径",
+        "timeframe": "8周",
+        "budget_requested": 10000,
+        "risks": "样本变化、资源排期与本例专属风险"
+      },
+      "evidence": {
+        "title": "QA5 H05 合成记录",
+        "source_locator": "qa-fixture:H05",
+        "source_type": "experiment",
+        "level": 3,
+        "verification_status": "verified",
+        "repeat_verified": true,
+        "data_period": "2023年",
+        "valid_until": "2024-12-31",
+        "scope": "仅限此合成验收项目",
+        "content": "合成测试资料，不是真实经营结果。合成能力项目只有2023年的内部试点；有效复核日期为2024-12-31，没有续验"
+      },
+      "company_confirmed": true,
+      "expected_report_after_manual_review": "B",
+      "critical_check": "过期证据最多E1并提示重新核验",
+      "manual_rule_proposal": {
+        "dimensions": {
+          "strategy": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "market": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "return": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "resources": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "replication": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "cash": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "risk": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "opportunity": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        },
+        "assumptions": [
+          {
+            "id": "assumption1",
+            "claim": "合成试点条件可在下一阶段保持",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ],
+            "validation_method": "在相同口径下复测",
+            "pass_threshold": "达成本例已记录指标",
+            "fail_threshold": "触及本例亏损或风险条件"
+          }
+        ],
+        "pros": [
+          "具备明确目标",
+          "已有合成材料可核对",
+          "有明确验证阶段"
+        ],
+        "cons": [
+          "样本条件可能变化",
+          "资源排期需要复核",
+          "投入仍需负责人批准"
+        ],
+        "policy_caps": [],
+        "vetoes": [],
+        "s_conditions": {
+          "repeatable": true,
+          "resources_available": true,
+          "portfolio_feasible": true,
+          "review_complete": true
+        }
+      },
+      "model_message": "请独立分析本例材料的依据、局限、风险和可执行下一步。合成材料只能证明测试条件。不要直接套用目标等级；缺信息就保留未知，指出需要人工核对的内容。"
+    },
+    {
+      "id": "H06",
+      "name": "QA5-H06-未确认公司条件",
+      "project_type": "strategic",
+      "description": "独立留出合成验收，非真实业务资料。合成项目材料完整，但公司预算与团队基线尚未经负责人确认",
+      "project_fields": {
+        "target_user": "本项目限定的测试用户或内部员工",
+        "business_goal": "验证可持续经营价值",
+        "value_mechanism": "按本例实际试点口径兑现收入或节省工时",
+        "success_metric": "下一阶段复核本例指标并保持口径",
+        "timeframe": "8周",
+        "budget_requested": 10000,
+        "risks": "样本变化、资源排期与本例专属风险"
+      },
+      "evidence": {
+        "title": "QA5 H06 合成记录",
+        "source_locator": "qa-fixture:H06",
+        "source_type": "experiment",
+        "level": 3,
+        "verification_status": "verified",
+        "repeat_verified": true,
+        "data_period": "2026年6月至8月",
+        "valid_until": "2030-01-01",
+        "scope": "仅限此合成验收项目",
+        "content": "合成测试资料，不是真实经营结果。合成项目材料完整，但公司预算与团队基线尚未经负责人确认"
+      },
+      "company_confirmed": false,
+      "expected_report_after_manual_review": "NR",
+      "critical_check": "公司confirmed=false必须NR",
+      "manual_rule_proposal": {
+        "dimensions": {
+          "strategy": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "market": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "return": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "resources": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "replication": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "cash": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "risk": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "opportunity": {
+            "score": 4.5,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        },
+        "assumptions": [
+          {
+            "id": "assumption1",
+            "claim": "合成试点条件可在下一阶段保持",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ],
+            "validation_method": "在相同口径下复测",
+            "pass_threshold": "达成本例已记录指标",
+            "fail_threshold": "触及本例亏损或风险条件"
+          }
+        ],
+        "pros": [
+          "具备明确目标",
+          "已有合成材料可核对",
+          "有明确验证阶段"
+        ],
+        "cons": [
+          "样本条件可能变化",
+          "资源排期需要复核",
+          "投入仍需负责人批准"
+        ],
+        "policy_caps": [],
+        "vetoes": [],
+        "s_conditions": {
+          "repeatable": true,
+          "resources_available": true,
+          "portfolio_feasible": true,
+          "review_complete": true
+        }
+      },
+      "model_message": "请独立分析本例材料的依据、局限、风险和可执行下一步。合成材料只能证明测试条件。不要直接套用目标等级；缺信息就保留未知，指出需要人工核对的内容。"
+    },
+    {
+      "id": "H07",
+      "name": "QA5-H07-明确结构亏损",
+      "project_type": "asset",
+      "description": "独立留出合成验收，非真实业务资料。合成设备试验100件，每件收入100元，变动成本140元；已核实无法通过提价或工艺调整改善；负责人确认结构性亏损否决",
+      "project_fields": {
+        "target_user": "本项目限定的测试用户或内部员工",
+        "business_goal": "验证可持续经营价值",
+        "value_mechanism": "按本例实际试点口径兑现收入或节省工时",
+        "success_metric": "下一阶段复核本例指标并保持口径",
+        "timeframe": "8周",
+        "budget_requested": 10000,
+        "risks": "样本变化、资源排期与本例专属风险"
+      },
+      "evidence": {
+        "title": "QA5 H07 合成记录",
+        "source_locator": "qa-fixture:H07",
+        "source_type": "experiment",
+        "level": 2,
+        "verification_status": "verified",
+        "repeat_verified": false,
+        "data_period": "2026年6月至8月",
+        "valid_until": "2030-01-01",
+        "scope": "仅限此合成验收项目",
+        "content": "合成测试资料，不是真实经营结果。合成设备试验100件，每件收入100元，变动成本140元；已核实无法通过提价或工艺调整改善；负责人确认结构性亏损否决"
+      },
+      "company_confirmed": true,
+      "expected_report_after_manual_review": "C",
+      "critical_check": "单件负40；确认否决后C且保留旧报告",
+      "manual_rule_proposal": {
+        "dimensions": {
+          "strategy": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "market": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "return": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "resources": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "replication": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "cash": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "risk": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "opportunity": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        },
+        "assumptions": [
+          {
+            "id": "assumption1",
+            "claim": "合成试点条件可在下一阶段保持",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ],
+            "validation_method": "在相同口径下复测",
+            "pass_threshold": "达成本例已记录指标",
+            "fail_threshold": "触及本例亏损或风险条件"
+          }
+        ],
+        "pros": [
+          "具备明确目标",
+          "已有合成材料可核对",
+          "有明确验证阶段"
+        ],
+        "cons": [
+          "样本条件可能变化",
+          "资源排期需要复核",
+          "投入仍需负责人批准"
+        ],
+        "policy_caps": [],
+        "vetoes": [
+          {
+            "reason": "已确认结构性亏损且无现实改善路径",
+            "confirmed": true,
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        ],
+        "s_conditions": {
+          "repeatable": true,
+          "resources_available": true,
+          "portfolio_feasible": true,
+          "review_complete": true
+        }
+      },
+      "model_message": "请独立分析本例材料的依据、局限、风险和可执行下一步。合成材料只能证明测试条件。不要直接套用目标等级；缺信息就保留未知，指出需要人工核对的内容。"
+    },
+    {
+      "id": "H08",
+      "name": "QA5-H08-未知许可不能否决",
+      "project_type": "asset",
+      "description": "独立留出合成验收，非真实业务资料。合成设备试验经济条件良好，但许可适用范围未知；没有确认违法事实；风险方向性判断未知",
+      "project_fields": {
+        "target_user": "本项目限定的测试用户或内部员工",
+        "business_goal": "验证可持续经营价值",
+        "value_mechanism": "按本例实际试点口径兑现收入或节省工时",
+        "success_metric": "下一阶段复核本例指标并保持口径",
+        "timeframe": "8周",
+        "budget_requested": 10000,
+        "risks": "样本变化、资源排期与本例专属风险"
+      },
+      "evidence": {
+        "title": "QA5 H08 合成记录",
+        "source_locator": "qa-fixture:H08",
+        "source_type": "experiment",
+        "level": 2,
+        "verification_status": "verified",
+        "repeat_verified": false,
+        "data_period": "2026年6月至8月",
+        "valid_until": "2030-01-01",
+        "scope": "仅限此合成验收项目",
+        "content": "合成测试资料，不是真实经营结果。合成设备试验经济条件良好，但许可适用范围未知；没有确认违法事实；风险方向性判断未知"
+      },
+      "company_confirmed": true,
+      "expected_report_after_manual_review": "NR",
+      "critical_check": "未知许可不得确认违法；风险未知NR而不是C",
+      "manual_rule_proposal": {
+        "dimensions": {
+          "strategy": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "market": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "return": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "resources": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "replication": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "cash": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "risk": {
+            "score": null,
+            "reason": "许可适用情况未知，不能确认违法",
+            "basis": "unknown",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          },
+          "opportunity": {
+            "score": 4,
+            "reason": "合成验收中人工已核对的方向性判断，需按本例材料逐项说明",
+            "basis": "fact",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ]
+          }
+        },
+        "assumptions": [
+          {
+            "id": "assumption1",
+            "claim": "合成试点条件可在下一阶段保持",
+            "evidence_ids": [
+              "REPLACE_WITH_UI_EVIDENCE_ID"
+            ],
+            "validation_method": "在相同口径下复测",
+            "pass_threshold": "达成本例已记录指标",
+            "fail_threshold": "触及本例亏损或风险条件"
+          }
+        ],
+        "pros": [
+          "具备明确目标",
+          "已有合成材料可核对",
+          "有明确验证阶段"
+        ],
+        "cons": [
+          "样本条件可能变化",
+          "资源排期需要复核",
+          "投入仍需负责人批准"
+        ],
+        "policy_caps": [],
+        "vetoes": [],
+        "s_conditions": {
+          "repeatable": true,
+          "resources_available": true,
+          "portfolio_feasible": true,
+          "review_complete": true
+        }
+      },
+      "model_message": "请独立分析本例材料的依据、局限、风险和可执行下一步。合成材料只能证明测试条件。不要直接套用目标等级；缺信息就保留未知，指出需要人工核对的内容。"
+    }
+  ]
+}
