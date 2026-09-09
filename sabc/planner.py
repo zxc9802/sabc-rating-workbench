@@ -44,6 +44,7 @@ law: 法规关键词或id:已知编号；trends: 两位地区代码，只有热�
 stats、miit必须使用输入中已有官方文章URL；cninfo必须使用输入已有的官方PDF URL。
 github仓库、SEC CIK和具体目录/法规编号必须来自输入或能力示例，不得猜测。
 地区统计期、抽样限制和更新时刻不能混淆。确需数据但缺少地区/标识时说明需要补充，不擅自猜测。'''
+    system+='''\n选源理由也必须遵守数据能力边界：零售额、GDP、人口等总量不能推算经营主体数、可触达商家数、付费客户数或项目收入。资料没有对应数量字段及可验证估算方法时，不声称该来源可以估算这些数量。只描述当前来源确实能够提供的指标，以及仍需补充的项目直接证据。'''
     context = {'project': project, 'company': company, 'evidence': evidence,
                'conversation': messages[-16:], 'sources': capabilities, 'regions': regions}
     payload = {'model': model, 'temperature': 0.1, 'response_format': {'type': 'json_object'},
