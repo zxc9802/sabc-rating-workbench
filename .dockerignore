@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+.venv*
+node_modules
+.next*
+data
+artifacts
+__pycache__
+**/__pycache__
+.pytest_cache
+*.log
+*.tsbuildinfo
+.impeccable

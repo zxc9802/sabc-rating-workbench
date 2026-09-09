@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+data/
+.env
+*.log
+artifacts/
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.next-qa/
+
+.venv-mac/
+.env.*
+!.env.example

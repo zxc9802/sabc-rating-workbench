@@ -1,0 +1,530 @@
+{
+  "scope": "大陆31个省级地区为当前逐省核验清单；未证明地市全覆盖",
+  "provinces": [
+    {
+      "province": "北京",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://data.beijing.gov.cn/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "北京市政务数据资源网",
+        "area": "北京市",
+        "level": "省级",
+        "url": "http://data.beijing.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 301,
+        "redirect": "https://data.beijing.gov.cn:443/",
+        "checked_at": "2026-09-09T10:27:54.833810+00:00"
+      }
+    },
+    {
+      "province": "天津",
+      "status": "旧域名现为天津市数据局官网，需继续查找开放数据入口",
+      "candidate_url": "https://data.tj.gov.cn/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "天津市信息资源统一开放",
+        "area": "天津市",
+        "level": "省级",
+        "url": "https://data.tj.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "reachable_not_integrated",
+        "http_status": 200,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.273238+00:00",
+        "page_title": "天津市数据局"
+      }
+    },
+    {
+      "province": "河北",
+      "status": "待补查当前官方入口",
+      "candidate_url": null,
+      "integrated_regions": []
+    },
+    {
+      "province": "山西",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://www.shanxi.gov.cn/sj/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "山西省人民政府-政府数据",
+        "area": "山西省",
+        "level": "省级",
+        "url": "http://www.shanxi.gov.cn/sj/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 404,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:54.747810+00:00"
+      }
+    },
+    {
+      "province": "内蒙古",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://www.nmg.gov.cn/col/col1586/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "内蒙古自治区人民政府",
+        "area": "-政内蒙古自治区",
+        "level": "省级",
+        "url": "http://www.nmg.gov.cn/col/col1586/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 301,
+        "redirect": "https://www.nmg.gov.cn/col/col1586/",
+        "checked_at": "2026-09-09T10:27:54.801810+00:00"
+      }
+    },
+    {
+      "province": "辽宁",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://www.ln.gov.cn/zfsj/sjfb/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "辽宁省人民政府",
+        "area": "-数据发布辽宁省",
+        "level": "省级",
+        "url": "http://www.ln.gov.cn/zfsj/sjfb/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 302,
+        "redirect": "https://www.ln.gov.cn/zfsj/sjfb/",
+        "checked_at": "2026-09-09T10:27:54.912811+00:00"
+      }
+    },
+    {
+      "province": "吉林",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://www.jl.gov.cn/sj/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "吉林省人民政府",
+        "area": "-数据吉林省",
+        "level": "省级",
+        "url": "http://www.jl.gov.cn/sj/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 404,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:54.970810+00:00"
+      }
+    },
+    {
+      "province": "黑龙江",
+      "status": "待补查当前官方入口",
+      "candidate_url": null,
+      "integrated_regions": []
+    },
+    {
+      "province": "上海",
+      "status": "访问412，尚未接通",
+      "candidate_url": "https://data.sh.gov.cn/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "上海市公共数据开放平台",
+        "area": "上海市",
+        "level": "省级",
+        "url": "https://data.sh.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 412,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.023706+00:00"
+      }
+    },
+    {
+      "province": "江苏",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://www.jiangsu.gov.cn/col/col33688/index.html",
+      "integrated_regions": [],
+      "probe": {
+        "name": "数据开放-江苏省人民政府",
+        "area": "江苏省",
+        "level": "省级",
+        "url": "http://www.jiangsu.gov.cn/col/col33688/index.html",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 403,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.004706+00:00"
+      }
+    },
+    {
+      "province": "浙江",
+      "status": "杭州仅历史快照；省平台跳转及其他地市待核验",
+      "candidate_url": "http://data.zjzwfw.gov.cn/jdop_front/index.do",
+      "integrated_regions": [],
+      "probe": {
+        "name": "数据开放-浙江省人民政府",
+        "area": "浙江省",
+        "level": "省级",
+        "url": "http://data.zjzwfw.gov.cn/jdop_front/index.do",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 301,
+        "redirect": "https://data.zjzwfw.gov.cn/jdop_front/index.do",
+        "checked_at": "2026-09-09T10:27:55.054217+00:00"
+      }
+    },
+    {
+      "province": "安徽",
+      "status": "省级官方入口要求统一登录，跳过；宿州已接入，继续查其他地市",
+      "candidate_url": "https://www.ahzwfw.gov.cn/?index=nav",
+      "integrated_regions": [
+        "suzhou_ah"
+      ],
+      "checked_at": "2026-09-09T10:49:37.798907+00:00",
+      "evidence": [
+        "artifacts/anhui-nav.html"
+      ]
+    },
+    {
+      "province": "福建",
+      "status": "省平台普遍开放目录已支持关键词搜索与公开预览；最多30行，按来源核对省市范围",
+      "candidate_url": "https://data.fujian.gov.cn/",
+      "integrated_regions": [
+        "fujian"
+      ],
+      "probe": {
+        "name": "开放福建",
+        "area": "福建省",
+        "level": "省级",
+        "url": "https://data.fujian.gov.cn/odweb/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 404,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.203780+00:00"
+      },
+      "evidence": [
+        "artifacts/fujian-live.json",
+        "artifacts/fujian-open-types.json"
+      ],
+      "checked_at": "2026-09-09T10:59:11.858298+00:00"
+    },
+    {
+      "province": "江西",
+      "status": "旧站公告迁移至新域名；匿名目录搜索可用，所试预览返回暂无数据，未接入",
+      "candidate_url": "https://kfpt.jiangxi.cn/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "江西省政府数据开放网站",
+        "area": "江西省",
+        "level": "省级",
+        "url": "http://data.jiangxi.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "reachable_not_integrated",
+        "http_status": 200,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.082219+00:00",
+        "page_title": "江西省公共数据开放平台"
+      }
+    },
+    {
+      "province": "山东",
+      "status": "省平台及12个地市已支持自动取数",
+      "candidate_url": "https://data.sd.gov.cn/portal/index",
+      "integrated_regions": [
+        "shandong",
+        "zaozhuang",
+        "zibo",
+        "dongying",
+        "yantai",
+        "weifang",
+        "taian",
+        "rizhao",
+        "linyi",
+        "dezhou",
+        "liaocheng",
+        "binzhou",
+        "heze"
+      ],
+      "probe": {
+        "name": "山东公共数据开放网",
+        "area": "山东省",
+        "level": "省级",
+        "url": "http://data.sd.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 301,
+        "redirect": "https://data.sd.gov.cn/",
+        "checked_at": "2026-09-09T10:27:55.154781+00:00"
+      }
+    },
+    {
+      "province": "河南",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://data.hnzwfw.gov.cn/odweb/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "河南省公共数据开放平台",
+        "area": "河南省",
+        "level": "省级",
+        "url": "http://data.hnzwfw.gov.cn/odweb/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 302,
+        "redirect": "https://www.hnzwfw.gov.cn",
+        "checked_at": "2026-09-09T10:27:55.200779+00:00"
+      }
+    },
+    {
+      "province": "湖北",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "https://www.hubei.gov.cn/data/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "湖北省公共数据开放平台",
+        "area": "湖北省",
+        "level": "省级",
+        "url": "https://www.hubei.gov.cn/data/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 412,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.236239+00:00"
+      }
+    },
+    {
+      "province": "湖南",
+      "status": "匿名目录搜索可用；本次人口法规目录标为不予开放，已跳过，其他目录待查",
+      "candidate_url": "https://data.hunan.gov.cn/etongframework-web/main.do",
+      "integrated_regions": [],
+      "probe": {
+        "name": "湖南政府大数据公众门户",
+        "area": "湖南省",
+        "level": "省级",
+        "url": "https://data.hunan.gov.cn/etongframework-web/main.do",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "reachable_not_integrated",
+        "http_status": 200,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.378401+00:00",
+        "page_title": "湖南政务大数据公众门户"
+      },
+      "checked_at": "2026-09-09T10:49:37.798907+00:00",
+      "evidence": [
+        "artifacts/hunan-detail-probe.html"
+      ]
+    },
+    {
+      "province": "广东",
+      "status": "深圳按目录取数；广州仅历史快照，其他地区待完成",
+      "candidate_url": "https://gddata.gd.gov.cn/",
+      "integrated_regions": [
+        "shenzhen"
+      ],
+      "probe": {
+        "name": "“开放广东”政府数据统一",
+        "area": "广东省",
+        "level": "省级",
+        "url": "http://gddata.gd.gov.cn",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "error": "RemoteProtocolError:Server disconnected without sending a response."
+      }
+    },
+    {
+      "province": "广西",
+      "status": "已在保留证书校验下兼容旧TLS并访问新站；匿名实际取数待验证",
+      "candidate_url": "https://gxsjkf.dsjfzj.gxzf.gov.cn:8183/opendata/home",
+      "integrated_regions": [],
+      "probe": {
+        "name": "广西壮族自治区公共数据",
+        "area": "广西壮族自治区",
+        "level": "省级",
+        "url": "http://data.gxzf.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 301,
+        "redirect": "https://data.gxzf.gov.cn/",
+        "checked_at": "2026-09-09T10:27:55.317400+00:00"
+      },
+      "checked_at": "2026-09-09T10:49:37.798907+00:00",
+      "evidence": [
+        "artifacts/guangxi-compatible-home.html"
+      ]
+    },
+    {
+      "province": "海南",
+      "status": "首页目录API可匿名访问；已查看税收目录，下载要求登录申请，样例尚未取得",
+      "candidate_url": "https://data.hainan.gov.cn/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "海南省政府数据统一开放",
+        "area": "海南省",
+        "level": "省级",
+        "url": "http://data.hainan.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 301,
+        "redirect": "https://data.hainan.gov.cn/",
+        "checked_at": "2026-09-09T10:27:55.423193+00:00"
+      },
+      "checked_at": "2026-09-09T10:49:37.798907+00:00",
+      "evidence": [
+        "artifacts/hainan-home-api.json",
+        "artifacts/hainan-tax-detail.html"
+      ]
+    },
+    {
+      "province": "重庆",
+      "status": "待补查当前官方入口",
+      "candidate_url": null,
+      "integrated_regions": []
+    },
+    {
+      "province": "四川",
+      "status": "已接达州、攀枝花、雅安、宜宾；省平台及其他地市待完成",
+      "candidate_url": "https://www.scdata.net.cn/",
+      "integrated_regions": [
+        "dazhou",
+        "panzhihua",
+        "yaan",
+        "yibin"
+      ],
+      "probe": {
+        "name": "四川公共数据开放网",
+        "area": "四川省",
+        "level": "省级",
+        "url": "http://www.scdata.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "error": "ConnectTimeout:timed out"
+      }
+    },
+    {
+      "province": "贵州",
+      "status": "当前官网及公开查询脚本可访问；首轮目录请求参数解析失败，待适配",
+      "candidate_url": "https://data.guizhou.gov.cn/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "贵州省政府数据开放平台",
+        "area": "贵州省",
+        "level": "省级",
+        "url": "http://data.guizhou.gov.cn/#!/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "error": "ConnectTimeout:timed out"
+      },
+      "evidence": [
+        "artifacts/guizhou-search-probe.json"
+      ]
+    },
+    {
+      "province": "云南",
+      "status": "官网开放门户显示敬请期待，省级开放服务尚未可用；继续查地市入口",
+      "candidate_url": "https://data.yn.gov.cn/",
+      "integrated_regions": [],
+      "checked_at": "2026-09-09T10:49:37.798907+00:00",
+      "evidence": [
+        "artifacts/yunnan-probe.html"
+      ]
+    },
+    {
+      "province": "西藏",
+      "status": "待补查当前官方入口",
+      "candidate_url": null,
+      "integrated_regions": []
+    },
+    {
+      "province": "陕西",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://www.sndata.gov.cn/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "陕西省公共数据开放平台",
+        "area": "陕西省",
+        "level": "省级",
+        "url": "http://www.sndata.gov.cn/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "error": "ConnectError:[Errno 11001] getaddrinfo failed"
+      }
+    },
+    {
+      "province": "甘肃",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://www.gansu.gov.cn/col/col4420/",
+      "integrated_regions": [],
+      "probe": {
+        "name": "甘肃省人民政府",
+        "area": "-信息公开甘肃省",
+        "level": "省级",
+        "url": "http://www.gansu.gov.cn/col/col4420/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 412,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.502485+00:00"
+      }
+    },
+    {
+      "province": "青海",
+      "status": "旧入口受阻或跳转，待核验新入口",
+      "candidate_url": "http://data.qinghai.gov.cn/p/#/index",
+      "integrated_regions": [],
+      "probe": {
+        "name": "青海省人民政府政务公开",
+        "area": "青海省",
+        "level": "省级",
+        "url": "http://data.qinghai.gov.cn/p/#/index",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "http_status": 404,
+        "redirect": null,
+        "checked_at": "2026-09-09T10:27:55.497470+00:00"
+      }
+    },
+    {
+      "province": "宁夏",
+      "status": "补充开放平台候选入口，当前请求超时，暂缓",
+      "candidate_url": "http://opendata.nx.gov.cn/portal/index",
+      "integrated_regions": [],
+      "probe": {
+        "name": "开放宁夏",
+        "area": "宁夏回族自治区",
+        "level": "省级",
+        "url": "http://ningxiadata.gov.cn/odweb/",
+        "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+        "reference_year": 2021,
+        "status": "deferred",
+        "error": "ConnectError:[Errno 11001] getaddrinfo failed"
+      },
+      "checked_at": "2026-09-09T10:49:37.798907+00:00",
+      "evidence": [
+        "artifacts/ningxia-hainan-probe.json"
+      ]
+    },
+    {
+      "province": "新疆",
+      "status": "待补查当前官方入口",
+      "candidate_url": null,
+      "integrated_regions": []
+    }
+  ]
+}

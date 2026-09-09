@@ -1,0 +1,1752 @@
+[
+  {
+    "name": "北京市政务数据资源网",
+    "area": "北京市",
+    "level": "省级",
+    "url": "http://data.beijing.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "天津市信息资源统一开放",
+    "area": "天津市",
+    "level": "省级",
+    "url": "https://data.tj.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "承德市政府数据开放平台",
+    "area": "河北省承德市",
+    "level": "地市级",
+    "url": "http://www.chengde.gov.cn/shuju/web/index",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "石家庄市人民政府-数据发",
+    "area": "河北省石家庄市",
+    "level": "地市级",
+    "url": "http://www.sjz.gov.cn/col/1596004085768/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "衡水市人民政府-数据开放",
+    "area": "河北省衡水市",
+    "level": "地市级",
+    "url": "http://www.hengshui.gov.cn/col/col51/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "山西省人民政府-政府数据",
+    "area": "山西省",
+    "level": "省级",
+    "url": "http://www.shanxi.gov.cn/sj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "大同市人民政府-数据开放",
+    "area": "山西省大同市",
+    "level": "地市级",
+    "url": "http://www.dt.gov.cn/dtzww/sjdt1/shujudatong.shtml",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "阳泉市人民政府-数据阳泉",
+    "area": "山西省阳泉市",
+    "level": "地市级",
+    "url": "http://www.yq.gov.cn/ggsj_12505/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "晋城市人民政府-政府数据",
+    "area": "山西省晋城市",
+    "level": "地市级",
+    "url": "http://www.jcgov.gov.cn/zfsj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "忻州市人民政府-公共数据",
+    "area": "山西省忻州市",
+    "level": "地市级",
+    "url": "https://www.sxxz.gov.cn/ggsj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "内蒙古自治区人民政府",
+    "area": "-政内蒙古自治区",
+    "level": "省级",
+    "url": "http://www.nmg.gov.cn/col/col1586/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "呼和浩特市人民政府",
+    "area": "-政府内蒙古自治区呼和",
+    "level": "地市级",
+    "url": "http://www.huhhot.gov.cn/zfsj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "乌海市人民政府",
+    "area": "-数据公开内蒙古自治区乌海",
+    "level": "地市级",
+    "url": "http://www.wuhai.gov.cn/wuhai/zwgk/sjkf/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "赤峰市人民政府",
+    "area": "-数据内蒙古自治区赤峰",
+    "level": "地市级",
+    "url": "http://www.chifeng.gov.cn/channels/125.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "呼伦贝尔市人民政府",
+    "area": "-数据内蒙古自治区呼伦",
+    "level": "地市级",
+    "url": "http://www.hlbe.gov.cn/DataRelease/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "阿拉善盟人民政府",
+    "area": "-数据开内蒙古自治区阿拉",
+    "level": "地市级",
+    "url": "http://www.als.gov.cn/col/col130/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "辽宁省人民政府",
+    "area": "-数据发布辽宁省",
+    "level": "省级",
+    "url": "http://www.ln.gov.cn/zfsj/sjfb/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "大连市人民政府",
+    "area": "-数据开放辽宁省大连市",
+    "level": "副省级",
+    "url": "https://www.dl.gov.cn/col/col139/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "营口市人民政府",
+    "area": "-数据发布辽宁省营口市",
+    "level": "地市级",
+    "url": "http://www.yingkou.gov.cn/006/datapub.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "盘锦市人民政府",
+    "area": "-数据发布辽宁省盘锦市",
+    "level": "地市级",
+    "url": "http://www.panjin.gov.cn/html/1752/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "吉林省人民政府",
+    "area": "-数据吉林省",
+    "level": "省级",
+    "url": "http://www.jl.gov.cn/sj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据-吉林市人民政府",
+    "area": "吉林省吉林市",
+    "level": "地市级",
+    "url": "http://www.jlcity.gov.cn/sj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据开放-辽源市人民政府",
+    "area": "吉林省辽源市",
+    "level": "地市级",
+    "url": "http://www.liaoyuan.gov.cn/xxgk/sjkf/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "政府数据-白山市人民政府",
+    "area": "吉林省白山市",
+    "level": "地市级",
+    "url": "http://www.cbs.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据松原",
+    "area": "-松原市人民政府吉林省松原市",
+    "level": "地市级",
+    "url": "http://www.jlsy.gov.cn/zwgk/sjsy/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据-延边州人民政府",
+    "area": "吉林省延边州",
+    "level": "地市级",
+    "url": "http://www.yanbian.gov.cn/sj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "哈尔滨市政府数据开放平",
+    "area": "哈尔滨市",
+    "level": "副省级",
+    "url": "http://data.harbin.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "大庆公共数据开放平台",
+    "area": "黑龙江省大庆市",
+    "level": "地市级",
+    "url": "http://dataopen.daqing.gov.cn/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "佳木斯市政府数据开放平",
+    "area": "黑龙江省佳木斯市",
+    "level": "地市级",
+    "url": "http://data.jms.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据-鸡西市人民政府",
+    "area": "黑龙江省鸡西市",
+    "level": "地市级",
+    "url": "http://www.jixi.gov.cn/shujv/tjxx/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据-伊春市政府开放数据",
+    "area": "黑龙江省伊春市",
+    "level": "地市级",
+    "url": "http://www.yc.gov.cn/sj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据信息-黑河市人民政府",
+    "area": "黑龙江省黑河市",
+    "level": "地市级",
+    "url": "http://www.heihe.gov.cn/zwfb/sjxx.htm",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "上海市公共数据开放平台",
+    "area": "上海市",
+    "level": "省级",
+    "url": "https://data.sh.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "无锡市公共数据开放平台",
+    "area": "江苏省无锡市",
+    "level": "地市级",
+    "url": "http://data.wuxi.gov.cn/data/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据开放-常州市人民政府",
+    "area": "江苏省常州市",
+    "level": "地市级",
+    "url": "http://opendata.changzhou.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "苏州市政务数据开放平台",
+    "area": "江苏省苏州市",
+    "level": "地市级",
+    "url": "http://www.suzhou.gov.cn/OpenResourceWeb/home",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "南通市公共数据开放网站",
+    "area": "江苏省南通市",
+    "level": "地市级",
+    "url": "http://data.nantong.gov.cn/home/index.html#/home",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "连云港市公共数据开放网",
+    "area": "江苏省连云港市",
+    "level": "地市级",
+    "url": "http://www.lyg.gov.cn/data/showindex/index.do",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "开放扬州（扬州数据开放）",
+    "area": "江苏省扬州市",
+    "level": "地市级",
+    "url": "http://data.yangzhou.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "泰州市政务数据开放平台",
+    "area": "江苏省泰州市",
+    "level": "地市级",
+    "url": "http://www.taizhou.gov.cn/opendata/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据开放-江苏省人民政府",
+    "area": "江苏省",
+    "level": "省级",
+    "url": "http://www.jiangsu.gov.cn/col/col33688/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据发布-南京市人民政府",
+    "area": "江苏省南京市",
+    "level": "副省级",
+    "url": "http://tjj.nanjing.gov.cn/bmfw/njsj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "徐州市公共数据开放",
+    "area": "江苏省徐州市",
+    "level": "地市级",
+    "url": "http://www.xz.gov.cn/zgxz/sjkf/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据盐城",
+    "area": "-盐城市人民政府江苏省盐城市",
+    "level": "地市级",
+    "url": "http://www.yancheng.gov.cn/col/col8/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据开放-宿迁市人民政府",
+    "area": "江苏省宿迁市",
+    "level": "地市级",
+    "url": "http://www.suqian.gov.cn/cnsq/sjkf/sjkf.shtml",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据开放-浙江省人民政府",
+    "area": "浙江省",
+    "level": "省级",
+    "url": "http://data.zjzwfw.gov.cn/jdop_front/index.do",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "杭州市数据开放平台",
+    "area": "浙江省",
+    "level": "副省级",
+    "url": "https://data.hz.zjzwfw.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "宁波市数据开放平台",
+    "area": "浙江省宁波市",
+    "level": "副省级",
+    "url": "http://data.nb.zjzwfw.gov.cn/nbdata/fore/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "温州市公共数据开放平台",
+    "area": "浙江省温州市",
+    "level": "地市级",
+    "url": "http://data.wz.zjzwfw.gov.cn/jdop_front/index.do",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "湖州市数据开放平台",
+    "area": "浙江省湖州市",
+    "level": "地市级",
+    "url": "http://data.huz.zjzwfw.gov.cn/home",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "绍兴市公共数据开放平台",
+    "area": "浙江省绍兴市",
+    "level": "地市级",
+    "url": "https://data.sx.zjzwfw.gov.cn/kf/home",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "金华市数据开放平台",
+    "area": "浙江省金华市",
+    "level": "地市级",
+    "url": "http://data.jh.zjzwfw.gov.cn/jdop_front/index.do",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "衢州市数据开放平台",
+    "area": "浙江省衢州市",
+    "level": "地市级",
+    "url": "http://data.qz.zjzwfw.gov.cn/jdop_front/index.do",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "舟山·数据开放",
+    "area": "浙江省舟山市",
+    "level": "地市级",
+    "url": "http://data.zs.zjzwfw.gov.cn/#/IndexPage",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "台州市数据开放平台",
+    "area": "浙江省台州市",
+    "level": "地市级",
+    "url": "http://data.taz.zjzwfw.gov.cn/tz/home",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "丽水市数据开放平台",
+    "area": "浙江省丽水市",
+    "level": "地市级",
+    "url": "http://data.ls.zjzwfw.gov.cn/jdop_front/index.do",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "芜湖市政务数据开放服务",
+    "area": "安徽省芜湖市",
+    "level": "地市级",
+    "url": "https://data.wuhu.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "蚌埠市信息资源开放平台",
+    "area": "安徽省蚌埠市",
+    "level": "地市级",
+    "url": "http://www.bengbu.gov.cn/sjkf/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "马鞍山市人民政府数据开",
+    "area": "安徽省马鞍山市",
+    "level": "地市级",
+    "url": "http://www.mas.gov.cn/site/tpl/72",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "黄山市人民政府数据开放",
+    "area": "安徽省黄山市",
+    "level": "地市级",
+    "url": "http://www.huangshan.gov.cn/DataDevelopment/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "阜阳市人民政府数据开放",
+    "area": "安徽省阜阳市",
+    "level": "地市级",
+    "url": "http://www.fy.gov.cn/openData/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "六安市信息资源开放平台",
+    "area": "安徽省六安市",
+    "level": "地市级",
+    "url": "http://data.luan.gov.cn:8081/dop/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "滁州市人民政府数据发布",
+    "area": "安徽省滁州市",
+    "level": "地市级",
+    "url": "http://www.chuzhou.gov.cn/xxgk/sjfb/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "开放福建",
+    "area": "福建省",
+    "level": "省级",
+    "url": "https://data.fujian.gov.cn/odweb/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "福州市政务数据开放平台",
+    "area": "福建省福州市",
+    "level": "地市级",
+    "url": "http://data.fuzhou.gov.cn/#/home",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "厦门市大数据开放平台",
+    "area": "福建省厦门市",
+    "level": "副省级",
+    "url": "http://data.xm.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "赣州市人民政府数据栏",
+    "area": "江西省赣州市",
+    "level": "地市级",
+    "url": "https://www.ganzhou.gov.cn/c100206/shuju3.shtml",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "江西省政府数据开放网站",
+    "area": "江西省",
+    "level": "省级",
+    "url": "http://data.jiangxi.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "萍乡市数据开放平台网络",
+    "area": "江西省萍乡市",
+    "level": "地市级",
+    "url": "http://data.pingxiang.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "新余市数据开放平台网站",
+    "area": "江西省新余市",
+    "level": "地市级",
+    "url": "http://data.xinyu.gov.cn:81",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "开放抚州门户",
+    "area": "江西省抚州市",
+    "level": "地市级",
+    "url": "http://data.jxfz.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "南昌市人民政府数据开放",
+    "area": "江西省南昌市",
+    "level": "地市级",
+    "url": "http://www.nc.gov.cn/ncszf/sjkfn/2020_sjkf.shtml",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "九江市人民政府数据开放",
+    "area": "江西省九江市",
+    "level": "地市级",
+    "url": "https://www.jiujiang.gov.cn/sjkf/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "吉安市人民政府数据开放",
+    "area": "江西省吉安市",
+    "level": "地市级",
+    "url": "http://www.jian.gov.cn/news-list-spjsgckv.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "宜春市人民政府",
+    "area": "江西省宜春市",
+    "level": "地市级",
+    "url": "http://www.yichun.gov.cn/news-list-shuju.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "山东公共数据开放网",
+    "area": "山东省",
+    "level": "省级",
+    "url": "http://data.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "济南市公共数据开放网",
+    "area": "山东省济南市",
+    "level": "副省级",
+    "url": "http://data.jinan.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "青岛市公共数据开放网",
+    "area": "山东省青岛市",
+    "level": "副省级",
+    "url": "http://data.qingdao.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "淄博公共数据开放网",
+    "area": "山东省淄博市",
+    "level": "地市级",
+    "url": "http://zbdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "枣庄市公共数据开放网",
+    "area": "山东省枣庄市",
+    "level": "地市级",
+    "url": "http://zzdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "东营市公共数据开放网",
+    "area": "山东省东营市",
+    "level": "地市级",
+    "url": "http://dydata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "烟台公共数据开放网",
+    "area": "山东省烟台市",
+    "level": "地市级",
+    "url": "http://ytdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "潍坊公共数据开放网",
+    "area": "山东省潍坊市",
+    "level": "地市级",
+    "url": "http://wfdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "济宁公共数据开放网",
+    "area": "山东省济宁市",
+    "level": "地市级",
+    "url": "http://jindata.sd.gov.cn/odweb/index.htm",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "泰安市公共数据开放网",
+    "area": "山东省泰安市",
+    "level": "地市级",
+    "url": "http://tadata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "威海市公共数据开放网",
+    "area": "山东省威海市",
+    "level": "地市级",
+    "url": "http://data.weihai.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "日照市公共数据开放网",
+    "area": "山东省日照市",
+    "level": "地市级",
+    "url": "http://rzdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "临沂市公共数据开放网",
+    "area": "山东省临沂市",
+    "level": "地市级",
+    "url": "http://lydata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "德州市公共数据开放网",
+    "area": "山东省德州市",
+    "level": "地市级",
+    "url": "http://dzdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "聊城公共数据开放网",
+    "area": "山东省聊城市",
+    "level": "地市级",
+    "url": "http://lcdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "滨州公共数据开放网",
+    "area": "山东省滨州市",
+    "level": "地市级",
+    "url": "http://bzdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "菏泽公共数据开放网",
+    "area": "山东省菏泽市",
+    "level": "地市级",
+    "url": "http://hzdata.sd.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "河南省公共数据开放平台",
+    "area": "河南省",
+    "level": "省级",
+    "url": "http://data.hnzwfw.gov.cn/odweb/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "开封市政务数据开放平台",
+    "area": "河南省开封市",
+    "level": "地市级",
+    "url": "http://data.kaifeng.gov.cn/index/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "洛阳市人民政府官网",
+    "area": "-数据河南省洛阳市",
+    "level": "地市级",
+    "url": "http://www.ly.gov.cn/html/1//2/64/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "湖北省公共数据开放平台",
+    "area": "湖北省",
+    "level": "省级",
+    "url": "https://www.hubei.gov.cn/data/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "武汉市公共数据开放平台",
+    "area": "湖北省武汉市",
+    "level": "副省级",
+    "url": "http://www.wuhandata.gov.cn/whData/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "中国襄阳政府数据开放平",
+    "area": "湖北省襄阳市",
+    "level": "地市级",
+    "url": "http://111.177.117.24:8083/opendata/portal/index",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "孝感市门户网站",
+    "area": "-数据开放湖北省孝感市",
+    "level": "地市级",
+    "url": "http://www.xiaogan.gov.cn/themeList.jspx",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "随州市公共数据开放平台",
+    "area": "湖北省随州市",
+    "level": "地市级",
+    "url": "http://www.suizhou.gov.cn/data/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "恩施州公共数据开放平台",
+    "area": "湖北省恩施州",
+    "level": "地市级",
+    "url": "http://www.enshi.gov.cn/data/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "宜昌市人民政府",
+    "area": "-市情-数湖北省宜昌市",
+    "level": "地市级",
+    "url": "http://www.yichang.gov.cn/list-56264-1.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "荆门市数据公开",
+    "area": "湖北省荆门市",
+    "level": "地市级",
+    "url": "http://data.jingmen.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "鄂州市人民政府",
+    "area": "-政务信息湖北省鄂州市",
+    "level": "地市级",
+    "url": "http://www.ezhou.gov.cn/gk/zdlyxxgk/sjfb/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "荆州市人民政府",
+    "area": "-数据栏目湖北省荆州市",
+    "level": "地市级",
+    "url": "http://www.jingzhou.gov.cn/zfwsj/sjjz/jy/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "黄冈市人民政府",
+    "area": "-数据开放湖北省黄冈市",
+    "level": "地市级",
+    "url": "http://www.hg.gov.cn/col/col7161/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "湖南政府大数据公众门户",
+    "area": "湖南省",
+    "level": "省级",
+    "url": "https://data.hunan.gov.cn/etongframework-web/main.do",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "长沙市政府门户网站数据",
+    "area": "湖南省长沙市",
+    "level": "地市级",
+    "url": "http://www.changsha.gov.cn/data/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "常德市人民政府政务数据",
+    "area": "湖南省常德市",
+    "level": "地市级",
+    "url": "http://dataopen.changde.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "永州市数据开",
+    "area": "放平台湖南省永州市",
+    "level": "地市级",
+    "url": "http://www.yzcity.gov.cn/u/sjfb/cnyz/index",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "娄底市政务数据资源开放",
+    "area": "湖南省娄底市",
+    "level": "地市级",
+    "url": "http://183.215.22.238:51182/dataopen/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "株洲市人民政府",
+    "area": "-政府数据湖南省株洲市",
+    "level": "地市级",
+    "url": "http://www.zhuzhou.gov.cn/c15208/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "湘潭市人民政府网站",
+    "area": "-政府湖南省湘潭市",
+    "level": "地市级",
+    "url": "http://www.xiangtan.gov.cn/1029/index.htm",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "衡阳市人民政府网站",
+    "area": "-数据湖南省衡阳市",
+    "level": "地市级",
+    "url": "https://www.hengyang.gov.cn/sjfb/tjkx/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "岳阳市人民政府门户网站",
+    "area": "-湖南省岳阳市",
+    "level": "地市级",
+    "url": "http://www.yueyang.gov.cn/yytj/default.htm",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "张家界市政府门户网站",
+    "area": "-数湖南省张家界市",
+    "level": "地市级",
+    "url": "http://www.zjj.gov.cn/c10279/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "“开放广东”政府数据统一",
+    "area": "广东省",
+    "level": "省级",
+    "url": "http://gddata.gd.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "广州市政府数据统一开放",
+    "area": "广东省广州市",
+    "level": "副省级",
+    "url": "https://data.gz.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "深圳市政府数据开放平台",
+    "area": "广东省深圳市",
+    "level": "副省级",
+    "url": "https://opendata.sz.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "珠海市民生数据开放平台",
+    "area": "广东省珠海市",
+    "level": "地市级",
+    "url": "http://data.zhuhai.gov.cn/#/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "开放江门",
+    "area": "广东省江门市",
+    "level": "地市级",
+    "url": "http://data.jiangmen.gov.cn/odweb/index.htm",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "开放惠州",
+    "area": "广东省惠州市",
+    "level": "地市级",
+    "url": "http://data.huizhou.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "梅州市政府数据开放平台",
+    "area": "广东省梅州市",
+    "level": "地市级",
+    "url": "http://data.meizhou.gov.cn",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据东莞",
+    "area": "广东省东莞市",
+    "level": "地市级",
+    "url": "http://dataopen.dg.gov.cn/dataopen/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "开放中山",
+    "area": "广东省中山市",
+    "level": "地市级",
+    "url": "https://zsdata.zs.gov.cn/web/index",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "佛山市数据开放平台",
+    "area": "广东省佛山市",
+    "level": "地市级",
+    "url": "http://ww.foshan-data.cn52",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "茂名市人民政府网站",
+    "area": "-数据广东省茂名市",
+    "level": "地市级",
+    "url": "http://www.maoming.gov.cn/zwgk/sjfb/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "广西壮族自治区公共数据",
+    "area": "广西壮族自治区",
+    "level": "省级",
+    "url": "http://data.gxzf.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "广西南宁市人民政府门户",
+    "area": "广西壮族自治区南",
+    "level": "地市级",
+    "url": "http://www.nanning.gov.cn/sjfw/sjkf/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "广西桂林市人民政府门户",
+    "area": "广西壮族自治区桂",
+    "level": "地市级",
+    "url": "https://www.guilin.gov.cn/glsj/sjkf/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "广西防城港市人民政府门",
+    "area": "广西壮族自治区防",
+    "level": "地市级",
+    "url": "http://www.fcgs.gov.cn/sjpt/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "广西崇左市人民政府门户",
+    "area": "广西壮族自治区崇",
+    "level": "地市级",
+    "url": "http://www.chongzuo.gov.cn/sjfb/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "海南省政府数据统一开放",
+    "area": "海南省",
+    "level": "省级",
+    "url": "http://data.hainan.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "三亚市政府数据统一开放",
+    "area": "海南省三亚市",
+    "level": "地市级",
+    "url": "http://dataopen1.sanya.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "海口市人民政府数据开放",
+    "area": "海南省海口市",
+    "level": "地市级",
+    "url": "http://www.haikou.gov.cn/sj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "儋州市人民政府数据开放",
+    "area": "海南省儋州市",
+    "level": "地市级",
+    "url": "https://www.danzhou.gov.cn/danzhou/sj/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据开放-遂宁市人民政府",
+    "area": "四川省遂宁市",
+    "level": "地市级",
+    "url": "http://www.suining.gov.cn/sjkf",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "四川公共数据开放网",
+    "area": "四川省",
+    "level": "省级",
+    "url": "http://www.scdata.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "成都市公共数据开放平台",
+    "area": "四川省成都市",
+    "level": "副省级",
+    "url": "http://www.cddata.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "内江市公共数据开放平台",
+    "area": "四川省内江市",
+    "level": "地市级",
+    "url": "http://data.neijiang.gov.cn/#/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "乐山市人民政府数据开放",
+    "area": "四川省乐山市",
+    "level": "地市级",
+    "url": "http://data.leshan.gov.cn/#/home",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "宜宾市政务数据资源开放",
+    "area": "四川省宜宾市",
+    "level": "地市级",
+    "url": "http://data.yibin.gov.cn/odweb/index.htm",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "雅安市人民政府数据开放",
+    "area": "四川省雅安市",
+    "level": "地市级",
+    "url": "http://www.yaan.gov.cn/shuju.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "甘孜藏族自治州政务信息",
+    "area": "四川省甘孜藏族自",
+    "level": "地市级",
+    "url": "http://data.gzz.gov.cn/index/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "凉山州数据开放网站",
+    "area": "四川省凉山州",
+    "level": "地市级",
+    "url": "http://data.lsz.gov.cn/index/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "绵阳市人民政府",
+    "area": "四川省绵阳市",
+    "level": "地市级",
+    "url": "http://www.my.gov.cn/sjkf/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "广元公共数据开放网",
+    "area": "四川省广元市",
+    "level": "地市级",
+    "url": "http://data.cngy.gov.cn/open/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "资阳市人民政府政务信息",
+    "area": "四川省资阳市",
+    "level": "地市级",
+    "url": "http://data.ziyang.gov.cn/index/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "六盘水市政府数据开放平",
+    "area": "贵州省六盘水市",
+    "level": "地市级",
+    "url": "http://data.gzlps.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "毕节市政府数据开放平台",
+    "area": "贵州省毕节市",
+    "level": "地市级",
+    "url": "http://58.16.66.111:81/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "铜仁市政府数据开放平台",
+    "area": "贵州省铜仁市",
+    "level": "地市级",
+    "url": "http://gztrdata.gov.cn/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "黔西南州政府数据开放平",
+    "area": "贵州省黔西南州",
+    "level": "地市级",
+    "url": "http://202.98.201.56:81/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "贵州省政府数据开放平台",
+    "area": "贵州省",
+    "level": "省级",
+    "url": "http://data.guizhou.gov.cn/#!/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "贵阳市政府数据开放平台",
+    "area": "贵州省贵阳市",
+    "level": "地市级",
+    "url": "https://data.guiyang.gov.cn/city/index.htm",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "遵义市政府数据开放平台",
+    "area": "贵州省遵义市",
+    "level": "地市级",
+    "url": "http://www.zyopendata.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "拉萨市人民政府",
+    "area": "-数据开放西藏自治区拉萨市",
+    "level": "地市级",
+    "url": "http://www.lasa.gov.cn/lasa/sjkf/sj.shtml",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "林芝市人民政府数据开放",
+    "area": "西藏自治区林芝市",
+    "level": "地市级",
+    "url": "http://langxian.gov.cn/linzhi/zwgk/sjkf.shtml",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "那曲市人民政府",
+    "area": "-信息公开西藏自治区那曲市",
+    "level": "地市级",
+    "url": "http://www.naqu.gov.cn/xxgk/zfxxgkml/?id=23",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "陕西省公共数据开放平台",
+    "area": "陕西省",
+    "level": "省级",
+    "url": "http://www.sndata.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "安康市人民政府",
+    "area": "-数据发布陕西省宝鸡市安康",
+    "level": "地市级",
+    "url": "http://www.ankang.gov.cn/Node-9314.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "陇南市公共数据开放网",
+    "area": "甘肃省陇南市",
+    "level": "地市级",
+    "url": "http://www.lnsbigdata.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "甘肃省人民政府",
+    "area": "-信息公开甘肃省",
+    "level": "省级",
+    "url": "http://www.gansu.gov.cn/col/col4420/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "天水市人民政府-数据发布",
+    "area": "甘肃省天水市",
+    "level": "地市级",
+    "url": "http://www.tianshui.gov.cn/col/col8/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "武威市人民政府",
+    "area": "-数据武威甘肃省武威市",
+    "level": "地市级",
+    "url": "http://www.gswuwei.gov.cn/col/col5/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "张掖市人民政府",
+    "area": "-数据发布甘肃省张掖市",
+    "level": "地市级",
+    "url": "http://www.zhangye.gov.cn/sjfb/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "青海省人民政府政务公开",
+    "area": "青海省",
+    "level": "省级",
+    "url": "http://data.qinghai.gov.cn/p/#/index",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "开放宁夏",
+    "area": "宁夏回族自治区",
+    "level": "省级",
+    "url": "http://ningxiadata.gov.cn/odweb/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "石嘴山政府数据开放平台",
+    "area": "宁夏回族自治区石",
+    "level": "地市级",
+    "url": "http://szssjkf.nxszs.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "中卫市人民政府",
+    "area": "-数据开放宁夏回族自治区中",
+    "level": "地市级",
+    "url": "http://www.nxzw.gov.cn/ztzl/sjkf/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "银川市城市数据开放平台",
+    "area": "宁夏回族自治区银",
+    "level": "地市级",
+    "url": "http://data.yinchuan.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "乌鲁木齐市政务数据开放",
+    "area": "新疆维吾尔自治区",
+    "level": "地市级",
+    "url": "http://zwfw.wlmq.gov.cn/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "昌吉回族自治州",
+    "area": "-数据开放新疆维吾尔自治区",
+    "level": "地市级",
+    "url": "http://222.80.229.62:8900/drv/",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "克拉玛依市人民政府",
+    "area": "-数据新疆维吾尔自治区",
+    "level": "地市级",
+    "url": "https://www.klmy.gov.cn/011/011002/secondpage.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "阿克苏政府网",
+    "area": "-数据开放新疆维吾尔自治区",
+    "level": "地市级",
+    "url": "http://www.aks.gov.cn/sjkf/index.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  },
+  {
+    "name": "数据阿勒泰",
+    "area": "新疆维吾尔自治区",
+    "level": "地市级",
+    "url": "http://www.xjalt.gov.cn/sjalt/dataalt.html",
+    "discovered_from": "https://sim.ccnu.edu.cn/__local/3/E3/F9/7FFADDB344213CD53729E596433_1DF02736_7B887C.pdf",
+    "reference_year": 2021,
+    "status": "unverified_historical",
+    "note": "历史线索，地区与名称可能含PDF断行，须按当前官方页面核验"
+  }
+]
