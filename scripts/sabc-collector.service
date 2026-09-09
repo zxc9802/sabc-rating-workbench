@@ -1,0 +1,27 @@
+[Unit]
+Description=SABC Shanghai public data collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sabc-collector
+Group=sabc-collector
+WorkingDirectory=/opt/sabc-collector
+EnvironmentFile=/etc/sabc-collector/environment
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/sabc-collector/venv/bin/python -m uvicorn sabc.collector_service:app --host 0.0.0.0 --port 8443 --workers 1 --ssl-keyfile /etc/sabc-collector/server.key --ssl-certfile /etc/sabc-collector/server.crt --no-access-log
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/sabc-collector
+MemoryMax=1G
+CPUQuota=150%
+TasksMax=64
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

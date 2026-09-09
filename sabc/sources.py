@@ -3,6 +3,7 @@ from datetime import date
 from io import BytesIO
 import hashlib
 import json
+import os
 import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
@@ -127,10 +128,18 @@ def normalize(source, raw, query):
 
 
 def collect(store, project_id, source, query):
+    request_spec(source,query)
+    if os.getenv('SABC_COLLECTOR_URL'):
+        from sabc.remote_collector import collect_remote
+        return collect_remote(store,project_id,source,query)
+    return collect_local(store,project_id,source,query)
+
+
+def collect_local(store, project_id, source, query):
     url, params = request_spec(source, query)
     run_id = utcnow()
     # A failed call is deferred immediately; only transient failures retry, at most three.
-    for attempt in range(1,5):
+    for attempt in range(1,4):
         error = None
         try:
             with httpx.Client(timeout=25, follow_redirects=True, trust_env=source not in ('law','local'), headers={'User-Agent':'SABCProjectRating/0.1 research 785755358@qq.com','Accept':'application/json'}) as client:
@@ -157,7 +166,7 @@ def collect(store, project_id, source, query):
             error = f'HTTP {exc.response.status_code}' if isinstance(exc,httpx.HTTPStatusError) else type(exc).__name__ if isinstance(exc,httpx.HTTPError) else type(exc).__name__+': '+str(exc)[:160]
             retryable = isinstance(exc,(httpx.TimeoutException,httpx.ConnectError)) or isinstance(exc,httpx.HTTPStatusError) and exc.response.status_code in (500,502,503,504)
             store.save('source_runs',{'source':source,'project_id':project_id,'query':query,'round':run_id,'attempt':attempt,'status':'failed','error':error,'next_step':'检查网络或参数后回访；限流或验证要求先暂缓','adjustment':'首次调用' if attempt==1 else '重新建立连接，重试临时网络或服务故障'})
-            if retryable and attempt<4: continue
+            if retryable and attempt<3: continue
             raise ValueError(f'{source} 取数暂缓（本轮 {attempt} 次）：{error}') from None
         content = json.dumps({'facts':facts,'limitation':limitation},ensure_ascii=False,indent=2)
         locator=raw['locator'] if source=='local' else str(response.url)

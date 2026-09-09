@@ -131,7 +131,7 @@ def test_local_failure_is_audited_and_retries_bounded(tmp_path,monkeypatch):
     store=Store(tmp_path/'local.db')
     def fail(*args,**kwargs): raise httpx.ConnectError('offline')
     monkeypatch.setattr(httpx.Client,'get',fail)
-    with pytest.raises(ValueError,match='4 次'):
+    with pytest.raises(ValueError,match='3 次'):
         collect(store,'p','local','shandong/20200618135541100100')
-    assert len(store.list('source_runs'))==4
+    assert len(store.list('source_runs'))==3
     assert not store.list('evidence')

@@ -51,8 +51,8 @@ def test_retry_limit_and_failure_audit(tmp_path,monkeypatch):
     store=Store(tmp_path/'test.db')
     def fail(*args,**kwargs): raise httpx.ConnectError('test outage')
     monkeypatch.setattr(httpx.Client,'get',fail)
-    with pytest.raises(ValueError,match='4 次'): collect(store,'p','github','a/b')
-    assert len(store.list('source_runs'))==4
+    with pytest.raises(ValueError,match='3 次'): collect(store,'p','github','a/b')
+    assert len(store.list('source_runs'))==3
     assert not store.list('evidence')
 
 
