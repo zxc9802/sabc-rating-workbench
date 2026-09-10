@@ -1,5 +1,6 @@
 from tests.test_app import client
 from tests.test_rating import case
+import pytest
 
 
 def test_pending_facts_merge_and_readiness_uses_rule_engine(client,monkeypatch):
@@ -21,3 +22,23 @@ def test_pending_facts_merge_and_readiness_uses_rule_engine(client,monkeypatch):
     assert second['risks']==p['risks']
     assert second['interview']['state']=='ready' and second['interview']['questions']==[]
     assert client.post(f'/api/projects/{pid}/assess',json={'confirmed':True}).status_code==422
+
+
+@pytest.mark.parametrize('reply,expected',[
+    ('预算已记下。你打算先解决哪类问题？怎样才算成功？',
+     '预算已记下。你打算先解决哪类问题？怎样才算成功？'),
+    ('预算已记下。','预算已记下。\n\n准备解决什么问题？\n\n如何判断成功？'),
+])
+def test_questions_are_visible_once_and_waiting_state_matches_interview(client,monkeypatch,reply,expected):
+    import sabc.app as module
+    pid=client.post('/api/projects',json={'name':'多轮测试','project_type':'growth'}).json()['id']
+    monkeypatch.setattr(module,'settings',lambda:{'base_url':'https://model.example','model':'test'})
+    monkeypatch.setattr(module.planner,'configured',lambda:False)
+    monkeypatch.setattr(module,'analyze',lambda *args:{
+        'mode':'model','reply':reply,'project_patch':{},'proposal':None,
+        'questions':['准备解决什么问题？','如何判断成功？'],'needs_external_action':True})
+    response=client.post(f'/api/projects/{pid}/chat',json={'message':'预算已确定，服务方向不知道'})
+    assert response.json()['reply']==expected
+    project=client.get(f'/api/projects/{pid}').json()['project']
+    assert project['messages'][-1]['content']==expected
+    assert project['interview']['state']=='gathering'

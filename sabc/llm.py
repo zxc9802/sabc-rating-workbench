@@ -39,7 +39,7 @@ class ModelReply(BaseModel):
     project_patch: dict=Field(default_factory=dict)
     proposal: dict|None=None
     data_requests: list[DataRequest]=Field(default_factory=list,max_length=2)
-    questions: list[str]=Field(default_factory=list,max_length=3)
+    questions: list[str]=Field(default_factory=list,max_length=2)
     needs_external_action: bool=False
 
 
@@ -91,6 +91,7 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
 外部取数仅是证据，不改变用户已确认事实；未核验不能升级为直接验证。收到本轮采集结果后只分析现有结果，data_requests必须为空，不反复要求同一次抓取。"""
     system+='\n零售额、GDP、人口等总量不能推算经营主体数、可触达商家数或付费客户数。没有对应字段及可验证估算方法时，明确该数量未知，不能把宏观数据包装成经营主体覆盖率。'
     system+='\n当前项目模板：'+TEMPLATES.get(project.get('project_type'),{}).get('focus','先确认四类项目中的实际类型。')
+    system+='\n市场空间/需求价值评价的是本项目具体解决的问题及客户价值。城市零售额、GDP、人口等宏观规模本身不足以给该维度3分。若具体服务、痛点或价值主张尚未知，且没有其他项目需求依据，market必须score=null、basis=unknown；宏观资料仅作为背景。不得把“有市场活动”当成“本项目需求基本成立”。\n没有具体、可描述的潜在否决事实时vetoes必须为空数组。不得把“目前未确认违规”“若未来发现合规问题”或一般资料缺口写成否决项；未来可能风险写入assumptions及验证条件。\n用户已说不知道、尚未决定的事项，本轮及后续轮次都不换措辞重复索要决定。可追问其他尚未问过的关键事实；均问过后questions为空、needs_external_action=true，保留未知并形成包含未知维度的proposal。已有成功指标、数量和周期须带入相关验证条件；只把用户尚未确定的阈值留待确认，不能重新要求确认已明确的数值。'
     system+='\n访谈收口：JSON另输出questions数组（最多2个本轮确实需要用户回答的问题）和needs_external_action布尔值。仅追问会改变当前决策的缺口，不为已提供的信息重复提问。有足够依据形成方向性评分时停止基础追问，questions为空，给出待人工核对proposal；效果尚未验证应进入假设与验证任务，不因此无限追问。若用户明确不知道、必须等试点或外部资料，needs_external_action=true，停止重复追问；将详细的负责人、资料和恢复条件写入proposal验证任务，reply只简短说明可行下一步。程序会独立检查是否满足评审条件，不能为了收口补造分数。上下文pending_patch是待核对的用户事实，不能当已确认；有冲突时指出冲突并请求确认。'
     payload={'model':settings['model'],'temperature':0.1,
              'messages':[{'role':'system','content':system},
