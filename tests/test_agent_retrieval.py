@@ -14,11 +14,11 @@ def test_dimension_routing_collects_then_analyzes_and_reuses(client,monkeypatch)
     monkeypatch.setattr(module,'analyze',analyze)
     monkeypatch.setattr(module,'collect',collect)
     pid=client.post('/api/projects',json={'name':'测试'}).json()['id']
-    result=client.post(f'/api/projects/{pid}/chat',json={'message':'核查依赖'}).json()
-    assert calls==[0,1]
+    result=client.post(f'/api/projects/{pid}/chat',json={'message':'核查开源依赖 https://github.com/a/b'}).json()
+    assert calls==[1]
     assert result['retrieval_results'][0]['status']=='saved'
-    result=client.post(f'/api/projects/{pid}/chat',json={'message':'继续'}).json()
-    assert calls==[0,1,1]
+    result=client.post(f'/api/projects/{pid}/chat',json={'message':'继续核查开源依赖'}).json()
+    assert calls==[1,1]
     assert result['retrieval_plan']['candidates'][0]['status']=='existing_evidence'
     assert len(client.get(f'/api/projects/{pid}').json()['evidence'])==1
 
@@ -33,9 +33,9 @@ def test_failed_collection_is_passed_to_answer_model(client,monkeypatch):
     monkeypatch.setattr(module,'analyze',analyze)
     monkeypatch.setattr(module,'collect',fail)
     pid=client.post('/api/projects',json={'name':'测试'}).json()['id']
-    result=client.post(f'/api/projects/{pid}/chat',json={'message':'核查'}).json()
+    result=client.post(f'/api/projects/{pid}/chat',json={'message':'核查开源依赖 https://github.com/a/b'}).json()
     assert result['retrieval_results'][0]['status']=='failed'
-    assert 'failed' in seen[1][-1]['content']
+    assert 'failed' in seen[0][-1]['content']
     assert len(module.store.list('source_runs'))==1
 
 
@@ -71,5 +71,66 @@ def test_browser_captures_excluded_from_model_context(client,monkeypatch):
     pid=client.post('/api/projects',json={'name':'测试'}).json()['id']
     module.store.save('evidence',{'project_id':pid,'capture_method':'browser-observation','content':'过期屏幕资料'})
     module.store.save('evidence',{'project_id':pid,'source_id':'local','content':'接口历史记录'})
-    client.post(f'/api/projects/{pid}/chat',json={'message':'继续'})
+    client.post(f'/api/projects/{pid}/chat',json={'message':'继续核查开源依赖'})
     assert len(seen)==1 and seen[0]['content']=='接口历史记录'
+
+
+def test_retrieval_draft_is_not_shown_before_final_answer(client, monkeypatch):
+    from sabc.streaming import progress
+    monkeypatch.setattr(module, 'settings', lambda: {'base_url': 'https://model.example', 'model': 'test'})
+    calls = []
+    visible = []
+    def analyze(*args):
+        calls.append(1)
+        reply = '依据资料的最终回答'
+        notify = progress.get()
+        if notify:
+            notify('')
+            notify(reply)
+        return {'mode': 'model', 'reply': reply, 'project_patch': {}, 'proposal': None,
+                'data_requests': [{'dimension': 'resources', 'source': 'github', 'query': 'a/b', 'reason': '依赖'}]}
+    monkeypatch.setattr(module, 'analyze', analyze)
+    monkeypatch.setattr(module, 'collect', lambda *args: {'id': 'evidence'})
+    pid = client.post('/api/projects', json={'name': '测试'}).json()['id']
+    token = progress.set(visible.append)
+    try:
+        client.post(f'/api/projects/{pid}/chat', json={'message': '核查开源依赖 https://github.com/a/b'})
+    finally:
+        progress.reset(token)
+    assert '依据资料的最终回答' in visible
+    assert '正在选择数据源的草稿' not in visible
+    assert len(calls) == 1
+
+
+def test_rules_trigger_without_model_request_and_keep_region(monkeypatch):
+    from sabc.dimension_sources import rule_plan
+    monkeypatch.setenv('ANYSEARCH_API_KEY', 'test')
+    plan = rule_plan({'description': '我想做印尼防晒项目'}, '开始', [])
+    assert {r['dimension'] for r in plan['data_requests']} == {'market', 'risk'}
+    assert all(r['source'] == 'web' and '印尼' in r['query'] for r in plan['data_requests'])
+    assert not rule_plan({'description': '预算8000元'}, '人员2人', [])['data_requests']
+    missing = rule_plan({'description': '想做防晒'}, '合规怎么样', [])
+    assert not missing['data_requests'] and missing['missing_parameters']
+    china = rule_plan({'description': '中国防晒'}, '合规', [])
+    assert any(r['source'] == 'law' for r in china['data_requests'])
+
+
+def test_rule_collection_is_parallel_and_precedes_only_answer(client, monkeypatch):
+    from threading import Barrier
+    monkeypatch.setenv('ANYSEARCH_API_KEY', 'test')
+    monkeypatch.setattr(module, 'settings', lambda: {'base_url': 'https://model.example', 'model': 'test'})
+    barrier = Barrier(2)
+    collected = []
+    def collect(*args):
+        barrier.wait(timeout=2)
+        collected.append(args[-1])
+        return {'id': args[-1]}
+    def analyze(*args):
+        assert len(collected) == 2
+        return {'mode': 'model', 'reply': '结果', 'project_patch': {}, 'proposal': None, 'data_requests': []}
+    monkeypatch.setattr(module, 'collect', collect)
+    monkeypatch.setattr(module, 'analyze', analyze)
+    pid = client.post('/api/projects', json={'name': '测试', 'description': '印尼防晒项目'}).json()['id']
+    result = client.post(f'/api/projects/{pid}/chat', json={'message': '市场和合规'}).json()
+    assert len(result['retrieval_results']) == 2
+    assert all(r['status'] == 'saved' for r in result['retrieval_results'])

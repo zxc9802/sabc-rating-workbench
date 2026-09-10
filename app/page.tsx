@@ -65,7 +65,7 @@ function Workbench({ logout }: { logout: ReactNode }) {
     setDetail(fresh); setPage('projects'); setTab('chat');
     if (fresh.active_jobs?.length) {
       try { for (const job of fresh.active_jobs) { setCurrentJob(job); await waitForJob(job.id, setStreamReply, setCurrentJob); } }
-      finally { setStreamReply(''); setDetail(await api<Detail>('/projects/' + id)); await reload(); }
+      finally { const fresh = await api<Detail>('/projects/' + id); setDetail(fresh); setStreamReply(''); await reload(); }
     } else if (!fresh.project.messages.length) {
       await initialReply(id);
     }
@@ -75,7 +75,7 @@ function Workbench({ logout }: { logout: ReactNode }) {
       const job = await api<Job>('/projects/' + id + '/start-interview' + (retry ? '?retry=true' : ''), 'POST');
       setCurrentJob(job);
       if (job.id) await waitForJob(job.id, setStreamReply, setCurrentJob);
-    } finally { setStreamReply(''); setDetail(await api<Detail>('/projects/' + id)); await reload(); }
+    } finally { const fresh = await api<Detail>('/projects/' + id); setDetail(fresh); setStreamReply(''); await reload(); }
   }
   async function stopReply() {
     if (!currentJob || currentJob.status !== 'running') return false;

@@ -95,7 +95,7 @@ def health():
 def public_settings():
     s=settings()
     primary=model_router.deepseek()
-    return {'managed':sso.enabled(),'primary_model':s.get('model',''), 'planner_model':'八维规则 + '+s.get('model',''), 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
+    return {'managed':sso.enabled(),'primary_model':s.get('model',''), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
             'has_key':bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
             'configured':bool(primary or (s.get('base_url') and s.get('model')))}
 
@@ -242,26 +242,28 @@ def chat_turn(pid,body):
     messages=p.get('messages',[])+[{'role':'user','content':body.message,'time':utcnow()}]
     s=settings()
     if model_router.deepseek() or (s.get('base_url') and s.get('model')):
-        from sabc.dimension_sources import plan_requests
-        result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages)
-        plan=plan_requests(result.get('data_requests',[]),model_evidence_for(pid),body.message)
+        from sabc.dimension_sources import rule_plan
+        from concurrent.futures import ThreadPoolExecutor
+        from contextvars import copy_context
+        plan=rule_plan(p,body.message,model_evidence_for(pid))
         store.save('retrieval_plans',{'project_id':pid,'created_at':utcnow(),**plan})
-        requests=plan['data_requests']
-        if requests:
-            outcomes=[]
-            for request in requests[:2]:
-                check_cancelled()
-                try:
-                    evidence=collect(store,pid,request['source'],request['query'])
-                    outcomes.append({'source':request['source'],'query':request['query'],'evidence_id':evidence['id'],'status':'saved','reason':request['reason']})
-                except Exception as error:
-                    outcomes.append({'source':request['source'],'query':request['query'],'status':'failed','reason':'外部核查未完成'})
-                    store.save('source_runs',{'project_id':pid,'source':request['source'],'query':request['query'],'status':'failed','error':str(error),'boundary':'chat'})
+        def retrieve(request):
+            check_cancelled()
             try:
-                result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages+[{'role':'tool','content':'以下为本轮核查结果，saved表示资料已保存而非已核验，failed表示未完成核查。依据成功结果及已有资料回答，说明尚未得到支持的业务事实，不虚构。仅分析现有证据，不再请求取数：'+json.dumps(outcomes,ensure_ascii=False)}])
-            except ValueError:
-                result={**result,'proposal':None,'reply':result['reply']+'\n资料采集已结束，但后续模型分析失败。已保存证据可在证据资料中查看，请重试分析。'}
-            result['retrieval_results']=outcomes
+                evidence=collect(store,pid,request['source'],request['query'])
+                return {**request,'evidence_id':evidence['id'],'status':'saved'}
+            except Exception as error:
+                store.save('source_runs',{'project_id':pid,'source':request['source'],'query':request['query'],'status':'failed','error':str(error),'boundary':'chat'})
+                return {**request,'status':'failed','reason':'外部核查未完成'}
+        outcomes=[]
+        if plan['data_requests']:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures=[pool.submit(copy_context().run,retrieve,r) for r in plan['data_requests']]
+                outcomes=[f.result() for f in futures]
+        check_cancelled()
+        context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
+        result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+        result['retrieval_results']=outcomes
         result['retrieval_plan']=plan
         result['data_requests']=[]
         # Keep earlier unconfirmed facts until the user accepts them; later explicit
