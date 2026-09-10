@@ -2,6 +2,7 @@
 import json
 import math
 import os
+import time
 from urllib.parse import urlparse
 import httpx
 from pydantic import BaseModel, Field, ConfigDict
@@ -71,6 +72,8 @@ project_patch仅可包含 {[k for k in PROJECT_FIELDS if k!='name']+['budget_req
 八维：{rubric}。未知用null，不能因缺资料给低业务分；0到2仅用于已知负面事实。5显著优势，4较强，3基本成立。basis=fact必须能说明用户事实或证据依据。
 低分校验：未试点、未跨团队复现、未做独立审查、缺少数据，仅表示证据缺口，不是已知负面业务事实。不得将这些表述标成basis=fact并给低于3分。若只有上述缺口且无法判断方向，score=null、basis=unknown；若已有事实足以支持基本可行，给3及以上并把缺口放入假设和证据限制。只有实际失败、实际超预算、已确认人员不可得、已发生违规或其他明确不利结果，才支持低于3分。输出前逐项检查低分reason，不能仅凭“尚未/未验证/缺少”扣低分。
 关键假设通常4到6个，覆盖需求、经济/价值、资源、交付、合规；不可省掉证据薄弱的关键假设。证据ID必须来自输入，外部市场资料不能替代本项目验证。
+评价对象是用户提出的项目目标和行动，不是当前问题本身。改善亏损、降低成本的项目不能仅因现状亏损被判为战略不匹配；也不能把改善贡献利润擅自改成扩大订单。现状负面事实可说明回报和现金风险，改善方案的效果仍待验证。战略匹配须对照公司战略与项目目标，缺少依据则保留未知。
+输出非空proposal时，assumptions不可为空，每项必须有validation_method、pass_threshold和fail_threshold；未知业务阈值写明由谁确认、需要哪些依据，以及确认前暂停什么，不编造数值。
 B封顶包括核心价值未真实验证、优势无可核验证据、全新关键能力、重资产才可验证、单一平台/人物/客户/供应方依赖、利润来自预测、老板唯一关键人。不能用乐观语气绕过。
 内部AI项目看真实试点与可兑现的产能/成本变化，不要求外部付费。重资产无可承受验证方案时明确暂缓，禁止编造小试。S要求关键五维>=4、重复验证、资源及组合可行，未证实不能填true。
 重要的新反方事实必须反映到事实、关键假设和评分中，确保后端可以重算。所有提议均等待用户核对，不替用户批准。'''
@@ -90,12 +93,22 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
     headers={'Content-Type':'application/json'}
     if key: headers['Authorization']='Bearer '+key
     try:
+        deadline=time.monotonic()+90
         with httpx.Client(timeout=90) as client:
-            r=client.post(base+'/chat/completions',json=payload,headers=headers)
-            r.raise_for_status()
-        content=r.json()['choices'][0]['message']['content']
-        if content.startswith('```'): content=content.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
-        parsed=ModelReply.model_validate_json(content).model_dump()
+            for attempt in range(2):
+                remaining=deadline-time.monotonic()
+                if remaining<=0: raise ValueError('模型建议补正超时，请重试。')
+                r=client.post(base+'/chat/completions',json=payload,headers=headers,timeout=remaining)
+                r.raise_for_status()
+                content=r.json()['choices'][0]['message']['content']
+                if content.startswith('```'): content=content.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
+                parsed=ModelReply.model_validate_json(content).model_dump()
+                if parsed['proposal'] is None: break
+                parsed['proposal']=validate_proposal(parsed['proposal'])
+                assumptions=parsed['proposal']['assumptions']
+                if assumptions and all(all(a[k].strip() for k in ('validation_method','pass_threshold','fail_threshold')) for a in assumptions): break
+                if attempt: raise ValueError('模型评分建议缺少完整的关键假设及验证条件，请重试。')
+                payload['messages'] += [{'role':'assistant','content':content}, {'role':'user','content':'格式补正：刚才的评分建议缺少关键假设或验证条件。请基于同一份原始资料重新输出完整JSON，保留未知与事实边界；非空proposal至少有一项关键假设，每项包含验证方法、通过条件和失败/停止条件。未知阈值明确待负责人确认及确认前暂停的动作，禁止编造事实。'}]
     except httpx.HTTPStatusError as e:
         raise ValueError(f'模型请求失败（HTTP {e.response.status_code}），请检查服务地址、模型权限和密钥。') from None
     except (httpx.HTTPError,KeyError,IndexError,TypeError):
