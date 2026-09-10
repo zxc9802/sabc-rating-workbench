@@ -8,7 +8,10 @@ import urllib.request
 
 
 def main():
-    if len(os.getenv('SABC_ACCESS_PASSWORD',''))<20:
+    if os.getenv('SABC_AUTH_MODE') == 'sso':
+        if len(os.getenv('SABC_SSO_CLIENT_SECRET','')) < 32 or not os.getenv('SABC_SSO_MAIN_ORIGIN','').startswith('https://'):
+            raise SystemExit('SSO secret and HTTPS main origin are required')
+    elif len(os.getenv('SABC_ACCESS_PASSWORD',''))<20:
         raise SystemExit('SABC_ACCESS_PASSWORD must contain at least 20 characters')
     if not os.getenv('SABC_UI_ORIGIN','').startswith('https://'):
         raise SystemExit('SABC_UI_ORIGIN must be the public HTTPS origin')

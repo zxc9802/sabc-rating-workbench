@@ -9,6 +9,7 @@ from collections import deque
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from sabc import sso
 
 router=APIRouter(prefix='/api/auth')
 sessions={}
@@ -22,6 +23,7 @@ def enabled():
 
 
 def authenticated(request):
+    if sso.enabled(): return bool(sso.identity(request))
     if not enabled():
         return os.getenv('SABC_REQUIRE_AUTH')!='1'
     token=request.cookies.get(COOKIE,'')
@@ -39,11 +41,15 @@ class Login(BaseModel):
 
 @router.get('/session')
 def session(request:Request):
+    if sso.enabled():
+        user=sso.identity(request)
+        return {'authenticated':bool(user),'required':True,'mode':'sso','user':{'id':user['id'],'name':user.get('nickname') or user.get('account')} if user else None,'login_url':os.environ['SABC_UI_ORIGIN'].rstrip('/')+'/api/sso/start'}
     return {'authenticated':authenticated(request),'required':enabled() or os.getenv('SABC_REQUIRE_AUTH')=='1'}
 
 
 @router.post('/login')
 def login(body:Login):
+    if sso.enabled(): raise HTTPException(404,'请使用主站账号登录')
     if not enabled():
         raise HTTPException(503,'服务器尚未配置登录密码')
     now=time.time()
@@ -69,4 +75,5 @@ def logout(request:Request):
     sessions.pop(hashlib.sha256(token.encode()).hexdigest(),None)
     response=JSONResponse({'authenticated':False})
     response.delete_cookie(COOKIE,path='/api')
+    sso.logout(request,response)
     return response

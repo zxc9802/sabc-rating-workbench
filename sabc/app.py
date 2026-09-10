@@ -6,6 +6,7 @@ from uuid import uuid4
 from threading import Lock
 import zipfile
 
+from starlette.concurrency import run_in_threadpool
 from fastapi import FastAPI, HTTPException, UploadFile, Form
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
@@ -14,7 +15,8 @@ from sabc.catalog import catalog
 from sabc.key_storage import encrypt_key, decrypt_key
 from sabc.llm import analyze, guide
 from sabc import planner
-from sabc import auth, lifecycle, model_router
+from sabc import auth, lifecycle, model_router, sso
+from sabc.tenancy import AccountStore, account_id
 from sabc.jobs import jobs
 from sabc.streaming import check_cancelled
 from sabc.rating import assess, DIMENSIONS, TYPES, RULE_VERSION, PROJECT_FIELDS
@@ -24,20 +26,34 @@ from sabc.sources import collect, SUPPORTED
 from sabc.local_sources import REGIONS, save_capture, use_capture
 
 ROOT=Path(__file__).resolve().parent.parent
-store=Store(Path(os.getenv('SABC_DB',str(ROOT/'data'/'sabc.db'))))
+store=AccountStore(Path(os.getenv('SABC_DB',str(ROOT/'data'/'sabc.db'))))
 app=FastAPI(title='SABC 项目评级',docs_url=None,redoc_url=None,openapi_url=None)
 app.include_router(auth.router)
+app.include_router(sso.router)
 initial_interview_lock=Lock()
 
 
 @app.middleware('http')
 async def local_writes(request,call_next):
-    if request.url.path not in ('/api/auth/session','/api/auth/login','/api/health') and not auth.authenticated(request):
+    user = None
+    public = request.url.path in ('/api/auth/session','/api/auth/login','/api/health','/api/sso/start','/api/sso/callback')
+    if sso.enabled() and not public:
+        try:
+            user = await run_in_threadpool(sso.identity, request)
+        except HTTPException as error:
+            return JSONResponse({'detail':error.detail},status_code=error.status_code)
+        if not user:
+            return JSONResponse({'detail':'请通过主站登录后继续'},status_code=401)
+    elif not public and not auth.authenticated(request):
         return JSONResponse({'detail':'请登录后继续'},status_code=401,headers={'Cache-Control':'no-store'})
     origin=request.headers.get('origin')
     if request.method not in ('GET','HEAD','OPTIONS') and origin and origin not in ('http://127.0.0.1:3000','http://localhost:3000','http://127.0.0.1:18765',os.getenv('SABC_UI_ORIGIN','http://127.0.0.1:3000')):
         return JSONResponse({'detail':'不接受其他网站的写入请求'},status_code=403)
-    response=await call_next(request)
+    token = account_id.set(user['id'] if user else None)
+    try:
+        response=await call_next(request)
+    finally:
+        account_id.reset(token)
     response.headers['X-Content-Type-Options']='nosniff'
     response.headers['Cache-Control']='no-store'
     return response
@@ -79,7 +95,7 @@ def health():
 def public_settings():
     s=settings()
     primary=model_router.primary()
-    return {'primary_model':primary['model'] if primary else None, 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':s.get('model',''), 'base_url':s.get('base_url',''),'model':s.get('model',''),
+    return {'managed':sso.enabled(),'primary_model':primary['model'] if primary else None, 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':s.get('model',''), 'base_url':s.get('base_url',''),'model':s.get('model',''),
             'has_key':bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
             'configured':bool(primary or (s.get('base_url') and s.get('model')))}
 
@@ -499,6 +515,7 @@ def export(aid:str):
 
 @app.put('/api/settings')
 def save_settings(body:dict):
+    if sso.enabled(): raise HTTPException(403,'模型由服务端统一配置')
     from urllib.parse import urlparse
     base=str(body.get('base_url','')).strip().rstrip('/')
     if base and (urlparse(base).scheme not in ('https','http') or urlparse(base).username): raise ValueError('模型地址须为不含用户名密码的HTTP(S)地址')

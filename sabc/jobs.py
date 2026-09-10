@@ -1,5 +1,6 @@
 """Persist slow operation results so short HTTP connections can safely poll them."""
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 import hashlib
 import time
 from sabc.streaming import progress, cancel_signal, check_cancelled, JobCancelled
@@ -29,17 +30,20 @@ class Jobs:
     def cancel_locked(self,store,ident):
         job=self.read(store,ident)
         if job['status']!='running': return job
-        if ident in self.signals: self.signals[ident].set()
-        if ident in self.futures and self.futures[ident].cancel():
-            self.active.discard(ident)
-            self.signals.pop(ident,None)
-            self.futures.pop(ident,None)
+        key=(str(store.path),ident)
+        if key in self.signals: self.signals[key].set()
+        if key in self.futures and self.futures[key].cancel():
+            self.active.discard(key)
+            self.signals.pop(key,None)
+            self.futures.pop(key,None)
         return store.save('jobs',{**job,'status':'cancelled','partial_reply':'','error':'已停止回答'})
 
     def cancel(self,store,ident):
         with self.lock: return self.cancel_locked(store,ident)
 
     def submit(self,store,ident,pid,request,action,queue=False):
+        if hasattr(store,'scoped'): store=store.scoped()
+        key=(str(store.path),ident)
         fingerprint=hashlib.sha256(json.dumps(request,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
         with self.lock:
             existing=store.get('jobs',ident)
@@ -51,9 +55,9 @@ class Jobs:
             if any(j['project_id']==pid and j['status']=='running' and j['process_id']==self.process_id for j in store.list('jobs')):
                 raise HTTPException(409,'本项目已有任务正在处理，请等待结果后继续')
             job=store.save('jobs',{'id':ident,'project_id':pid,'operation':request.get('operation'),'fingerprint':fingerprint,'process_id':self.process_id,'status':'running','phase':'queued'})
-            self.active.add(ident)
-            signal=Event();self.signals[ident]=signal
-            self.futures[ident]=self.pool.submit(self.run,store,job,action,signal)
+            self.active.add(key)
+            signal=Event();self.signals[key]=signal
+            self.futures[key]=self.pool.submit(copy_context().run,self.run,store,job,action,signal)
             return job
 
     def run(self,store,job,action,signal):
@@ -85,9 +89,9 @@ class Jobs:
             progress.reset(token)
             cancel_signal.reset(cancel_token)
             with self.lock:
-                self.active.discard(job['id'])
-                self.signals.pop(job['id'],None)
-                self.futures.pop(job['id'],None)
+                self.active.discard((str(store.path),job['id']))
+                self.signals.pop((str(store.path),job['id']),None)
+                self.futures.pop((str(store.path),job['id']),None)
 
 
 jobs=Jobs()
