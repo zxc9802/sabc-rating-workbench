@@ -11,23 +11,24 @@ export type Assessment = { id: string; result: Rating; created_at: string; snaps
 export type Settings = { base_url: string; model: string; has_key: boolean; configured: boolean };
 export type Source = { id: string; name: string; purpose: string; url: string; access: string; status: string };
 export type Bootstrap = { projects: Project[]; company: RecordData; settings: Settings; sources: Source[]; dimensions: Dimension[]; types: Record<string, string>; rule_version: string };
-export type Job = { id: string; status: 'running' | 'success' | 'failed'; result?: unknown; error?: string };
+export type Job = { id: string; status: 'running' | 'success' | 'failed'; result?: unknown; error?: string; partial_reply?: string };
 export type Detail = { project: Project; evidence: Evidence[]; assessments: Assessment[]; active_jobs?: Job[] };
 
-export async function waitForJob<T>(id: string): Promise<T> {
-  for (let count = 0; count < 360; count++) {
+export async function waitForJob<T>(id: string, onProgress?: (text: string) => void): Promise<T> {
+  for (let count = 0; count < (onProgress ? 2400 : 360); count++) {
     const job = await api<Job>('/jobs/' + id);
+    if (job.partial_reply !== undefined) onProgress?.(job.partial_reply);
     if (job.status !== 'running') {
       for (const key of Object.keys(localStorage)) if (key.startsWith('sabc-request-') && localStorage.getItem(key) === id) localStorage.removeItem(key);
     }
     if (job.status === 'success') return job.result as T;
     if (job.status === 'failed') throw new Error(job.error || '任务失败，请检查已保存记录后重试。');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, onProgress ? 300 : 2000));
   }
   throw new Error('任务仍未完成，请重新打开项目查看状态。');
 }
 
-export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+export async function api<T>(path: string, method = 'GET', body?: unknown, onProgress?: (text: string) => void): Promise<T> {
   const slow = method === 'POST' && path.match(/^\/projects\/([^/]+)\/(chat|sources\/([^/]+))$/);
   if (slow) {
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(path + JSON.stringify(body)));
@@ -36,7 +37,7 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
     localStorage.setItem(key, id);
     await api<Job>(`/projects/${slow[1]}/jobs`, 'POST', { id, operation: slow[2] === 'chat' ? 'chat' : 'source', source: slow[3] || '', payload: body });
     // A network interruption preserves the ID; retrying resumes the saved task.
-    return await waitForJob<T>(id);
+    return await waitForJob<T>(id, onProgress);
   }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);

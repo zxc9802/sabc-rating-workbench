@@ -1,6 +1,8 @@
 """Persist slow operation results so short HTTP connections can safely poll them."""
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
+import time
+from sabc.streaming import progress
 import json
 from threading import Lock
 from uuid import uuid4
@@ -39,6 +41,13 @@ class Jobs:
             return job
 
     def run(self,store,job,action):
+        last=[0.0, None]
+        def publish(text):
+            now=time.monotonic()
+            if text==last[1] or (text and now-last[0]<0.2): return
+            store.save('jobs',{**job,'partial_reply':text})
+            last[:]=[now,text]
+        token=progress.set(publish)
         try:
             result=action()
             store.save('jobs',{**job,'status':'success','result':result})
@@ -47,6 +56,7 @@ class Jobs:
         except Exception:
             store.save('jobs',{**job,'status':'failed','error':'任务处理失败，请检查已保存记录后重试','error_status':500})
         finally:
+            progress.reset(token)
             with self.lock: self.active.discard(job['id'])
 
 

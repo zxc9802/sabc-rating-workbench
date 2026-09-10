@@ -1,4 +1,5 @@
 """Model proposes facts and analysis; only the rule engine assigns grades."""
+from sabc.streaming import completion
 import json
 import math
 import os
@@ -103,9 +104,7 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
             for attempt in range(2):
                 remaining=deadline-time.monotonic()
                 if remaining<=0: raise ValueError('模型建议补正超时，请重试。')
-                r=client.post(base+'/chat/completions',json=payload,headers=headers,timeout=remaining)
-                r.raise_for_status()
-                content=r.json()['choices'][0]['message']['content']
+                content=completion(client,base+'/chat/completions',payload,headers,remaining)
                 if content.startswith('```'): content=content.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
                 parsed=ModelReply.model_validate_json(content).model_dump()
                 if parsed['proposal'] is None: break
