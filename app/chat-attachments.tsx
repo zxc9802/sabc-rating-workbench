@@ -81,5 +81,5 @@ export function ChatAttachments({ projectId, disabled, onBusy, onSaved }: { proj
     } catch (e) { setStatus(e instanceof Error ? e.message : '附件处理失败'); }
     finally { active.current = false; onBusy(false); if (input.current) input.current.value = ''; }
   }
-  return <div className="chat-attachments"><label className="secondary upload-button">上传文档 / 图片 / 视频<input ref={input} type="file" multiple disabled={disabled} accept=".txt,.md,.csv,.json,.docx,.xlsx,.pptx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,video/*" onChange={e => void add(e.target.files)} /></label><small>文档≤20MB；视频本地均匀抽6帧，仅分析画面，无音频。</small><p role="status">{status}</p></div>;
+  return <div className="chat-attachments"><label className="secondary upload-button">上传文档 / 图片 / 视频<input ref={input} type="file" multiple disabled={disabled} accept=".txt,.md,.csv,.json,.docx,.xlsx,.pptx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,video/*" onChange={e => void add(e.target.files)} /></label><small>文档≤20MB</small><p role="status">{status}</p></div>;
 }

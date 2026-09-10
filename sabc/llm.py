@@ -96,6 +96,7 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
              'messages':[{'role':'system','content':system},
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
              'response_format':{'type':'json_object'}}
+    payload['messages'][0]['content']+='\n面向用户的reply、评分理由及验证说明禁止出现内部证据ID、数据库编号、字段名或growth等枚举代码。引用资料使用可读标题与来源网址；项目类型使用中文名称。内部ID仅允许出现在结构化evidence_ids等关联字段中。'
     headers={'Content-Type':'application/json'}
     if key: headers['Authorization']='Bearer '+key
     try:

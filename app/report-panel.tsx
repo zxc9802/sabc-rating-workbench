@@ -19,8 +19,8 @@ function EvidenceReferences({ ids, evidence }: { ids: string[]; evidence: Eviden
   if (!ids.length) return <p className="source-location">未关联证据；依据来自项目陈述或假设，需进一步核验。</p>;
   return <div className="report-references">{ids.map(id => {
     const item = evidence.find(e => e.id === id);
-    if (!item) return <p className="source-location" key={id}>证据 {id} 未包含在本次快照中，请复核引用。</p>;
-    return <details key={id}><summary>{item.title}</summary><div className="evidence-content"><p className="source-location">证据编号：{id}<br />来源：{item.source_locator || '未记录'}<br />数据期间：{item.data_period || '未记录'}<br />采集时间：{item.retrieved_at || '未记录'}<br />适用范围 / 口径：{item.scope || '未记录'}<br />核验状态：{item.verification_status === 'verified' ? '已核验' : '未核验'} · 登记等级：E{item.level}<br />有效至：{item.valid_until || '未设定'}{item.conflict && ' · 存在待解释冲突'}</p><pre>{item.content || '未保存正文'}</pre></div></details>;
+    if (!item) return <p className="source-location" key={id}>引用的资料未包含在本次快照中，请复核引用。</p>;
+    return <details key={id}><summary>{item.title}</summary><div className="evidence-content"><p className="source-location">来源：{item.source_locator || '未记录'}<br />数据期间：{item.data_period || '未记录'}<br />采集时间：{item.retrieved_at || '未记录'}<br />适用范围 / 口径：{item.scope || '未记录'}<br />核验状态：{item.verification_status === 'verified' ? '已核验' : '未核验'} · 登记等级：E{item.level}<br />有效至：{item.valid_until || '未设定'}{item.conflict && ' · 存在待解释冲突'}</p><pre>{item.content || '未保存正文'}</pre></div></details>;
   })}</div>;
 }
 
