@@ -41,7 +41,8 @@ def test_planner_failure_is_explicit_and_does_not_trigger_collection(client,monk
     assert module.store.list('retrieval_plans')[0]['status']=='failed'
 
 
-def test_model_requested_evidence_is_passed_back_once(client,monkeypatch):
+def test_selected_evidence_is_passed_back_once(client,monkeypatch):
+    monkeypatch.setattr(module.planner,"plan_search",lambda *a:{"data_requests":[{"source":"github","query":"a/b","reason":"技术"}]})
     monkeypatch.setattr(module,'settings',lambda:{'base_url':'https://model.example','model':'test'})
     calls=[]
     def analyze(*args):
@@ -53,12 +54,12 @@ def test_model_requested_evidence_is_passed_back_once(client,monkeypatch):
     monkeypatch.setattr(module,'collect',collect)
     pid=client.post('/api/projects',json={'name':'测试'}).json()['id']
     r=client.post(f'/api/projects/{pid}/chat',json={'message':'检查技术依赖'}).json()
-    assert len(calls)==2 and len(calls[1][4])==1
+    assert len(calls)==1 and len(calls[0][4])==1
     assert r['retrieval_results'][0]['status']=='saved'
     r=client.post(f'/api/projects/{pid}/chat',json={'message':'继续'}).json()
     assert r['retrieval_results'][0]['status']=='saved'
     assert len(client.get(f'/api/projects/{pid}').json()['evidence'])==2
-    assert len(calls)==4
+    assert len(calls)==2
 
 
 def test_browser_captures_excluded_from_model_context(client,monkeypatch):
@@ -76,6 +77,7 @@ def test_browser_captures_excluded_from_model_context(client,monkeypatch):
 
 
 def test_retrieval_failure_still_returns_interview(client,monkeypatch):
+    monkeypatch.setattr(module.planner,"plan_search",lambda *a:{"data_requests":[{"source":"github","query":"a/b","reason":"技术"}]})
     monkeypatch.setattr(module,'settings',lambda:{'base_url':'https://model.example','model':'test'})
     monkeypatch.setattr(module,'analyze',lambda *args:{'mode':'model','reply':'待核验','project_patch':{},'proposal':None,'data_requests':[{'source':'github','query':'a/b','reason':'技术'}]})
     def fail(*args): raise ValueError('HTTP 403')

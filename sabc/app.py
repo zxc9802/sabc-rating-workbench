@@ -95,7 +95,7 @@ def health():
 def public_settings():
     s=settings()
     primary=model_router.deepseek()
-    return {'managed':sso.enabled(),'primary_model':s.get('model',''), 'planner_model':os.getenv('SABC_PLANNER_MODEL','gpt-5.6-luna'), 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
+    return {'managed':sso.enabled(),'primary_model':s.get('model',''), 'planner_model':os.getenv('SABC_EMBEDDING_MODEL','text-embedding-3-large'), 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
             'has_key':bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
             'configured':bool(primary or (s.get('base_url') and s.get('model')))}
 

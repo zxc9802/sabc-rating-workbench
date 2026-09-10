@@ -51,16 +51,6 @@ def test_schema_failure_retries_primary_then_original_analysis(primary,monkeypat
     assert 'thinking' not in calls[0]
 
 
-def test_planner_bad_query_falls_back_without_fetching(primary,monkeypatch):
-    calls=[]
-    def post(self,url,**kwargs):
-        payload=kwargs['json'];calls.append(payload['model'])
-        requests=[{'source':'github','query':'invented/repo','reason':'test'}] if payload['model']!='deepseek-flash' else []
-        return httpx.Response(200,request=httpx.Request('POST',url),json={'choices':[{'message':{'content':json.dumps({'reason':'仅整理内部资料','data_requests':requests})}}]})
-    monkeypatch.setattr(httpx.Client,'post',post)
-    assert planner.plan_search({}, {}, [], [])['data_requests']==[]
-    assert calls==['gpt-5.6-luna','deepseek-flash']
-
 
 def test_partial_primary_answer_is_cleared_before_fallback(primary):
     seen=[]
