@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { api } from '../lib/types';
 
-export function SessionGate({ children }: { children: ReactNode }) {
+export function SessionGate({ children }: { children: (logout: ReactNode) => ReactNode }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [required, setRequired] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -25,10 +25,10 @@ export function SessionGate({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('sabc-session-expired', expired);
   }, []);
   if (loading) return <main className="loading-page">正在连接工作空间…</main>;
-  if (authenticated) return <>{required && <button className="secondary session-logout" onClick={async () => {
+  if (authenticated) return <>{error && <div role="alert">{error}</div>}{children(required && <button className="secondary session-logout" onClick={async () => {
     try { await api('/auth/logout', 'POST'); setAuthenticated(false); }
     catch { setError('退出失败，请重试'); }
-  }}>退出登录</button>}{error && <div role="alert">{error}</div>}{children}</>;
+  }}>退出登录</button>)}</>;
   return <main className="loading-page"><form className="session-card" onSubmit={async e => {
     e.preventDefault(); setBusy(true); setError('');
     try { await api('/auth/login', 'POST', { password }); setPassword(''); setAuthenticated(true); }

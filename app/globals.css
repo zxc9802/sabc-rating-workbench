@@ -130,7 +130,9 @@ textarea { resize: vertical; line-height: 1.8; }
 
 .session-card { width: min(380px, 90vw); display: grid; gap: 16px; text-align: left; }
 .session-card input { padding: 12px; border: 1px solid #d7d9d8; border-radius: 8px; }
-.session-logout { position: fixed; bottom: 16px; left: 24px; z-index: 20; }
+.topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+.session-logout { flex-shrink: 0; }
+@media (max-width: 650px) { .topbar { flex-wrap: wrap; gap: 8px; padding-block: 12px; }.topbar-actions { gap: 8px; margin-left: auto; } }
 .chat-attachments { padding: 10px 18px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .chat-attachments small, .chat-attachments p { font-size: 12px; color: var(--muted); margin: 0; }
 .chat-attachments p { flex-basis: 100%; overflow-wrap: anywhere; }
@@ -159,3 +161,8 @@ textarea { resize: vertical; line-height: 1.8; }
 .chat-references summary { cursor: pointer; }
 .chat-references > div { display: flex; gap: 10px; align-items: baseline; margin-top: 8px; }
 .message .chat-references p { font-size: 12px; margin-top: 8px; }
+
+/* Files can be dropped anywhere in the interview panel. */
+.conversation { position: relative; }
+.chat-drop-overlay { position: absolute; inset: 0; z-index: 10; pointer-events: none; border: 2px dashed var(--accent); border-radius: 16px; background: rgba(240, 244, 255, .94); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; color: var(--accent); font-weight: 600; }
+.chat-drop-overlay span { font-size: 13px; font-weight: 400; }

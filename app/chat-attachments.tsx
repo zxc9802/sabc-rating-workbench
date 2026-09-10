@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { waitForJob, type Evidence, type Job } from '../lib/types';
 
 function event(target: HTMLVideoElement, name: string) {
@@ -66,8 +66,47 @@ function upload(projectId: string, file: File, label: string, progress: (s: stri
 
 export function ChatAttachments({ projectId, disabled, onBusy, onSaved }: { projectId: string; disabled: boolean; onBusy: (busy: boolean) => void; onSaved: () => Promise<void> }) {
   const [status, setStatus] = useState(''); const active = useRef(false); const input = useRef<HTMLInputElement>(null);
+  const zone = useRef<HTMLDivElement>(null);
+  const depth = useRef(0);
+  const [dragging, setDragging] = useState(false);
+  useEffect(() => {
+    const target = zone.current?.closest('.conversation') || zone.current;
+    if (!target) return;
+    const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types || []).includes('Files');
+    const enter = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault(); depth.current++;
+      if (!disabled && !active.current) setDragging(true);
+    };
+    const over = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = disabled || active.current ? 'none' : 'copy';
+    };
+    const leave = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth.current = Math.max(0, depth.current - 1);
+      if (!depth.current) setDragging(false);
+    };
+    const drop = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault(); depth.current = 0; setDragging(false);
+      if (disabled || active.current) { setStatus('请等待当前处理完成后再上传'); return; }
+      void add(e.dataTransfer?.files || null);
+    };
+    target.addEventListener('dragenter', enter as EventListener);
+    target.addEventListener('dragover', over as EventListener);
+    target.addEventListener('dragleave', leave as EventListener);
+    target.addEventListener('drop', drop as EventListener);
+    return () => {
+      target.removeEventListener('dragenter', enter as EventListener);
+      target.removeEventListener('dragover', over as EventListener);
+      target.removeEventListener('dragleave', leave as EventListener);
+      target.removeEventListener('drop', drop as EventListener);
+    };
+  });
   async function add(files: FileList | null) {
-    if (!files?.length || active.current) return;
+    if (!files?.length || disabled || active.current) return;
     if (files.length > 5) { setStatus('每批最多5个文件'); return; }
     active.current = true; onBusy(true); const start = performance.now();
     try {
@@ -81,5 +120,5 @@ export function ChatAttachments({ projectId, disabled, onBusy, onSaved }: { proj
     } catch (e) { setStatus(e instanceof Error ? e.message : '附件处理失败'); }
     finally { active.current = false; onBusy(false); if (input.current) input.current.value = ''; }
   }
-  return <div className="chat-attachments"><label className="secondary upload-button">上传文档 / 图片 / 视频<input ref={input} type="file" multiple disabled={disabled} accept=".txt,.md,.csv,.json,.docx,.xlsx,.pptx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,video/*" onChange={e => void add(e.target.files)} /></label><small>文档≤20MB</small><p role="status">{status}</p></div>;
+  return <div ref={zone} className="chat-attachments">{dragging && <div className="chat-drop-overlay" aria-hidden="true">松开即可上传文档、图片或视频<span>每批最多5个文件</span></div>}<label className="secondary upload-button">上传或拖入文档 / 图片 / 视频<input ref={input} type="file" multiple disabled={disabled} accept=".txt,.md,.csv,.json,.docx,.xlsx,.pptx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,video/*" onChange={e => void add(e.target.files)} /></label><small>文档≤20MB</small><p role="status">{status}</p></div>;
 }
