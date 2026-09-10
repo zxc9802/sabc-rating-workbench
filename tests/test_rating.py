@@ -153,3 +153,12 @@ def test_out_of_range_scores_rejected():
     p,c,e,a=case()
     a['dimensions']['return']['score']=100
     with pytest.raises(ValueError): assess(p,c,e,a)
+
+
+def test_nr_preserves_actionable_validation_tasks_without_granting_grade():
+    p,c,e,a=case()
+    a['dimensions']['market']['score']=None
+    a['assumptions'][0].update(validation_method='核对试点日志',pass_threshold='完整100条',fail_threshold='不足暂停结论')
+    r=assess(p,c,e,a)
+    assert r['grade']=='NR' and r['base_score'] is None
+    assert r['validation_plan'][0]=={'claim':a['assumptions'][0]['claim'],'method':'核对试点日志','pass':'完整100条','fail':'不足暂停结论'}

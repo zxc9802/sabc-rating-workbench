@@ -84,6 +84,9 @@ def assess(project, company, evidence, proposal, today=None):
     if len([s for s in proposal.get('pros',[]) if s.strip()])<3: missing.append('至少3条支持理由')
     if missing:
         result['missing']=list(dict.fromkeys(missing))
+        result['validation_plan']=[{'claim':a['claim'],'method':a.get('validation_method') or '先确认资料来源和负责人',
+            'pass':a.get('pass_threshold') or '待负责人确认通过条件',
+            'fail':a.get('fail_threshold') or '条件未确认前暂停投入'} for a in assumptions]
         return result
     by_id={item['id']:item for item in evidence}
     superseded={item['supersedes'] for item in evidence if item.get('supersedes')}

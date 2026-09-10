@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from sabc.catalog import catalog
 from sabc.llm import DataRequest
+from sabc.context import model_context
 from sabc.local_sources import REGIONS
 from sabc.sources import SUPPORTED, request_spec
 
@@ -48,8 +49,7 @@ github仓库、SEC CIK和具体目录/法规编号必须来自输入或能力示
     system+='\n地区名称与行政层级必须按能力清单的完整名称和覆盖范围描述，不将地区改称市，也不扩大到所属省区。'
     system+='\n区分输入缺口与来源能力缺口：地区或标识未知时，只说明本轮尚无法匹配来源。data_requests为空时，reason只解释当前任务为何不取数、缺什么输入或应核对什么内部资料；不要概括全部渠道的类别、用途或字段。选中来源时才描述该来源的具体能力，且须有能力清单支持。'
     system+='''\n选源理由也必须遵守数据能力边界：零售额、GDP、人口等总量不能推算经营主体数、可触达商家数、付费客户数或项目收入。资料没有对应数量字段及可验证估算方法时，不声称该来源可以估算这些数量。只描述当前来源确实能够提供的指标，以及仍需补充的项目直接证据。'''
-    context = {'project': project, 'company': company, 'evidence': evidence,
-               'conversation': messages[-16:], 'sources': capabilities, 'regions': regions}
+    context = {**model_context(project, company, evidence, messages), 'sources': capabilities, 'regions': regions}
     payload = {'model': model, 'temperature': 0.1, 'response_format': {'type': 'json_object'},
                'messages': [{'role': 'system', 'content': system},
                             {'role': 'user', 'content': json.dumps(context, ensure_ascii=False)}]}

@@ -5,7 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 import zipfile
 
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, UploadFile, Form
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
@@ -177,12 +177,20 @@ def chat(pid:str,body:Chat):
             result['retrieval_plan']=plan
             result['data_requests']=[]
             result['reply']+='\n\n选源说明：'+plan['reason']
-        p['pending_patch']=result.get('project_patch',{})
+        # Keep earlier unconfirmed facts until the user accepts them; later explicit
+        # corrections replace the same field, not the whole pending fact set.
+        p['pending_patch']={**p.get('pending_patch',{}),**result.get('project_patch',{})}
     else:
         result=guide(p,body.message,body.field)
         p.update(result['project_patch'])
     p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'time':utcnow()}]
     if result['mode']=='model': p['proposal']=result.get('proposal')
+    if result['mode']=='model':
+        readiness=assess({**p,**p.get('pending_patch',{})},company(),model_evidence_for(pid),p.get('proposal') or {})
+        gaps=readiness['missing']
+        state='ready' if not gaps else 'paused' if result.get('needs_external_action') else 'gathering'
+        p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
+                        'note':'可进入人工核对，尚未批准投入' if state=='ready' else '等待补证后继续；不重复追问' if state=='paused' else '补充影响决策的关键事实'}
     p['version']+=1
     store.save('projects',p)
     return result
@@ -319,6 +327,32 @@ def upload(pid:str,file:UploadFile):
     except Exception: raise ValueError('文件无法解析，请检查文件是否损坏或受密码保护') from None
     if not text.strip(): raise ValueError('未提取到文字；扫描文件请先转成可复制的文字')
     return add_evidence(pid,Evidence(title=file.filename or '上传资料',source_locator='上传文件：'+(file.filename or '资料'),content=text))
+
+
+@app.post('/api/projects/{pid}/attachments',status_code=202)
+def attachment(pid:str,file:UploadFile, label:str=Form('')):
+    project_or_404(pid)
+    from sabc.attachments import extract, IMAGE_SUFFIXES, DOCUMENT_SUFFIXES
+    name=Path(file.filename or '附件').name
+    if Path(name).suffix.lower() not in IMAGE_SUFFIXES|DOCUMENT_SUFFIXES:
+        raise ValueError('此格式无法读取，请上传常见文档、图片或先在浏览器抽取视频画面')
+    content=file.file.read(20_000_001)
+    if len(content)>20_000_000: raise ValueError('单个文档最大20MB；图片和视频请先完成本地处理')
+    ident=str(uuid4())
+    directory=store.path.parent/'attachments';directory.mkdir(exist_ok=True)
+    path=directory/ident
+    path.write_bytes(content);path.chmod(0o600)
+    def process():
+        result=extract(name,content,settings(),decrypt_key(settings().get('encrypted_key','')),parse_file)
+        return store.save('evidence',{'project_id':pid,'title':(label or name)[:200],
+            'source_locator':'对话附件：'+name,'attachment_id':ident,'source_type':'user',
+            'verification_status':'unverified','level':0,'retrieved_at':utcnow(),
+            'data_period':'待核对','scope':label[:500] or '本项目附件，适用范围待核对',**result})
+    try:
+        return jobs.submit(store,ident,pid,{'operation':'attachment','name':name},process)
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
 
 
 @app.post('/api/company/import')
