@@ -86,6 +86,7 @@ function Workbench({ logout }: { logout: ReactNode }) {
       sessionStorage.setItem('sabc-project', p.id);
       setDetail({ project: p, evidence: [], assessments: [] }); setTab('chat'); setDescription(''); setName(''); setMessage('');
       setStreamReply('');
+      await reload();
       await initialReply(p.id);
     });
   }
