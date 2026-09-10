@@ -30,6 +30,7 @@ QUESTIONS = {
 
 
 class DataRequest(BaseModel):
+    dimension: Literal['strategy','market','return','resources','replication','cash','risk','opportunity'] | None = None
     source: Literal['worldbank','github','sec','apple','stats','miit','cninfo','law','local','trends','web']
     query: str=Field(min_length=1,max_length=200)
     reason: str=Field(min_length=1,max_length=300)
@@ -119,6 +120,8 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
     system+='\n市场空间/需求价值评价的是本项目具体解决的问题及客户价值。城市零售额、GDP、人口等宏观规模本身不足以给该维度3分。若具体服务、痛点或价值主张尚未知，且没有其他项目需求依据，market必须score=null、basis=unknown；宏观资料仅作为背景。不得把“有市场活动”当成“本项目需求基本成立”。\n没有具体、可描述的潜在否决事实时vetoes必须为空数组。不得把“目前未确认违规”“若未来发现合规问题”或一般资料缺口写成否决项；未来可能风险写入assumptions及验证条件。\n用户已说不知道、尚未决定的事项，本轮及后续轮次都不换措辞重复索要决定。优先从已有资料找到答案，再追问其他尚未问过的关键事实。用户不会制定质量阈值、资源安排等方案时，可提出一个具体可行的建议供选择，明确是建议且未获确认，不能直接写成既定事实；不要把“没定方案”当作拒绝继续交流。只有剩余缺口确实需要尚不存在的试验结果、用户无法提供任何相关记录或明确要求暂停时，才保留未知并说明具体恢复条件。已有成功指标、数量和周期须带入相关验证条件；只把用户尚未确定的阈值留待确认，不能重新要求确认已明确的数值。'
     system+='\n访谈收口：JSON另输出questions数组（最多2个本轮确实需要用户回答的问题）和needs_external_action布尔值。仅追问会改变当前决策的缺口，不为已提供的信息重复提问。有足够依据形成方向性评分时停止基础追问，questions为空，给出待人工核对proposal；效果尚未验证应进入假设与验证任务，不因此无限追问。某一事项明确不知道，只停止追问该事项，不能据此结束整场访谈。输出空questions前，逐一核对八个评分维度及必填项目事实，而不只是七项表单：仍有影响判断、尚未问过且用户可回答的维度缺口时必须继续追问。战略、需求、回报、资源、复用、现金、法律合规与其他风险、替代方案均需考虑适用性；已知内容无需重新确认。只有各维度已有足够方向性依据，或剩余缺口均明确无法通过当下问答解决时才可收口。具体功能或痛点未知不代表收费方式也未知，收费方式尚未问过时仍需询问。只有剩余关键项均已回答或明确需要外部行动，才以needs_external_action=true收口；能生成含未知维度的proposal本身不是停止询问的理由。用户明确要求停止访谈或只回答当前问题时尊重其要求。将详细的负责人、资料和恢复条件写入proposal验证任务，reply只简短说明可行下一步。程序会独立检查是否满足评审条件，不能为了收口补造分数。上下文pending_patch是待核对的用户事实，不能当已确认；有冲突时指出冲突并请求确认。'
     system += PROMPT
+    from sabc.dimension_sources import PROMPT as SOURCE_PROMPT
+    system += SOURCE_PROMPT
     payload={'model':settings['model'],'temperature':0.1,
              'messages':[{'role':'system','content':system},
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],

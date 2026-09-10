@@ -1,3 +1,5 @@
+> 当前常规访谈已改用 `sabc/dimension_sources.py` 的八维规则与回答模型生成核查任务。下文记录旧向量实现，保留索引供离线比较，不再参与常规选源。
+
 # 向量选源
 
 常规访谈选源使用 text-embedding-3-large，不再调用 GPT 或 DeepSeek 生成选源计划。GLM 回答及 DeepSeek 回答兜底不变。

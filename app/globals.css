@@ -188,3 +188,13 @@ textarea { resize: vertical; line-height: 1.8; }
 
 .company-prompt-action { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; font-weight: 600; color: var(--blue, #365dc7); }
 @media (max-width: 650px) { .company-prompt { flex-wrap: wrap; }.company-prompt-action { margin-left: 36px; } }
+
+.scoring-confirmation { padding: 20px; border: 1px solid #d8e2f5; border-radius: 14px; background: #f5f8ff; }
+.scoring-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+
+.composer-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-right: 28px; }
+.composer-tools > :first-child { min-width: 0; flex: 1; }
+.collection-progress { display: flex; flex-direction: column; gap: 6px; width: 170px; flex-shrink: 0; font-size: 13px; color: #4f6480; }
+.collection-progress progress { width: 100%; height: 6px; accent-color: #365dc7; }
+.collection-progress small { font-size: 11px; }
+@media (max-width: 650px) { .composer-tools { flex-wrap: wrap; padding-right: 16px; }.collection-progress { margin: 0 0 12px auto; } }
