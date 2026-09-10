@@ -1,5 +1,11 @@
 type Reference = { id: string; title: string };
 
+export function readableWarning(content: string, evidence: Reference[]): string {
+  const item = evidence.find(e => content.startsWith(e.id + '：'));
+  if (item) return `${item.title}：${content.slice(item.id.length + 1)}`;
+  return content.replace(/^(?:[a-f0-9]{32}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})：/i, '相关资料：');
+}
+
 // Keep original records and URLs intact; translate internal references only for display.
 export function readableReply(content: string, evidence: Reference[] = [], streaming = false): string {
   const label = (id: string) => {
