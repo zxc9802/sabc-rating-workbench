@@ -197,7 +197,7 @@ def chat(pid:str,body:Chat):
         gaps=readiness['missing']
         state='ready' if not gaps else 'gathering' if result.get('questions') else 'paused'
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
-                        'note':'可进入人工核对，尚未批准投入' if state=='ready' else '等待补证后继续；不重复追问' if state=='paused' else '补充影响决策的关键事实'}
+                        'note':'可进入人工核对，尚未批准投入' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
     p['version']+=1
     store.save('projects',p)
     return result
