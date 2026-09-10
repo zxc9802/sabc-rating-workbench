@@ -183,6 +183,9 @@ def chat(pid:str,body:Chat):
     else:
         result=guide(p,body.message,body.field)
         p.update(result['project_patch'])
+    followups=[q for q in result.get('questions',[])[:2] if q.strip() and q not in result['reply']]
+    if followups:
+        result['reply']+='\n\n'+'\n\n'.join(followups)
     valid_refs={e['id'] for e in model_evidence_for(pid)}
     refs=[eid for eid in result.get('reply_evidence_ids',[]) if eid in valid_refs]
     p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'evidence_ids':refs,'time':utcnow()}]
