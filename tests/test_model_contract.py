@@ -95,3 +95,21 @@ def test_complete_or_no_proposal_does_not_retry(monkeypatch,has_proposal):
     r=analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
     assert len(calls)==1
     assert (r['proposal'] is not None)==has_proposal
+
+
+@pytest.mark.parametrize('invalid',[
+    {'reply':'方向待验证','proposal':{'dimensions':[]}},
+    {'reply':'方向待验证','proposal':{'assumptions':[{'claim':'需求待验证'}]}},
+    {'reply':'方向待验证','questions':['问题一','问题二','问题三']},
+])
+def test_structural_error_is_repaired_without_accepting_invalid_proposal(monkeypatch,invalid):
+    calls=[]
+    def post(*args,**kwargs):
+        calls.append(kwargs['timeout'])
+        content=invalid if len(calls)==1 else {'reply':'还需核实需求。','proposal':None}
+        return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps(content)}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
+    monkeypatch.setattr(httpx.Client,'post',post)
+    result=analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
+    assert result['proposal'] is None
+    assert result['reply']=='还需核实需求。'
+    assert len(calls)==2 and 0<calls[1]<=calls[0]<=90

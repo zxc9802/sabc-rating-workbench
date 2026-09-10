@@ -195,7 +195,7 @@ def chat(pid:str,body:Chat):
     if result['mode']=='model':
         readiness=assess({**p,**p.get('pending_patch',{})},company(),model_evidence_for(pid),p.get('proposal') or {})
         gaps=readiness['missing']
-        state='ready' if not gaps else 'paused' if result.get('needs_external_action') and not result.get('questions') else 'gathering'
+        state='ready' if not gaps else 'gathering' if result.get('questions') else 'paused'
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
                         'note':'可进入人工核对，尚未批准投入' if state=='ready' else '等待补证后继续；不重复追问' if state=='paused' else '补充影响决策的关键事实'}
     p['version']+=1

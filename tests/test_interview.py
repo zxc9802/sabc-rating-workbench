@@ -42,3 +42,17 @@ def test_questions_are_visible_once_and_waiting_state_matches_interview(client,m
     project=client.get(f'/api/projects/{pid}').json()['project']
     assert project['messages'][-1]['content']==expected
     assert project['interview']['state']=='gathering'
+
+
+def test_no_followup_keeps_incomplete_interview_paused(client,monkeypatch):
+    import sabc.app as module
+    pid=client.post('/api/projects',json={'name':'未知保留','project_type':'growth'}).json()['id']
+    monkeypatch.setattr(module,'settings',lambda:{'base_url':'https://model.example','model':'test'})
+    monkeypatch.setattr(module.planner,'configured',lambda:False)
+    monkeypatch.setattr(module,'analyze',lambda *args:{
+        'mode':'model','reply':'已修正资料，具体需求仍需验证。','project_patch':{},
+        'proposal':None,'questions':[],'needs_external_action':False})
+    client.post(f'/api/projects/{pid}/chat',json={'message':'请保留尚未核实的信息'})
+    project=client.get(f'/api/projects/{pid}').json()['project']
+    assert project['interview']['state']=='paused'
+    assert project['interview']['gaps'] and not project['interview']['questions']
