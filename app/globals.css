@@ -173,3 +173,5 @@ textarea { resize: vertical; line-height: 1.8; }
 .project-list-item:last-child { border-bottom: 0; }
 .project-list-item .project-row { flex: 1; min-width: 0; border-bottom: 0; }
 .project-delete { flex-shrink: 0; margin-right: 16px; color: #ad3434; }
+.project-selection input[type="checkbox"], .project-list-item > input[type="checkbox"] { width: 16px; height: 16px; flex: 0 0 16px; padding: 0; margin: 0; accent-color: var(--accent); }
+.project-selection label { white-space: nowrap; }
