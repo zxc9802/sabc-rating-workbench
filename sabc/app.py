@@ -116,6 +116,21 @@ def create_project(body:dict):
     return store.save('projects',data)
 
 
+class DeleteProjects(BaseModel):
+    ids:list[str]=Field(min_length=1,max_length=200)
+
+
+@app.post('/api/projects/delete')
+def delete_projects(body:DeleteProjects):
+    ids=list(dict.fromkeys(body.ids))
+    with jobs.lock:
+        for job in store.list('jobs'):
+            if job.get('project_id') in ids and job.get('status')=='running':
+                jobs.read(store,job['id'])
+        store.delete_projects(ids)
+    return {'deleted':ids}
+
+
 @app.get('/api/projects/{pid}')
 def get_project(pid:str):
     p=project_or_404(pid)
