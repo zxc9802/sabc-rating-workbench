@@ -26,3 +26,15 @@ def test_actual_stream_deltas_form_final_json():
     finally:progress.reset(token)
     assert result==raw and seen[-1]=='逐步输出'
     assert '逐' in seen
+
+
+def test_truncated_stream_is_not_accepted_as_success():
+    import pytest
+    raw='{"reply":"看似完整","proposal":null}'
+    events='data: '+json.dumps({'choices':[{'delta':{'content':raw}}]})+'\n\n'
+    token=progress.set(lambda value:None)
+    try:
+        with httpx.Client(transport=httpx.MockTransport(lambda r:httpx.Response(200,text=events))) as client:
+            with pytest.raises(ValueError,match='中断'):
+                completion(client,'https://model.test/v1/chat/completions',{}, {},30)
+    finally:progress.reset(token)

@@ -12,6 +12,14 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
+
+def as_post(client, pid):
+    project=client.get(f'/api/projects/{pid}').json()['project']
+    response=client.post(f'/api/projects/{pid}/lifecycle',json={'action':'set_stage','version':project['version'],
+        'payload':{'stage':'post','actual_start':'2026-09-01','actual_end':'2026-09-05'}})
+    assert response.status_code==200
+
+
 def test_bootstrap_empty(client):
     r=client.get('/api/bootstrap')
     assert r.status_code==200
@@ -23,6 +31,7 @@ def test_local_capture_api_preserves_unverified_evidence_in_report(client):
     p,c,_,proposal=case(2)
     client.put('/api/company',json=c)
     pid=client.post('/api/projects',json=p).json()['id']
+    as_post(client,pid)
     data={'region':'hangzhou','title':'公开预览','source_locator':'https://data.hangzhou.gov.cn/dop/test','data_period':'2026','scope':'仅杭州公开样例','content':'地区样例数据','retrieved_at':'2026-09-09T09:00:00+00:00','level':3}
     saved=client.post('/api/local-captures',json=data)
     assert saved.status_code==200
@@ -41,6 +50,7 @@ def test_local_capture_api_preserves_unverified_evidence_in_report(client):
 def test_project_persistence_and_nr(client):
     r=client.post('/api/projects',json={'name':'获客项目','description':'通过内容获客','project_type':'growth'})
     pid=r.json()['id']
+    as_post(client,pid)
     r=client.post(f'/api/projects/{pid}/assess',json={})
     assert r.json()['result']['grade']=='NR'
     assert len(client.get(f'/api/projects/{pid}').json()['assessments'])==1
@@ -50,6 +60,7 @@ def test_snapshot_does_not_change_after_company_update(client):
     p,c,e,a=case(2)
     client.put('/api/company',json=c)
     pid=client.post('/api/projects',json=p).json()['id']
+    as_post(client,pid)
     ev=client.post(f'/api/projects/{pid}/evidence',json=e[0]).json()
     for dim in a['dimensions'].values(): dim['evidence_ids']=[ev['id']]
     for item in a['assumptions']: item['evidence_ids']=[ev['id']]
@@ -124,6 +135,7 @@ def test_changed_model_facts_must_be_reviewed_before_rating(client, monkeypatch)
     p,c,_,proposal=case(1,4)
     client.put('/api/company',json=c)
     pid=client.post('/api/projects',json=p).json()['id']
+    as_post(client,pid)
     monkeypatch.setattr(module,'settings',lambda:{'base_url':'https://model.example','model':'test'})
     monkeypatch.setattr(module,'analyze',lambda *args:{'mode':'model','reply':'预算更新待确认','project_patch':{'budget_requested':200000},'proposal':proposal})
     client.post(f'/api/projects/{pid}/chat',json={'message':'首期预算改为20万元'})

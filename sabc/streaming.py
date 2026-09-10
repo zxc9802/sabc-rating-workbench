@@ -35,9 +35,13 @@ def completion(client, url, payload, headers, remaining):
     if notify is None:
         r = client.post(url, json=payload, headers=headers, timeout=remaining)
         r.raise_for_status()
-        return r.json()['choices'][0]['message']['content']
+        choice = r.json()['choices'][0]
+        if choice.get('finish_reason') not in (None, 'stop'):
+            raise ValueError('模型未完成有效回答')
+        return choice['message']['content']
     notify('')
     content = ''
+    finished = False
     deadline = time.monotonic() + remaining
     with client.stream('POST', url, json={**payload, 'stream':True}, headers=headers, timeout=remaining) as response:
         response.raise_for_status()
@@ -48,6 +52,7 @@ def completion(client, url, payload, headers, remaining):
                 continue
             data = line[5:].strip()
             if data == '[DONE]':
+                finished = True
                 break
             if not data:
                 continue
@@ -56,8 +61,15 @@ def completion(client, url, payload, headers, remaining):
                 raise ValueError('模型流式回答中断，请重试')
             choices = event.get('choices', [])
             if choices:
+                reason = choices[0].get('finish_reason')
+                if reason not in (None, 'stop'):
+                    raise ValueError('模型未完成有效回答')
+                if reason == 'stop':
+                    finished = True
                 delta = choices[0].get('delta', {}).get('content')
                 if isinstance(delta, str):
                     content += delta
                     notify(reply_prefix(content))
+    if not finished:
+        raise ValueError('模型流式回答中断，请重试')
     return content

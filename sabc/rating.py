@@ -2,7 +2,7 @@
 from datetime import date
 import math
 
-RULE_VERSION = 'SABC-2.0.2'
+RULE_VERSION = 'SABC-2.1.0'
 DIMENSIONS = {
     'strategy': ('战略匹配度', 15), 'market': ('市场空间 / 需求价值', 15),
     'return': ('经营回报确定性', 20), 'resources': ('资源匹配 / 凭什么赢', 15),
@@ -64,6 +64,20 @@ def assess(project, company, evidence, proposal, today=None):
             'action':ACTIONS['NR'], 'pros':proposal.get('pros',[]), 'cons':proposal.get('cons',[]),
             'resource_plan':{}, 'unique_sources':0,
             'validation_plan':[], 'reassessment_triggers':['公司战略、预算或团队变更','关键证据更新或过期','试验触及通过或止损阈值']}
+    # A verified decisive blocker does not require filling unrelated fields first.
+    by_id={item['id']:item for item in evidence}
+    superseded={item['supersedes'] for item in evidence if item.get('supersedes')}
+    blockers=[v['reason'] for v in proposal.get('vetoes',[]) if v.get('confirmed') and v.get('evidence_ids')
+              and all(eid in by_id and eid not in superseded
+                      and by_id[eid].get('verification_status')=='verified'
+                      and not by_id[eid].get('conflict')
+                      and (not by_id[eid].get('valid_until') or by_id[eid]['valid_until']>=today.isoformat())
+                      for eid in v['evidence_ids'])]
+    if blockers:
+        result.update(grade='C',status='当前方案不建议继续',action='当前方案不适合做，先解除决定性障碍',
+                      hard_stop=True,triggered_rules=['一票否决：'+reason for reason in blockers],
+                      missing=[],warnings=['其他维度尚未完成不影响本次否决；不代表已经全面验证项目。'])
+        return result
     dimensions=proposal.get('dimensions',{})
     for key,(label,weight) in DIMENSIONS.items():
         dim=dimensions.get(key,{})
@@ -110,7 +124,7 @@ def assess(project, company, evidence, proposal, today=None):
         rules.extend('B级封顶：'+str(reason) for reason in proposal['policy_caps'])
     for veto in proposal.get('vetoes',[]):
         refs=veto.get('evidence_ids',[])
-        if veto.get('confirmed') and refs and all(eid in by_id and eid not in superseded and by_id[eid].get('verification_status')=='verified' for eid in refs):
+        if veto.get('confirmed') and refs and all(eid in by_id and eid not in superseded and by_id[eid].get('verification_status')=='verified' and not by_id[eid].get('conflict') and (not by_id[eid].get('valid_until') or by_id[eid]['valid_until']>=today.isoformat()) for eid in refs):
             candidate=0; rules.append('一票否决：'+veto['reason'])
         else:
             result['warnings'].append('待核验红线：'+veto.get('reason','未说明'))

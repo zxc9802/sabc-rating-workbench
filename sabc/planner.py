@@ -6,6 +6,7 @@ import re
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
+from sabc.model_router import primary, routed
 from sabc.catalog import catalog
 from sabc.llm import DataRequest
 from sabc.context import model_context
@@ -20,17 +21,24 @@ class SearchPlan(BaseModel):
 
 
 def configured():
-    return bool(os.getenv('SABC_PLANNER_API_KEY'))
+    return bool(primary() or os.getenv('SABC_PLANNER_API_KEY'))
 
 
 def plan_search(project, company, evidence, messages):
-    key = os.getenv('SABC_PLANNER_API_KEY', '')
+    fallback = {'key': os.getenv('SABC_PLANNER_API_KEY', ''),
+                'base_url': os.getenv('SABC_PLANNER_BASE_URL', 'https://api.openlux.ai/v1'),
+                'model': os.getenv('SABC_PLANNER_MODEL', 'glm-5.3-flash')}
+    return routed('planner', fallback, lambda route: _plan_search(project, company, evidence, messages, route))
+
+
+def _plan_search(project, company, evidence, messages, route):
+    key = route['key']
     if not key:
         raise ValueError('选源模型尚未配置密钥')
-    base = os.getenv('SABC_PLANNER_BASE_URL', 'https://api.openlux.ai/v1').rstrip('/')
+    base = route['base_url'].rstrip('/')
     if not base.startswith('https://'):
         raise ValueError('选源模型须使用HTTPS接口')
-    model = os.getenv('SABC_PLANNER_MODEL', 'glm-5.3-flash')
+    model = route['model']
     capabilities = [s for s in catalog() if s['id'] in SUPPORTED and (s['id'] != 'web' or os.getenv('ANYSEARCH_API_KEY'))]
     regions = [r for r in REGIONS if r.get('example')]
     system = '''你负责SABC项目分析之前的数据源选择与查询生成，不负责评分。
@@ -54,8 +62,11 @@ github仓库、SEC CIK和具体目录/法规编号必须来自输入或能力示
     payload = {'model': model, 'temperature': 0.1, 'response_format': {'type': 'json_object'},
                'messages': [{'role': 'system', 'content': system},
                             {'role': 'user', 'content': json.dumps(context, ensure_ascii=False)}]}
+    if route['primary']:
+        payload.update(thinking={'type':'enabled'}, reasoning_effort=route['effort'])
+        payload.pop('temperature', None)
     try:
-        with httpx.Client(timeout=90) as client:
+        with httpx.Client(timeout=45 if route['primary'] else 90) as client:
             response = client.post(base + '/chat/completions', json=payload,
                                    headers={'Authorization': 'Bearer ' + key})
             response.raise_for_status()

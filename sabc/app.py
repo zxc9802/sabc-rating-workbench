@@ -13,7 +13,7 @@ from sabc.catalog import catalog
 from sabc.key_storage import encrypt_key, decrypt_key
 from sabc.llm import analyze, guide
 from sabc import planner
-from sabc import auth
+from sabc import auth, lifecycle, model_router
 from sabc.jobs import jobs
 from sabc.rating import assess, DIMENSIONS, TYPES, RULE_VERSION, PROJECT_FIELDS
 from sabc.store import Store, utcnow
@@ -75,9 +75,10 @@ def health():
 
 def public_settings():
     s=settings()
-    return {'base_url':s.get('base_url',''),'model':s.get('model',''),
+    primary=model_router.primary()
+    return {'primary_model':primary['model'] if primary else None, 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':s.get('model',''), 'base_url':s.get('base_url',''),'model':s.get('model',''),
             'has_key':bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
-            'configured':bool(s.get('base_url') and s.get('model'))}
+            'configured':bool(primary or (s.get('base_url') and s.get('model')))}
 
 
 @app.get('/api/bootstrap')
@@ -86,7 +87,7 @@ def bootstrap():
     runs=store.list('source_runs')
     for source in sources:
         source['status']='connected' if any(r['source']==source['id'] and r['status']=='success' for r in runs) else 'available' if source['id'] in SUPPORTED else 'browser' if source['id'] in ('baidu','douyin') else 'pending'
-    return {'projects':store.list('projects'),'company':company(),'settings':public_settings(),
+    return {'projects':[{**p,'followup':lifecycle.followup(p)} for p in store.list('projects')],'company':company(),'settings':public_settings(),
             'sources':sources,'rule_version':RULE_VERSION,'types':TYPES,
             'dimensions':[{'key':k,'name':n,'weight':w} for k,(n,w) in DIMENSIONS.items()]}
 
@@ -113,6 +114,9 @@ def create_project(body:dict):
     data['project_type']=data.get('project_type','growth')
     data['version']=1
     data['messages']=[]
+    data['lifecycle']=lifecycle.initial()
+    if body.get('stage') and body['stage']!='pre':
+        data=lifecycle.transition(data,'set_stage',body,company())
     return store.save('projects',data)
 
 
@@ -134,7 +138,7 @@ def delete_projects(body:DeleteProjects):
 @app.get('/api/projects/{pid}')
 def get_project(pid:str):
     p=project_or_404(pid)
-    return {'project':p,'evidence':evidence_for(pid),
+    return {'project':{**p,'followup':lifecycle.followup(p)},'evidence':evidence_for(pid),
             'assessments':[r for r in store.list('assessments') if r['project_id']==pid],
             'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running']}
 
@@ -149,6 +153,37 @@ def update_project(pid:str,body:dict):
     return store.save('projects',{**p,**patch,'pending_patch':{},'version':p['version']+1})
 
 
+
+class LifecycleAction(BaseModel):
+    action:str
+    payload:dict=Field(default_factory=dict)
+    version:int
+
+
+@app.post('/api/projects/{pid}/lifecycle')
+def update_lifecycle(pid:str,body:LifecycleAction):
+    with jobs.lock:
+        p=project_or_404(pid)
+        if p['version']!=body.version:
+            raise HTTPException(409,'项目已更新，请刷新后再操作')
+        for job in store.list('jobs'):
+            if job.get('project_id')==pid and jobs.read(store,job['id'])['status']=='running':
+                raise HTTPException(409,'请等待本项目当前任务完成后再修改阶段')
+        changed=lifecycle.transition(p,body.action,body.payload,company())
+        if body.action in ('set_stage','confirm_plan','start','complete'):
+            changed['proposal']=None
+            changed['interview']={}
+            # Old ratings remain in immutable reports, never label a new stage as final.
+            changed.pop('last_grade',None)
+        return store.save('projects',changed)
+
+
+@app.get('/api/projects/{pid}/model-runs')
+def model_runs(pid:str):
+    project_or_404(pid)
+    return [r for r in store.list('model_runs') if r.get('project_id')==pid][:100]
+
+
 class Chat(BaseModel):
     message:str=Field(min_length=1,max_length=12000)
     field:str|None=None
@@ -156,10 +191,18 @@ class Chat(BaseModel):
 
 @app.post('/api/projects/{pid}/chat')
 def chat(pid:str,body:Chat):
+    token=model_router.audit.set(lambda event:store.save('model_runs',{'project_id':pid,**event}))
+    try:
+        return chat_turn(pid,body)
+    finally:
+        model_router.audit.reset(token)
+
+
+def chat_turn(pid,body):
     p=project_or_404(pid)
     messages=p.get('messages',[])+[{'role':'user','content':body.message,'time':utcnow()}]
     s=settings()
-    if s.get('base_url') and s.get('model'):
+    if model_router.primary() or (s.get('base_url') and s.get('model')):
         plan=None
         if planner.configured():
             try:
@@ -208,8 +251,12 @@ def chat(pid:str,body:Chat):
     p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'evidence_ids':refs,'time':utcnow()}]
     if result['mode']=='model': p['proposal']=result.get('proposal')
     if result['mode']=='model':
+        lifecycle.absorb(p,result,company(),model_evidence_for(pid))
         readiness=assess({**p,**p.get('pending_patch',{})},company(),model_evidence_for(pid),p.get('proposal') or {})
         gaps=readiness['missing']
+        stage_review=p.get('lifecycle',{}).get('review')
+        if stage_review and stage_review.get('conclusion')!='needs_info' and not result.get('questions'):
+            gaps=[]
         state='ready' if not gaps else 'gathering' if result.get('questions') else 'paused'
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
                         'note':'可进入人工核对，尚未批准投入' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
@@ -393,6 +440,9 @@ def import_company(file:UploadFile):
 @app.post('/api/projects/{pid}/assess')
 def evaluate(pid:str,body:dict):
     p=project_or_404(pid)
+    life=lifecycle.state(p)
+    if p.get('lifecycle') and (not life['confirmed'] or life['stage']!='post'):
+        raise ValueError('当前阶段请先查看阶段评价；确认试点结束后生成综合评分')
     if any(p.get(k)!=v for k,v in p.get('pending_patch',{}).items()):
         raise ValueError('模型整理了待核对的项目事实，请先到项目资料核对并保存，再生成评级')
     proposal=body.get('proposal') or p.get('proposal') or {}
@@ -402,6 +452,8 @@ def evaluate(pid:str,body:dict):
     result=assess(p,c,e,proposal)
     record=store.save('assessments',{'project_id':pid,'result':result,
         'snapshot':{'project':p,'company':c,'evidence':e,'proposal':proposal}})
+    if result['grade']!='NR' and p.get('lifecycle'):
+        p['lifecycle']['next_review_on']=None
     store.save('projects',{**p,'proposal':proposal,'last_grade':result['grade'],'last_assessment_id':record['id']})
     return record
 

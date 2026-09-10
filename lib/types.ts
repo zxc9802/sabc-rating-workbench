@@ -4,18 +4,24 @@ export type Score = { score: number | null; reason: string; basis: string; evide
 export type Assumption = { id: string; claim: string; evidence_ids: string[]; validation_method?: string; pass_threshold?: string; fail_threshold?: string; level?: string };
 export type Proposal = { dimensions: Record<string, Score>; assumptions: Assumption[]; pros: string[]; cons: string[]; policy_caps: string[]; vetoes: { reason: string; confirmed: boolean; evidence_ids: string[] }[]; s_conditions: Record<string, boolean> };
 export type Message = { evidence_ids?: string[]; role: string; content: string; mode?: string; field?: string; time?: string };
-export type Project = { id: string; name: string; description?: string; project_type: string; version: number; messages: Message[]; last_grade?: string; updated_at: string; proposal?: Proposal; pending_patch?: RecordData; [key: string]: unknown };
+export type Stage = 'pre' | 'during' | 'post';
+export type Coverage = { status: 'known' | 'ask' | 'unknown' | 'external' | 'future'; reason: string };
+export type PilotPlan = { objective: string; scope: string; method: string; metrics: { name: string; baseline: string; target: string; measurement: string }[]; stop_conditions: string; owner: string; resources: string; cash_budget: number; internal_cost: number; max_loss: number; loss_estimate: number; planned_start: string | null; duration_days: number; checkin_after_days: number; records: string; version?: number; confirmed_at?: string; change_reason?: string };
+export type StageReview = { conclusion: string; summary: string; next_action: string; next_review_days?: number | null; time: string; stage: Stage; coverage: Record<string, Coverage>; plan_version?: number };
+export type Lifecycle = { stage: Stage; confirmed: boolean; paused: boolean; coverage: Record<string, Coverage>; plan?: PilotPlan | null; draft_plan?: PilotPlan | null; plan_history: PilotPlan[]; reviews: StageReview[]; review?: StageReview | null; actual_start?: string; actual_end?: string; expected_end?: string; next_review_on?: string | null; events: { action: string; reason: string; time: string; stage: Stage }[] };
+export type Followup = { date: string; due: boolean; kind: string };
+export type Project = { id: string; name: string; description?: string; project_type: string; version: number; messages: Message[]; last_grade?: string; updated_at: string; proposal?: Proposal; pending_patch?: RecordData; lifecycle?: Lifecycle; followup?: Followup | null; [key: string]: unknown };
 export type Evidence = { id: string; title: string; source_locator: string; content: string; source_type: string; data_period: string; scope: string; verification_status: string; level: number; retrieved_at: string; repeat_verified?: boolean; valid_until?: string; conflict?: boolean };
 export type Rating = { grade: string; status: string; base_score: number | null; base_grade: string | null; evidence_level: string; confidence: string; dimensions: (Score & Dimension & { weighted: number })[]; assumptions: Assumption[]; missing: string[]; triggered_rules: string[]; warnings: string[]; action: string; pros: string[]; cons: string[]; rule_version: string; resource_plan: { available_limit?: number; proposed_budget?: number | null; note?: string; formula?: string }; validation_plan: { claim: string; pass: string; fail: string; method: string }[]; reassessment_triggers: string[] };
 export type Assessment = { id: string; result: Rating; created_at: string; snapshot: { company: RecordData; project: Project; evidence: Evidence[]; proposal: Proposal } };
-export type Settings = { base_url: string; model: string; has_key: boolean; configured: boolean };
+export type Settings = { primary_model?: string | null; fallback_model?: string; reasoning_effort?: string | null; base_url: string; model: string; has_key: boolean; configured: boolean };
 export type Source = { id: string; name: string; purpose: string; url: string; access: string; status: string };
 export type Bootstrap = { projects: Project[]; company: RecordData; settings: Settings; sources: Source[]; dimensions: Dimension[]; types: Record<string, string>; rule_version: string };
 export type Job = { id: string; status: 'running' | 'success' | 'failed'; result?: unknown; error?: string; partial_reply?: string };
 export type Detail = { project: Project; evidence: Evidence[]; assessments: Assessment[]; active_jobs?: Job[] };
 
 export async function waitForJob<T>(id: string, onProgress?: (text: string) => void): Promise<T> {
-  for (let count = 0; count < (onProgress ? 2400 : 360); count++) {
+  for (let count = 0; count < (onProgress ? 6000 : 900); count++) {
     const job = await api<Job>('/jobs/' + id);
     if (job.partial_reply !== undefined) onProgress?.(job.partial_reply);
     if (job.status !== 'running') {

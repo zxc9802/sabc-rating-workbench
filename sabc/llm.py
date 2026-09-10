@@ -1,9 +1,11 @@
 """Model proposes facts and analysis; only the rule engine assigns grades."""
 from sabc.streaming import completion
+from sabc.model_router import routed
 import json
 import math
 import os
 import time
+from copy import deepcopy
 from urllib.parse import urlparse
 import httpx
 from pydantic import BaseModel, Field, ConfigDict
@@ -13,6 +15,7 @@ from sabc.rating import DIMENSIONS, PROJECT_FIELDS, known
 from sabc.schema import validate_amounts, validate_proposal
 from sabc.templates import TEMPLATES
 from sabc.context import model_context
+from sabc.lifecycle import Coverage, PilotPlan, StageReview, PROMPT, absorb
 
 KEY_FIELDS = ['target_user','business_goal','value_mechanism','success_metric','timeframe','budget_requested','risks']
 QUESTIONS = {
@@ -41,6 +44,9 @@ class ModelReply(BaseModel):
     data_requests: list[DataRequest]=Field(default_factory=list,max_length=2)
     questions: list[str]=Field(default_factory=list,max_length=2)
     needs_external_action: bool=False
+    dimension_coverage: dict[str, Coverage]=Field(default_factory=dict)
+    stage_review: StageReview|None=None
+    pilot_plan: PilotPlan|None=None
 
 
 def guide(project, message, field=None):
@@ -61,6 +67,11 @@ def guide(project, message, field=None):
 
 
 def analyze(settings, key, project, company, evidence, messages):
+    return routed('analysis', {**settings, 'key': key},
+                  lambda route: _analyze(route, route['key'], project, company, evidence, messages))
+
+
+def _analyze(settings, key, project, company, evidence, messages):
     base=settings.get('base_url','').rstrip('/')
     if urlparse(base).scheme not in ('http','https'): raise ValueError('模型服务地址须以 http:// 或 https:// 开头')
     rubric='；'.join(f'{k}={n},权重{w}' for k,(n,w) in DIMENSIONS.items())
@@ -107,31 +118,39 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
     system+='\n当前项目模板：'+TEMPLATES.get(project.get('project_type'),{}).get('focus','先确认四类项目中的实际类型。')
     system+='\n市场空间/需求价值评价的是本项目具体解决的问题及客户价值。城市零售额、GDP、人口等宏观规模本身不足以给该维度3分。若具体服务、痛点或价值主张尚未知，且没有其他项目需求依据，market必须score=null、basis=unknown；宏观资料仅作为背景。不得把“有市场活动”当成“本项目需求基本成立”。\n没有具体、可描述的潜在否决事实时vetoes必须为空数组。不得把“目前未确认违规”“若未来发现合规问题”或一般资料缺口写成否决项；未来可能风险写入assumptions及验证条件。\n用户已说不知道、尚未决定的事项，本轮及后续轮次都不换措辞重复索要决定。优先从已有资料找到答案，再追问其他尚未问过的关键事实。用户不会制定质量阈值、资源安排等方案时，可提出一个具体可行的建议供选择，明确是建议且未获确认，不能直接写成既定事实；不要把“没定方案”当作拒绝继续交流。只有剩余缺口确实需要尚不存在的试验结果、用户无法提供任何相关记录或明确要求暂停时，才保留未知并说明具体恢复条件。已有成功指标、数量和周期须带入相关验证条件；只把用户尚未确定的阈值留待确认，不能重新要求确认已明确的数值。'
     system+='\n访谈收口：JSON另输出questions数组（最多2个本轮确实需要用户回答的问题）和needs_external_action布尔值。仅追问会改变当前决策的缺口，不为已提供的信息重复提问。有足够依据形成方向性评分时停止基础追问，questions为空，给出待人工核对proposal；效果尚未验证应进入假设与验证任务，不因此无限追问。某一事项明确不知道，只停止追问该事项，不能据此结束整场访谈。输出空questions前，逐一核对八个评分维度及必填项目事实，而不只是七项表单：仍有影响判断、尚未问过且用户可回答的维度缺口时必须继续追问。战略、需求、回报、资源、复用、现金、法律合规与其他风险、替代方案均需考虑适用性；已知内容无需重新确认。只有各维度已有足够方向性依据，或剩余缺口均明确无法通过当下问答解决时才可收口。具体功能或痛点未知不代表收费方式也未知，收费方式尚未问过时仍需询问。只有剩余关键项均已回答或明确需要外部行动，才以needs_external_action=true收口；能生成含未知维度的proposal本身不是停止询问的理由。用户明确要求停止访谈或只回答当前问题时尊重其要求。将详细的负责人、资料和恢复条件写入proposal验证任务，reply只简短说明可行下一步。程序会独立检查是否满足评审条件，不能为了收口补造分数。上下文pending_patch是待核对的用户事实，不能当已确认；有冲突时指出冲突并请求确认。'
+    system += PROMPT
     payload={'model':settings['model'],'temperature':0.1,
              'messages':[{'role':'system','content':system},
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
              'response_format':{'type':'json_object'}}
     payload['messages'][0]['content']+='\n面向用户的reply、评分理由及验证说明禁止出现内部证据ID、数据库编号、字段名或growth等枚举代码。引用资料使用可读标题与来源网址；项目类型使用中文名称。内部ID仅允许出现在结构化evidence_ids等关联字段中。'
+    if settings.get('primary'):
+        payload.update(thinking={'type':'enabled'}, reasoning_effort=settings['effort'])
+        payload.pop('temperature', None)
     headers={'Content-Type':'application/json'}
     if key: headers['Authorization']='Bearer '+key
     try:
         deadline=time.monotonic()+90
         with httpx.Client(timeout=90) as client:
-            for attempt in range(2):
+            for attempt in range(1 if settings.get('primary') else 2):
                 remaining=deadline-time.monotonic()
                 if remaining<=0: raise ValueError('模型建议补正超时，请重试。')
                 content=completion(client,base+'/chat/completions',payload,headers,remaining)
                 if content.startswith('```'): content=content.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
                 try:
-                    parsed=ModelReply.model_validate_json(content).model_dump()
+                    parsed=ModelReply.model_validate_json(content).model_dump(mode='json')
+                    if project.get('lifecycle') and set(parsed['dimension_coverage']) != set(DIMENSIONS):
+                        raise ValueError('阶段分析必须覆盖八个维度')
                     if parsed['proposal'] is not None:
                         parsed['proposal']=validate_proposal(parsed['proposal'])
                         assumptions=parsed['proposal']['assumptions']
                         if not assumptions or not all(all(a[k].strip() for k in ('validation_method','pass_threshold','fail_threshold')) for a in assumptions):
                             raise ValueError('模型评分建议缺少完整的关键假设及验证条件，请重试。')
+                    if project.get('lifecycle'):
+                        absorb(deepcopy(project), parsed, company, evidence)
                     break
                 except ValueError:
-                    if attempt: raise
+                    if attempt or settings.get('primary'): raise
                     payload['messages'] += [{'role':'assistant','content':content}, {'role':'user','content':'格式补正：刚才的JSON未通过结构或验证条件校验。这只是内部格式修复，不是用户的新请求。请继续回答原用户的问题，保留原本需要继续追问的业务缺口；reply不得说明“已重整”“完整结构”“格式补正”，也不得因补正而结束访谈或重复已知信息。请基于同一份原始资料重新输出完整JSON，保留未知与事实边界，不生成最终等级。dimensions为以维度名为键的对象，未知score为null；questions最多2项；列表字段用数组而不是null；确认条件使用true/false。非空proposal至少有一项关键假设，每项保留结构化id、claim、evidence_ids、validation_method、pass_threshold、fail_threshold。内部id仅供结构关联，不能写入聊天正文。未知阈值明确待负责人确认及确认前暂停的动作，禁止编造事实。'}]
     except httpx.HTTPStatusError as e:
         raise ValueError(f'模型请求失败（HTTP {e.response.status_code}），请检查服务地址、模型权限和密钥。') from None

@@ -1,6 +1,6 @@
 from copy import deepcopy
 from tests.test_rating import case
-from tests.test_app import client
+from tests.test_app import client, as_post
 from sabc.rating import assess
 
 
@@ -16,6 +16,7 @@ def test_reassessment_new_veto_preserves_first_report(client):
     p,c,e,a=case(2)
     client.put('/api/company',json=c)
     pid=client.post('/api/projects',json=p).json()['id']
+    as_post(client,pid)
     ev=client.post(f'/api/projects/{pid}/evidence',json=e[0]).json()
     for d in a['dimensions'].values(): d['evidence_ids']=[ev['id']]
     for h in a['assumptions']: h['evidence_ids']=[ev['id']]

@@ -7,6 +7,8 @@ def model_context(project, company, evidence, messages):
     clean={k:v for k,v in project.items() if k in fields}
     clean['pending_patch']=project.get('pending_patch',{})
     clean['interview']=project.get('interview',{})
+    from sabc.lifecycle import context
+    clean['lifecycle']=context(project)
     # Never include project.messages/proposal: history has one bounded location.
     recent=messages[-16:]
     superseded={e.get('supersedes') for e in evidence if e.get('supersedes')}

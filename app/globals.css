@@ -175,3 +175,13 @@ textarea { resize: vertical; line-height: 1.8; }
 .project-delete { flex-shrink: 0; margin-right: 16px; color: #ad3434; }
 .project-selection input[type="checkbox"], .project-list-item > input[type="checkbox"] { width: 16px; height: 16px; flex: 0 0 16px; padding: 0; margin: 0; accent-color: var(--accent); }
 .project-selection label { white-space: nowrap; }
+
+/* Project lifecycle controls use scoped sizing to avoid global input layout rules. */
+.stage-strip{display:flex;align-items:center;flex-wrap:wrap;gap:12px 24px;padding:18px 22px;border:1px solid var(--line,#dce3ef);border-radius:12px;background:white;margin-bottom:22px}
+.stage-strip p{flex:1;min-width:200px;font-size:13px;color:var(--muted,#72829a);margin:0}
+.stage-steps{display:flex;gap:18px;color:#8190a5;font-size:14px}.stage-steps .current{color:var(--accent,#3656d6);font-weight:700}
+.stage-panel{padding:28px;background:white;border:1px solid var(--line,#dce3ef);border-radius:16px;margin-bottom:24px}.stage-panel h2{margin:0 0 20px}.stage-panel p{line-height:1.8;white-space:pre-wrap}.stage-panel small{color:#72829a}
+.stage-review{background:#f4f6fc;border-radius:12px;padding:20px;margin-bottom:22px}.stage-review h3{margin:0 0 12px}
+.stage-dimensions,.stage-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.stage-dimensions>div{padding:16px;border:1px solid #e1e7f1;border-radius:10px}.stage-dimensions span{display:block;color:#72829a;font-size:12px;margin-top:6px}.stage-dimensions p{font-size:14px;margin-bottom:0}
+.stage-controls,.pilot-editor{margin-top:24px;padding:18px 0;border-top:1px solid #e1e7f1}.stage-panel summary{cursor:pointer;font-weight:600;margin-bottom:16px}.stage-fields label,.stage-action label{display:flex;flex-direction:column;gap:8px;font-size:14px;min-width:0}.stage-fields input,.stage-fields textarea,.stage-fields select,.stage-action input,.stage-controls select{width:100%;min-width:0}.stage-fields textarea{min-height:90px}.stage-fields{margin:18px 0}.stage-panel fieldset{border:1px solid #e1e7f1;border-radius:10px;margin-top:16px}.stage-action{display:flex;align-items:end;flex-wrap:wrap;gap:14px;margin:18px 0}.stage-history{padding:16px;border-top:1px solid #e1e7f1}
+@media(max-width:720px){.stage-dimensions,.stage-fields{grid-template-columns:1fr}.stage-panel{padding:18px}.stage-strip{align-items:stretch}.stage-steps{gap:12px}}
