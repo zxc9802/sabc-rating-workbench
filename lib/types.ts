@@ -38,11 +38,23 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
     // A network interruption preserves the ID; retrying resumes the saved task.
     return await waitForJob<T>(id);
   }
-  const response = await fetch('/api' + path, { method, headers: body instanceof FormData ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body) });
-  const data = await response.json().catch(() => ({ detail: '服务暂时不可用，请检查启动窗口。' }));
-  if (response.status === 401 && !path.startsWith('/auth/')) window.dispatchEvent(new Event('sabc-session-expired'));
-  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '提交内容不完整，请检查输入。');
-  return data as T;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch('/api' + path, { method, signal: controller.signal, headers: body instanceof FormData ? {} : { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body) });
+    const data = await response.json().catch(error => {
+      if (controller.signal.aborted) throw error;
+      return { detail: '服务暂时不可用，请检查启动窗口。' };
+    });
+    if (response.status === 401 && !path.startsWith('/auth/')) window.dispatchEvent(new Event('sabc-session-expired'));
+    if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '提交内容不完整，请检查输入。');
+    return data as T;
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error('连接超时。操作可能已保存，请重新打开项目核对结果；后台分析任务会继续保留，请勿重复创建项目。');
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function displayDate(value: string) { return new Date(value).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }); }
