@@ -9,7 +9,7 @@ from sabc import planner
 def mock_plan(monkeypatch, requests):
     monkeypatch.setenv('SABC_PLANNER_API_KEY', 'test-only-key')
     def post(self, url, **kwargs):
-        assert kwargs['json']['model'] == 'glm-5.3-flash'
+        assert kwargs['json']['model'] == 'gpt-5.6-luna'
         assert 'aksu/gdp:2025' in kwargs['json']['messages'][1]['content']
         payload = {'reason': '核实技术依赖', 'data_requests': requests}
         return httpx.Response(200, request=httpx.Request('POST', url),

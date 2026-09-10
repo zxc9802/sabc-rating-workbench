@@ -6,7 +6,7 @@ import re
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from sabc.model_router import primary, routed
+from sabc.model_router import deepseek, routed
 from sabc.catalog import catalog
 from sabc.llm import DataRequest
 from sabc.context import model_context
@@ -21,13 +21,13 @@ class SearchPlan(BaseModel):
 
 
 def configured():
-    return bool(primary() or os.getenv('SABC_PLANNER_API_KEY'))
+    return bool(deepseek() or os.getenv('SABC_PLANNER_API_KEY'))
 
 
 def plan_search(project, company, evidence, messages):
     fallback = {'key': os.getenv('SABC_PLANNER_API_KEY', ''),
                 'base_url': os.getenv('SABC_PLANNER_BASE_URL', 'https://api.openlux.ai/v1'),
-                'model': os.getenv('SABC_PLANNER_MODEL', 'glm-5.3-flash')}
+                'model': os.getenv('SABC_PLANNER_MODEL', 'gpt-5.6-luna')}
     return routed('planner', fallback, lambda route: _plan_search(project, company, evidence, messages, route))
 
 
@@ -62,11 +62,11 @@ github仓库、SEC CIK和具体目录/法规编号必须来自输入或能力示
     payload = {'model': model, 'temperature': 0.1, 'response_format': {'type': 'json_object'},
                'messages': [{'role': 'system', 'content': system},
                             {'role': 'user', 'content': json.dumps(context, ensure_ascii=False)}]}
-    if route['primary']:
+    if route['deepseek']:
         payload.update(thinking={'type':'enabled'}, reasoning_effort=route['effort'])
         payload.pop('temperature', None)
     try:
-        with httpx.Client(timeout=45 if route['primary'] else 90) as client:
+        with httpx.Client(timeout=45 if route['deepseek'] else 90) as client:
             response = client.post(base + '/chat/completions', json=payload,
                                    headers={'Authorization': 'Bearer ' + key})
             response.raise_for_status()

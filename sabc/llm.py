@@ -124,7 +124,7 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
              'response_format':{'type':'json_object'}}
     payload['messages'][0]['content']+='\n面向用户的reply、评分理由及验证说明禁止出现内部证据ID、数据库编号、字段名或growth等枚举代码。引用资料使用可读标题与来源网址；项目类型使用中文名称。内部ID仅允许出现在结构化evidence_ids等关联字段中。'
-    if settings.get('primary'):
+    if settings.get('deepseek'):
         payload.update(thinking={'type':'enabled'}, reasoning_effort=settings['effort'])
         payload.pop('temperature', None)
     headers={'Content-Type':'application/json'}
@@ -132,7 +132,7 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
     try:
         deadline=time.monotonic()+90
         with httpx.Client(timeout=90) as client:
-            for attempt in range(1 if settings.get('primary') else 2):
+            for attempt in range(1 if settings.get('deepseek') else 2):
                 remaining=deadline-time.monotonic()
                 if remaining<=0: raise ValueError('模型建议补正超时，请重试。')
                 content=completion(client,base+'/chat/completions',payload,headers,remaining)
@@ -150,7 +150,7 @@ local 另支持福建普遍开放目录 fujian/search:关键词，公开预览�
                         absorb(deepcopy(project), parsed, company, evidence)
                     break
                 except ValueError:
-                    if attempt or settings.get('primary'): raise
+                    if attempt or settings.get('deepseek'): raise
                     payload['messages'] += [{'role':'assistant','content':content}, {'role':'user','content':'格式补正：刚才的JSON未通过结构或验证条件校验。这只是内部格式修复，不是用户的新请求。请继续回答原用户的问题，保留原本需要继续追问的业务缺口；reply不得说明“已重整”“完整结构”“格式补正”，也不得因补正而结束访谈或重复已知信息。请基于同一份原始资料重新输出完整JSON，保留未知与事实边界，不生成最终等级。dimensions为以维度名为键的对象，未知score为null；questions最多2项；列表字段用数组而不是null；确认条件使用true/false。非空proposal至少有一项关键假设，每项保留结构化id、claim、evidence_ids、validation_method、pass_threshold、fail_threshold。内部id仅供结构关联，不能写入聊天正文。未知阈值明确待负责人确认及确认前暂停的动作，禁止编造事实。'}]
     except httpx.HTTPStatusError as e:
         raise ValueError(f'模型请求失败（HTTP {e.response.status_code}），请检查服务地址、模型权限和密钥。') from None

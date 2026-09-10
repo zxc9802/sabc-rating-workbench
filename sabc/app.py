@@ -94,8 +94,8 @@ def health():
 
 def public_settings():
     s=settings()
-    primary=model_router.primary()
-    return {'managed':sso.enabled(),'primary_model':primary['model'] if primary else None, 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':s.get('model',''), 'base_url':s.get('base_url',''),'model':s.get('model',''),
+    primary=model_router.deepseek()
+    return {'managed':sso.enabled(),'primary_model':s.get('model',''), 'planner_model':os.getenv('SABC_PLANNER_MODEL','gpt-5.6-luna'), 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
             'has_key':bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
             'configured':bool(primary or (s.get('base_url') and s.get('model')))}
 
@@ -241,7 +241,7 @@ def chat_turn(pid,body):
     p=project_or_404(pid)
     messages=p.get('messages',[])+[{'role':'user','content':body.message,'time':utcnow()}]
     s=settings()
-    if model_router.primary() or (s.get('base_url') and s.get('model')):
+    if model_router.deepseek() or (s.get('base_url') and s.get('model')):
         plan=None
         if planner.configured():
             try:

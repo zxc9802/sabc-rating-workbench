@@ -1,5 +1,6 @@
 """Extract attachment content once; binary data never enters conversational history."""
 import base64
+import os
 from io import BytesIO
 from pathlib import Path
 import time
@@ -25,7 +26,7 @@ def inspect_images(images,settings,key):
     body += [{'type':'image_url','image_url':{'url':'data:image/jpeg;base64,'+base64.b64encode(x).decode()}} for x in images]
     try:
         with httpx.Client(timeout=60) as client:
-            response=client.post(settings['base_url'].rstrip('/')+'/chat/completions',headers={'Authorization':'Bearer '+key},json={'model':settings['model'],'messages':[{'role':'user','content':body}],'temperature':0.1})
+            response=client.post(settings['base_url'].rstrip('/')+'/chat/completions',headers={'Authorization':'Bearer '+key},json={'model':os.getenv('SABC_VISION_MODEL') or settings['model'],'messages':[{'role':'user','content':body}],'temperature':0.1})
             response.raise_for_status()
             result=response.json()['choices'][0]['message']['content']
             if not isinstance(result,str) or not result.strip(): raise ValueError('视觉模型未返回有效内容')
