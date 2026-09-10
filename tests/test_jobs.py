@@ -52,7 +52,8 @@ def test_failure_is_retrievable_after_original_request_ends(client,monkeypatch):
     ident=str(uuid4())
     client.post(f'/api/projects/{pid}/jobs',json={'id':ident,'operation':'source','source':'github','payload':{'query':'a/b'}})
     result=terminal(client,ident)
-    assert result['status']=='failed' and '504' in result['error']
+    assert result['status']=='success' and result['result']=={'status':'skipped'}
+    assert '504' in module.store.list('source_runs')[0]['error']
     assert not client.get(f'/api/projects/{pid}').json()['evidence']
 
 

@@ -149,9 +149,11 @@ def chat(pid:str,body:Chat):
         if planner.configured():
             try:
                 plan={**planner.plan_search(p,company(),model_evidence_for(pid),messages),'status':'planned'}
-            except ValueError as error:
+            except Exception as error:
                 plan={'reason':str(error),'data_requests':[],'status':'failed'}
             store.save('retrieval_plans',{'project_id':pid,'created_at':utcnow(),**plan})
+            if plan['status']=='failed':
+                plan={'reason':'本轮依据已有资料继续分析。','data_requests':[],'status':'skipped'}
             requests=plan['data_requests']
             result={'mode':'model','reply':'本轮外部资料尚未完成分析。','project_patch':{},'proposal':None}
         else:
@@ -163,17 +165,18 @@ def chat(pid:str,body:Chat):
                 try:
                     evidence=collect(store,pid,request['source'],request['query'])
                     outcomes.append({'source':request['source'],'query':request['query'],'evidence_id':evidence['id'],'status':'saved','reason':request['reason']})
-                except ValueError as error:
-                    outcomes.append({'source':request['source'],'query':request['query'],'status':'deferred','error':str(error)})
+                except Exception as error:
+                    store.save('source_runs',{'project_id':pid,'source':request['source'],'query':request['query'],'status':'failed','error':str(error),'boundary':'chat'})
             try:
-                result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages+[{'role':'tool','content':'本轮采集结果，仅分析现有证据，不再请求取数：'+json.dumps(outcomes,ensure_ascii=False)}])
+                result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages+[{'role':'tool','content':'以下仅为本轮成功采集结果。未列出的渠道不使用，不描述接口错误或取数故障。依据成功结果及已有资料正常回答；资料不足只说明业务信息缺口，不虚构。仅分析现有证据，不再请求取数：'+json.dumps(outcomes,ensure_ascii=False)}])
             except ValueError:
                 result={**result,'proposal':None,'reply':result['reply']+'\n资料采集已结束，但后续模型分析失败。已保存证据可在证据资料中查看，请重试分析。'}
             result['retrieval_results']=outcomes
-            result['reply']+='\n\n取数结果：'+'；'.join(o['source']+(' 已保存到证据资料' if o['status']=='saved' else ' 暂缓：'+o['error']) for o in outcomes)
+            if outcomes:
+                result['reply']+='\n\n取数结果：'+'；'.join(o['source']+' 已保存到证据资料' for o in outcomes)
         if plan is not None:
             if not requests:
-                result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages+[{'role':'tool','content':'本轮选源结果：'+json.dumps(plan,ensure_ascii=False)+'。本轮未执行采集，不得将旧证据声称为本轮新取数；仅分析现有证据，不再请求取数。'}])
+                result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages+[{'role':'tool','content':'本轮选源结果（不描述接口报错；根据已有资料正常回答）：'+json.dumps(plan,ensure_ascii=False)+'。本轮未执行采集，不得将旧证据声称为本轮新取数；仅分析现有证据，不再请求取数。'}])
             result['retrieval_plan']=plan
             result['data_requests']=[]
             result['reply']+='\n\n选源说明：'+plan['reason']
@@ -218,7 +221,11 @@ class SourceQuery(BaseModel):
 @app.post('/api/projects/{pid}/sources/{source}')
 def fetch_source(pid:str,source:str,body:SourceQuery):
     project_or_404(pid)
-    return collect(store,pid,source,body.query)
+    try:
+        return collect(store,pid,source,body.query)
+    except Exception as error:
+        store.save('source_runs',{'project_id':pid,'source':source,'query':body.query,'status':'failed','error':str(error),'boundary':'manual'})
+        return {'status':'skipped'}
 
 
 class SlowOperation(BaseModel):

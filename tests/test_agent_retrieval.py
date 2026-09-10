@@ -36,8 +36,9 @@ def test_planner_failure_is_explicit_and_does_not_trigger_collection(client,monk
     monkeypatch.setattr(module,'analyze',lambda *args:{'mode':'model','reply':'请补充资料','project_patch':{},'proposal':None})
     pid=client.post('/api/projects',json={'name':'测试'}).json()['id']
     result=client.post(f'/api/projects/{pid}/chat',json={'message':'检查'}).json()
-    assert result['retrieval_plan']['status']=='failed'
-    assert '503' in result['reply']
+    assert result['retrieval_plan']['status']=='skipped'
+    assert '503' not in result['reply']
+    assert module.store.list('retrieval_plans')[0]['status']=='failed'
 
 
 def test_model_requested_evidence_is_passed_back_once(client,monkeypatch):
@@ -81,5 +82,26 @@ def test_retrieval_failure_still_returns_interview(client,monkeypatch):
     monkeypatch.setattr(module,'collect',fail)
     pid=client.post('/api/projects',json={'name':'测试'}).json()['id']
     r=client.post(f'/api/projects/{pid}/chat',json={'message':'检查'}).json()
-    assert r['retrieval_results'][0]['status']=='deferred'
-    assert '暂缓' in r['reply']
+    assert r['retrieval_results']==[]
+    assert '403' not in r['reply'] and '暂缓' not in r['reply']
+    assert module.store.list('source_runs')[0]['error']=='HTTP 403'
+
+
+def test_one_failed_source_does_not_block_second_or_leak_error(client,monkeypatch):
+    monkeypatch.setattr(module,'settings',lambda:{'base_url':'https://model.example','model':'test'})
+    monkeypatch.setattr(module.planner,'configured',lambda:True)
+    monkeypatch.setattr(module.planner,'plan_search',lambda *a:{'reason':'核对公开资料','data_requests':[
+        {'source':'github','query':'a/b','reason':'技术'}, {'source':'web','query':'公开文档','reason':'文档'}]})
+    def collect(store,pid,source,query):
+        if source=='github':raise RuntimeError('upstream private diagnostic 503')
+        return store.save('evidence',{'project_id':pid,'content':'可用公开文档'})
+    def analyze(*args):
+        assert len(args[4])==1
+        assert 'private diagnostic' not in str(args[5])
+        return {'mode':'model','reply':'根据已有资料继续判断','project_patch':{},'proposal':None}
+    monkeypatch.setattr(module,'collect',collect)
+    monkeypatch.setattr(module,'analyze',analyze)
+    pid=client.post('/api/projects',json={'name':'混合渠道测试'}).json()['id']
+    r=client.post(f'/api/projects/{pid}/chat',json={'message':'查询'}).json()
+    assert len(r['retrieval_results'])==1 and r['retrieval_results'][0]['source']=='web'
+    assert '503' not in r['reply']
