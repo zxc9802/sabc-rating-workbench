@@ -172,21 +172,20 @@ def chat(pid:str,body:Chat):
             except ValueError:
                 result={**result,'proposal':None,'reply':result['reply']+'\n资料采集已结束，但后续模型分析失败。已保存证据可在证据资料中查看，请重试分析。'}
             result['retrieval_results']=outcomes
-            if outcomes:
-                result['reply']+='\n\n取数结果：'+'；'.join(o['source']+' 已保存到证据资料' for o in outcomes)
         if plan is not None:
             if not requests:
                 result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages+[{'role':'tool','content':'本轮选源结果（不描述接口报错；根据已有资料正常回答）：'+json.dumps(plan,ensure_ascii=False)+'。本轮未执行采集，不得将旧证据声称为本轮新取数；仅分析现有证据，不再请求取数。'}])
             result['retrieval_plan']=plan
             result['data_requests']=[]
-            result['reply']+='\n\n选源说明：'+plan['reason']
         # Keep earlier unconfirmed facts until the user accepts them; later explicit
         # corrections replace the same field, not the whole pending fact set.
         p['pending_patch']={**p.get('pending_patch',{}),**result.get('project_patch',{})}
     else:
         result=guide(p,body.message,body.field)
         p.update(result['project_patch'])
-    p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'time':utcnow()}]
+    valid_refs={e['id'] for e in model_evidence_for(pid)}
+    refs=[eid for eid in result.get('reply_evidence_ids',[]) if eid in valid_refs]
+    p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'evidence_ids':refs,'time':utcnow()}]
     if result['mode']=='model': p['proposal']=result.get('proposal')
     if result['mode']=='model':
         readiness=assess({**p,**p.get('pending_patch',{})},company(),model_evidence_for(pid),p.get('proposal') or {})
