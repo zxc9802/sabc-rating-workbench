@@ -16,7 +16,7 @@ def test_bootstrap_empty(client):
     r=client.get('/api/bootstrap')
     assert r.status_code==200
     assert r.json()['projects']==[]
-    assert len(r.json()['sources'])==14
+    assert len(r.json()['sources'])==15
 
 
 def test_local_capture_api_preserves_unverified_evidence_in_report(client):

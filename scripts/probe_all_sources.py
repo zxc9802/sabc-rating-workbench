@@ -14,6 +14,7 @@ from sabc.store import Store, utcnow
 
 
 CASES=[
+    ('web','公开网页搜索','Go 1.26 release notes'),
     ('worldbank','人口指标','CHN/SP.POP.TOTL'),
     ('github','公开仓库','fastapi/fastapi'),
     ('sec','公司披露索引','320193'),

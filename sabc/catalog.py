@@ -1,4 +1,5 @@
 SOURCES = [
+    ('web','AnySearch 网络搜索','公开网页与最新资料检索','https://api.anysearch.com/v1/search','搜索摘要与原文链接；需配置密钥，结果待核验'),
     ('stats','国家统计局','宏观与行业环境','https://data.stats.gov.cn/','官方文章正文；交互查询待接'),
     ('miit','工信部','产业收入与增长','https://www.miit.gov.cn/gxsj/index.html','官方移动站文章正文'),
     ('local','地方公共数据','区域经营环境','https://data.sd.gov.cn/portal/index','已实现地区接口可自动取数；预览非全量，详细地区与限制见采集入口'),

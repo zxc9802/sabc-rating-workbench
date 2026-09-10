@@ -14,11 +14,14 @@ import httpx
 from sabc.store import utcnow
 from sabc.local_sources import parse_query, fetch_local
 
-SUPPORTED = {'worldbank', 'github', 'sec', 'apple', 'stats', 'miit', 'cninfo', 'law', 'trends', 'local'}
+SUPPORTED = {'worldbank', 'github', 'sec', 'apple', 'stats', 'miit', 'cninfo', 'law', 'trends', 'local', 'web'}
 
 
 def request_spec(source, query):
     query = query.strip()
+    if source == 'web':
+        if not query or len(query)>200: raise ValueError('网络搜索词须为1至200字')
+        return 'https://api.anysearch.com/v1/search', {'query':query}
     if source=='local':
         parse_query(query)
         return '', {}
@@ -129,6 +132,9 @@ def normalize(source, raw, query):
 
 def collect(store, project_id, source, query):
     request_spec(source,query)
+    if source == 'web':
+        from sabc.web_search import search
+        return search(store, project_id, query)
     if os.getenv('SABC_COLLECTOR_URL'):
         from sabc.remote_collector import collect_remote
         return collect_remote(store,project_id,source,query)
