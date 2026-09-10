@@ -2,9 +2,9 @@
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import time
-from sabc.streaming import progress
+from sabc.streaming import progress, cancel_signal, check_cancelled, JobCancelled
 import json
-from threading import Lock
+from threading import Lock, Event
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -16,6 +16,8 @@ class Jobs:
         self.lock=Lock()
         self.pool=ThreadPoolExecutor(max_workers=2)
         self.active=set()
+        self.signals={}
+        self.futures={}
 
     def read(self,store,ident):
         job=store.get('jobs',ident)
@@ -24,7 +26,20 @@ class Jobs:
             job=store.save('jobs',{**job,'status':'failed','error':'服务已重新启动，请先检查已保存记录再重试','error_status':409})
         return job
 
-    def submit(self,store,ident,pid,request,action):
+    def cancel_locked(self,store,ident):
+        job=self.read(store,ident)
+        if job['status']!='running': return job
+        if ident in self.signals: self.signals[ident].set()
+        if ident in self.futures and self.futures[ident].cancel():
+            self.active.discard(ident)
+            self.signals.pop(ident,None)
+            self.futures.pop(ident,None)
+        return store.save('jobs',{**job,'status':'cancelled','partial_reply':'','error':'已停止回答'})
+
+    def cancel(self,store,ident):
+        with self.lock: return self.cancel_locked(store,ident)
+
+    def submit(self,store,ident,pid,request,action,queue=False):
         fingerprint=hashlib.sha256(json.dumps(request,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
         with self.lock:
             existing=store.get('jobs',ident)
@@ -32,32 +47,47 @@ class Jobs:
                 if existing['fingerprint']!=fingerprint or existing['project_id']!=pid:
                     raise HTTPException(409,'任务编号已用于不同请求')
                 return self.read(store,ident)
-            if len(self.active)>=2: raise HTTPException(429,'正在处理其他任务，请稍后重试')
+            if len(self.active)>=2 and not queue: raise HTTPException(429,'正在处理其他任务，请稍后重试')
             if any(j['project_id']==pid and j['status']=='running' and j['process_id']==self.process_id for j in store.list('jobs')):
                 raise HTTPException(409,'本项目已有任务正在处理，请等待结果后继续')
-            job=store.save('jobs',{'id':ident,'project_id':pid,'fingerprint':fingerprint,'process_id':self.process_id,'status':'running'})
+            job=store.save('jobs',{'id':ident,'project_id':pid,'operation':request.get('operation'),'fingerprint':fingerprint,'process_id':self.process_id,'status':'running','phase':'queued'})
             self.active.add(ident)
-            self.pool.submit(self.run,store,job,action)
+            signal=Event();self.signals[ident]=signal
+            self.futures[ident]=self.pool.submit(self.run,store,job,action,signal)
             return job
 
-    def run(self,store,job,action):
+    def run(self,store,job,action,signal):
         last=[0.0, None]
+        cancel_token=cancel_signal.set(signal)
+        def save(update):
+            with self.lock:
+                check_cancelled()
+                return store.save('jobs',{**job,**update})
         def publish(text):
             now=time.monotonic()
             if text==last[1] or (text and now-last[0]<0.2): return
-            store.save('jobs',{**job,'partial_reply':text})
+            save({'partial_reply':text})
             last[:]=[now,text]
         token=progress.set(publish)
         try:
+            job=save({'phase':'working'})
             result=action()
-            store.save('jobs',{**job,'status':'success','result':result})
+            save({'status':'success','result':result})
+        except JobCancelled:
+            pass
         except (ValueError,HTTPException) as error:
-            store.save('jobs',{**job,'status':'failed','error':str(error) if isinstance(error,ValueError) else str(error.detail),'error_status':422 if isinstance(error,ValueError) else error.status_code})
+            with self.lock:
+                if not signal.is_set(): store.save('jobs',{**job,'status':'failed','error':str(error) if isinstance(error,ValueError) else str(error.detail),'error_status':422 if isinstance(error,ValueError) else error.status_code})
         except Exception:
-            store.save('jobs',{**job,'status':'failed','error':'任务处理失败，请检查已保存记录后重试','error_status':500})
+            with self.lock:
+                if not signal.is_set(): store.save('jobs',{**job,'status':'failed','error':'任务处理失败，请检查已保存记录后重试','error_status':500})
         finally:
             progress.reset(token)
-            with self.lock: self.active.discard(job['id'])
+            cancel_signal.reset(cancel_token)
+            with self.lock:
+                self.active.discard(job['id'])
+                self.signals.pop(job['id'],None)
+                self.futures.pop(job['id'],None)
 
 
 jobs=Jobs()

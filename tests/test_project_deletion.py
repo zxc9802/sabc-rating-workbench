@@ -14,13 +14,13 @@ def test_batch_delete_preserves_other_projects_and_audit(client):
     assert client.patch('/api/projects/'+ids[0],json={'name':'revive'}).status_code==404
 
 
-def test_delete_batch_is_atomic_when_job_running_or_id_invalid(client):
+def test_delete_batch_validates_ids_and_cancels_running_jobs(client):
     import sabc.app as module
     ids=[client.post('/api/projects',json={'name':name}).json()['id'] for name in ['one','two']]
     assert client.post('/api/projects/delete',json={'ids':[ids[0],'missing']}).status_code==422
     module.store.save('jobs',{'project_id':ids[1],'status':'running','process_id':module.jobs.process_id})
-    assert client.post('/api/projects/delete',json={'ids':ids}).status_code==422
-    assert all(client.get('/api/projects/'+pid).status_code==200 for pid in ids)
+    assert client.post('/api/projects/delete',json={'ids':ids}).status_code==200
+    assert all(client.get('/api/projects/'+pid).status_code==404 for pid in ids)
     assert client.post('/api/projects/delete',json={'ids':[]}).status_code==422
 
 

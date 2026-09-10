@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from uuid import uuid4
+from threading import Lock
 import zipfile
 
 from fastapi import FastAPI, HTTPException, UploadFile, Form
@@ -15,6 +16,7 @@ from sabc.llm import analyze, guide
 from sabc import planner
 from sabc import auth, lifecycle, model_router
 from sabc.jobs import jobs
+from sabc.streaming import check_cancelled
 from sabc.rating import assess, DIMENSIONS, TYPES, RULE_VERSION, PROJECT_FIELDS
 from sabc.store import Store, utcnow
 from sabc.schema import validate_amounts, validate_proposal
@@ -25,6 +27,7 @@ ROOT=Path(__file__).resolve().parent.parent
 store=Store(Path(os.getenv('SABC_DB',str(ROOT/'data'/'sabc.db'))))
 app=FastAPI(title='SABC 项目评级',docs_url=None,redoc_url=None,openapi_url=None)
 app.include_router(auth.router)
+initial_interview_lock=Lock()
 
 
 @app.middleware('http')
@@ -117,7 +120,11 @@ def create_project(body:dict):
     data['lifecycle']=lifecycle.initial()
     if body.get('stage') and body['stage']!='pre':
         data=lifecycle.transition(data,'set_stage',body,company())
-    return store.save('projects',data)
+    saved=store.save('projects',data)
+    if body.get('auto_start'):
+        start_interview(saved['id'])
+        saved=project_or_404(saved['id'])
+    return saved
 
 
 class DeleteProjects(BaseModel):
@@ -130,7 +137,7 @@ def delete_projects(body:DeleteProjects):
     with jobs.lock:
         for job in store.list('jobs'):
             if job.get('project_id') in ids and job.get('status')=='running':
-                jobs.read(store,job['id'])
+                jobs.cancel_locked(store,job['id'])
         store.delete_projects(ids)
     return {'deleted':ids}
 
@@ -140,7 +147,22 @@ def get_project(pid:str):
     p=project_or_404(pid)
     return {'project':{**p,'followup':lifecycle.followup(p)},'evidence':evidence_for(pid),
             'assessments':[r for r in store.list('assessments') if r['project_id']==pid],
-            'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running']}
+            'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running'],
+            'initial_job':jobs.read(store,p['initial_job_id']) if p.get('initial_job_id') else None}
+
+
+@app.post('/api/projects/{pid}/start-interview')
+def start_interview(pid:str,retry:bool=False):
+    with initial_interview_lock:
+        p=project_or_404(pid)
+        if p['messages']: return {'status':'success','id':''}
+        existing=next((j for j in store.list('jobs') if j['project_id']==pid and (j['id']==p.get('initial_job_id') or j.get('operation')=='chat')),None)
+        if existing:
+            existing=jobs.read(store,existing['id'])
+            if not retry or existing['status']=='running': return existing
+        ident=str(uuid4())
+        message=str(p.get('description') or '请结合公司资料开始项目访谈。')[:12000]
+        return jobs.submit(store,ident,pid,{'operation':'chat','payload':{'message':message}},lambda:chat(pid,Chat(message=message)),queue=True)
 
 
 @app.patch('/api/projects/{pid}')
@@ -199,6 +221,7 @@ def chat(pid:str,body:Chat):
 
 
 def chat_turn(pid,body):
+    check_cancelled()
     p=project_or_404(pid)
     messages=p.get('messages',[])+[{'role':'user','content':body.message,'time':utcnow()}]
     s=settings()
@@ -220,6 +243,7 @@ def chat_turn(pid,body):
         if requests:
             outcomes=[]
             for request in requests[:2]:
+                check_cancelled()
                 try:
                     evidence=collect(store,pid,request['source'],request['query'])
                     outcomes.append({'source':request['source'],'query':request['query'],'evidence_id':evidence['id'],'status':'saved','reason':request['reason']})
@@ -261,7 +285,9 @@ def chat_turn(pid,body):
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
                         'note':'可进入人工核对，尚未批准投入' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
     p['version']+=1
-    store.save('projects',p)
+    with jobs.lock:
+        check_cancelled()
+        store.save('projects',p)
     return result
 
 
@@ -318,6 +344,11 @@ def start_job(pid:str,body:SlowOperation):
 @app.get('/api/jobs/{ident}')
 def get_job(ident:str):
     return jobs.read(store,ident)
+
+
+@app.post('/api/jobs/{ident}/cancel')
+def cancel_job(ident:str):
+    return jobs.cancel(store,ident)
 
 
 @app.get('/api/source-runs')

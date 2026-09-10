@@ -3,7 +3,7 @@ from contextvars import ContextVar
 import os
 import time
 
-from sabc.streaming import progress
+from sabc.streaming import progress, check_cancelled
 
 audit = ContextVar('model_routing_audit', default=None)
 
@@ -23,10 +23,12 @@ def routed(role, fallback, execute):
     routes.append(({**fallback, 'primary': False}, 1))
     for config, attempts in routes:
         for attempt in range(attempts):
+            check_cancelled()
             started = time.monotonic()
             event = {'role': role, 'model': config['model'], 'primary': config['primary'], 'attempt': attempt + 1}
             try:
                 result = execute(config)
+                check_cancelled()
             except Exception as error:
                 event.update(status='failed', error_type=type(error).__name__)
                 if role == 'analysis' and progress.get():

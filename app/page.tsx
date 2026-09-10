@@ -1,6 +1,6 @@
 'use client';
 
-import type { Stage } from '../lib/types';
+import type { Stage, Job } from '../lib/types';
 import { LifecyclePanel } from './lifecycle-panel';
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { ArrowUpRight, ArrowUp, ArrowLeft, Plus, PanelLeft, FolderOpen, Building2, Database, Settings2, Check, ChevronRight, FileText, MessageSquare, ShieldCheck, CircleHelp, LoaderCircle, Paperclip, RefreshCw, X, Search, ExternalLink, TriangleAlert } from 'lucide-react';
@@ -33,11 +33,13 @@ function Workbench({ logout }: { logout: ReactNode }) {
   const [actualStart, setActualStart] = useState('');
   const [actualEnd, setActualEnd] = useState('');
   const [streamReply, setStreamReply] = useState('');
+  const [currentJob, setCurrentJob] = useState<Job | null>(null);
   const [message, setMessage] = useState('');
   const [filter, setFilter] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const chatEnd = useRef<HTMLDivElement>(null);
   const running = useRef(false);
+  const taskFinished = useRef<Promise<void>>(Promise.resolve());
 
   async function reload() { const fresh = await api<Bootstrap>('/bootstrap'); setData(fresh); return fresh; }
   useEffect(() => { reload().then(() => { const id = sessionStorage.getItem('sabc-project'); if (id) return openProject(id); }).catch(e => setError(e.message)); }, []);
@@ -46,35 +48,45 @@ function Workbench({ logout }: { logout: ReactNode }) {
   async function run(action: () => Promise<void>, success = '') {
     if (running.current) return;
     running.current = true;
+    let finish!: () => void;
+    taskFinished.current = new Promise<void>(resolve => { finish = resolve; });
     setBusy(true); setError(''); setNotice('');
     try { await action(); if (success) setNotice(success); }
-    catch (e) { setError(e instanceof Error ? e.message : '操作失败，请重试。'); }
-    finally { running.current = false; setBusy(false); }
+    catch (e) { if (e instanceof Error && e.message === '已停止回答') setNotice('已停止回答，已保存的项目和资料仍然保留。'); else setError(e instanceof Error ? e.message : '操作失败，请重试。'); }
+    finally { running.current = false; setBusy(false); finish(); }
   }
   async function openProject(id: string) { await run(async () => {
     sessionStorage.setItem('sabc-project', id);
     const fresh = await api<Detail>('/projects/' + id);
     setDetail(fresh); setPage('projects'); setTab('chat');
     if (fresh.active_jobs?.length) {
-      try { for (const job of fresh.active_jobs) await waitForJob(job.id); }
-      finally { setDetail(await api<Detail>('/projects/' + id)); await reload(); }
+      try { for (const job of fresh.active_jobs) { setCurrentJob(job); await waitForJob(job.id, setStreamReply, setCurrentJob); } }
+      finally { setStreamReply(''); setDetail(await api<Detail>('/projects/' + id)); await reload(); }
+    } else if (!fresh.project.messages.length) {
+      await initialReply(id);
     }
   }); }
+  async function initialReply(id: string, retry = false) {
+    try {
+      const job = await api<Job>('/projects/' + id + '/start-interview' + (retry ? '?retry=true' : ''), 'POST');
+      setCurrentJob(job);
+      if (job.id) await waitForJob(job.id, setStreamReply, setCurrentJob);
+    } finally { setStreamReply(''); setDetail(await api<Detail>('/projects/' + id)); await reload(); }
+  }
+  async function stopReply() {
+    if (!currentJob || currentJob.status !== 'running') return false;
+    try { setCurrentJob(await api<Job>('/jobs/' + currentJob.id + '/cancel', 'POST')); setStreamReply(''); return true; }
+    catch (e) { setError(e instanceof Error ? e.message : '停止失败，请重试'); return false; }
+  }
   async function refreshProject() { if (detail) setDetail(await api<Detail>('/projects/' + detail.project.id)); await reload(); }
   async function createProject() {
     if (!description.trim()) { setError('先描述你想做的项目。'); return; }
     await run(async () => {
-      const p = await api<Project>('/projects', 'POST', { name: name.trim() || description.trim().slice(0, 24), description, project_type: kind, stage: initialStage, actual_start: actualStart, actual_end: actualEnd });
+      const p = await api<Project>('/projects', 'POST', { name: name.trim() || description.trim().slice(0, 24), description, project_type: kind, stage: initialStage, actual_start: actualStart, actual_end: actualEnd, auto_start: true });
       sessionStorage.setItem('sabc-project', p.id);
       setDetail({ project: p, evidence: [], assessments: [] }); setTab('chat'); setDescription(''); setName(''); setMessage('');
       setStreamReply('');
-      try {
-        await api('/projects/' + p.id + '/chat', 'POST', { message: description.trim() }, setStreamReply);
-      } finally {
-        setStreamReply('');
-        setDetail(await api<Detail>('/projects/' + p.id));
-        await reload();
-      }
+      await initialReply(p.id);
     });
   }
   async function sendMessage(content = message) {
@@ -82,14 +94,19 @@ function Workbench({ logout }: { logout: ReactNode }) {
     setStreamReply('');
     const last = detail.project.messages.at(-1);
     await run(async () => {
-      await api('/projects/' + detail.project.id + '/chat', 'POST', { message: content.trim(), field: last?.role === 'assistant' ? last.field : undefined }, setStreamReply);
+      await api('/projects/' + detail.project.id + '/chat', 'POST', { message: content.trim(), field: last?.role === 'assistant' ? last.field : undefined }, setStreamReply, setCurrentJob);
       setMessage(''); await refreshProject();
     });
     setStreamReply('');
   }
   async function deleteProjects(ids: string[]) {
-    if (busy || !ids.length) return;
-    if (!window.confirm(`确认删除这 ${ids.length} 个项目？项目及关联资料将不再显示，后台保留历史审计记录。`)) return;
+    if (!ids.length || (busy && currentJob?.status !== 'running')) return;
+    if (busy && currentJob?.project_id && !ids.includes(currentJob.project_id)) { setNotice('请先停止当前回答，再删除其他项目。'); return; }
+    if (!window.confirm(`确认删除这 ${ids.length} 个项目？进行中的任务会一并停止。项目及关联资料将不再显示，后台保留历史审计记录。`)) return;
+    if (running.current && currentJob?.status === 'running') {
+      if (!await stopReply()) return;
+      await taskFinished.current;
+    }
     await run(async () => {
       await api('/projects/delete', 'POST', { ids });
       if (ids.includes(sessionStorage.getItem('sabc-project') || '')) sessionStorage.removeItem('sabc-project');
@@ -114,6 +131,7 @@ function Workbench({ logout }: { logout: ReactNode }) {
     </aside>
     <div className="main-shell">
       <header className="topbar"><div className="breadcrumb"><PanelLeft size={17} /><span>工作空间</span><ChevronRight size={14} /><strong>{titles[page]}</strong></div><div className="topbar-actions">{logout}<button className="baseline-status" onClick={() => setPage('company')}><span className={'status-dot ' + (companyReady ? 'ready' : '')} />{companyReady ? '公司基线 v' + text(data?.company.version) : '公司资料待完善'}<ChevronRight size={14} /></button></div></header>
+      {currentJob?.status === 'running' && <div className="feedback" role="status"><LoaderCircle size={18} className="spin" /><span>{currentJob.phase === 'queued' ? '任务已提交，正在排队…' : streamReply ? '正在回答…' : '任务已提交，正在分析…'}</span><button className="secondary" onClick={stopReply}>停止回答</button></div>}
       {error && <div className="feedback error" role="alert"><TriangleAlert size={18} /><span>{error}</span><button aria-label="关闭错误提示" onClick={() => setError('')}><X size={16} /></button></div>}
       {notice && <div className="feedback success" role="status"><Check size={18} /><span>{notice}</span><button aria-label="关闭成功提示" onClick={() => setNotice('')}><X size={16} /></button></div>}
       {!data ? <main className="loading-page"><LoaderCircle className="spin" /> <p>{error ? '应用服务尚未连接' : '正在打开工作台…'}</p><button className="secondary" onClick={() => run(async () => { await reload(); })}>重新连接</button></main> :
@@ -125,12 +143,12 @@ function Workbench({ logout }: { logout: ReactNode }) {
           <div className="start-layout"><section className="project-composer" aria-label="新建项目"><div className="composer-heading"><span className="small-icon"><MessageSquare size={20} /></span><h2>从一个项目想法开始</h2></div><label className="sr-only" htmlFor="description">描述你的项目</label><textarea id="description" className="idea-input" value={description} onChange={e => setDescription(e.target.value)} placeholder="比如：我们想用 AI 客服处理重复咨询，让客服团队把时间放在成交上。现在每天大约有……" maxLength={12000} /><div className="composer-options"><label>项目名称<input value={name} onChange={e => setName(e.target.value)} placeholder="可选，方便之后查找" maxLength={100} /></label><label>项目类型<select value={kind} onChange={e => setKind(e.target.value)}>{Object.entries(data.types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label></div><div className="composer-options"><label>项目实际阶段<select value={initialStage} onChange={e => setInitialStage(e.target.value as Stage)}><option value="pre">启动前（尚未试点）</option><option value="during">试点中（已实际开始）</option><option value="post">试点后（已结束或停止）</option></select></label>{initialStage !== 'pre' && <label>实际开始日期<input type="date" value={actualStart} onChange={e => setActualStart(e.target.value)} /></label>}{initialStage === 'post' && <label>实际结束日期<input type="date" value={actualEnd} onChange={e => setActualEnd(e.target.value)} /></label>}</div><div className="composer-bottom"><span><ShieldCheck size={14} /> 信息不够时，会先追问</span><button className="primary" disabled={busy || !description.trim()} onClick={createProject}>开始评估{busy ? <LoaderCircle className="spin" size={17} /> : <ArrowUpRight size={17} />}</button></div></section>
           <aside className="decision-guide"><h2>不是每个想法，都需要立刻下注。</h2><p>评级对应当前可采取的行动，随公司条件与证据变化而复评。</p><div className="grade-key">{[['S', '集中资源放大'], ['A', '分阶段正式投入'], ['B', '先做小规模验证'], ['C', '当前不建议立项']].map(([g, label]) => <div key={g}><span className={'grade-letter grade-' + g}>{g}</span><span>{label}</span></div>)}</div><div className="nr-explainer"><span className="grade-letter grade-NR">NR</span><span>资料不足，暂不评级<br /><small>“还不知道”不等于“不值得”。</small></span></div></aside></div>
           {!companyReady && <button className="company-prompt" onClick={() => setPage('company')}><Building2 size={21} /><span><strong>补充公司资料，让判断更贴近实际</strong><small>当前战略、可用预算和团队能力，会直接影响同一个项目的评级。</small></span><ArrowUpRight size={18} /></button>}
-          <section className="recent-projects"><div className="section-heading"><h2>项目记录 <span>{data.projects.length}</span></h2>{!!data.projects.length && <label className="search-input"><Search size={16} /><input aria-label="搜索项目" placeholder="搜索项目" value={filter} onChange={e => { setFilter(e.target.value); setSelected([]); }} /></label>}</div>{!!visibleProjects.length && <div className="project-selection"><label><input type="checkbox" aria-label="选择当前搜索结果" disabled={busy} checked={visibleProjects.every(p => selected.includes(p.id))} onChange={e => setSelected(e.target.checked ? visibleProjects.map(p => p.id) : [])} /> 全选当前结果</label><button className="secondary" disabled={busy || !selected.length} onClick={() => deleteProjects(selected)}>删除所选（{selected.length}）</button></div>}{data.projects.length ? <div className="project-list">{visibleProjects.map(p => <div className="project-list-item" key={p.id}><input type="checkbox" aria-label={'选择项目：' + p.name} disabled={busy} checked={selected.includes(p.id)} onChange={e => setSelected(e.target.checked ? [...selected, p.id] : selected.filter(id => id !== p.id))} /><button className="project-row" onClick={() => openProject(p.id)}><span className="document-icon"><FileText size={22} /></span><span className="project-row-title"><strong>{p.name}</strong><small>{data.types[p.project_type]} · {displayDate(p.updated_at)} 更新{p.followup && ` · ${p.followup.due ? '待回访' : '下次回访'} ${p.followup.date}`}</small></span><span className={'grade-badge grade-' + (p.last_grade || 'NR')}>{p.last_grade || '待评估'}</span><ChevronRight size={17} /></button><button className="text-button project-delete" disabled={busy} aria-label={'删除项目：' + p.name} onClick={() => deleteProjects([p.id])}>删除</button></div>)}</div> : <div className="empty-records"><FolderOpen size={25} /><p>你的第一份评估，会保存在这里。</p><span>可以随时补充证据，回来看评级如何变化。</span></div>}</section>
+          <section className="recent-projects"><div className="section-heading"><h2>项目记录 <span>{data.projects.length}</span></h2>{!!data.projects.length && <label className="search-input"><Search size={16} /><input aria-label="搜索项目" placeholder="搜索项目" value={filter} onChange={e => { setFilter(e.target.value); setSelected([]); }} /></label>}</div>{!!visibleProjects.length && <div className="project-selection"><label><input type="checkbox" aria-label="选择当前搜索结果" checked={visibleProjects.every(p => selected.includes(p.id))} onChange={e => setSelected(e.target.checked ? visibleProjects.map(p => p.id) : [])} /> 全选当前结果</label><button className="secondary" disabled={(busy && currentJob?.status !== 'running') || !selected.length} onClick={() => deleteProjects(selected)}>删除所选（{selected.length}）</button></div>}{data.projects.length ? <div className="project-list">{visibleProjects.map(p => <div className="project-list-item" key={p.id}><input type="checkbox" aria-label={'选择项目：' + p.name} checked={selected.includes(p.id)} onChange={e => setSelected(e.target.checked ? [...selected, p.id] : selected.filter(id => id !== p.id))} /><button className="project-row" onClick={() => openProject(p.id)}><span className="document-icon"><FileText size={22} /></span><span className="project-row-title"><strong>{p.name}</strong><small>{data.types[p.project_type]} · {displayDate(p.updated_at)} 更新{p.followup && ` · ${p.followup.due ? '待回访' : '下次回访'} ${p.followup.date}`}</small></span><span className={'grade-badge grade-' + (p.last_grade || 'NR')}>{p.last_grade || '待评估'}</span><ChevronRight size={17} /></button><button className="text-button project-delete" disabled={busy && currentJob?.status !== 'running'} aria-label={'删除项目：' + p.name} onClick={() => deleteProjects([p.id])}>删除</button></div>)}</div> : <div className="empty-records"><FolderOpen size={25} /><p>你的第一份评估，会保存在这里。</p><span>可以随时补充证据，回来看评级如何变化。</span></div>}</section>
         </main> : <main className="page-content project-detail">
           <button className="back-link" onClick={() => { sessionStorage.removeItem('sabc-project'); setDetail(null); }}><ArrowLeft size={15} /> 全部项目</button><div className="project-title"><div><h1>{detail.project.name}</h1><p>{data.types[detail.project.project_type]}<span>·</span> 项目 v{detail.project.version}<span>·</span> {displayDate(detail.project.updated_at)} 更新</p></div><span className={'grade-badge large grade-' + (detail.project.last_grade || 'NR')}>{detail.project.last_grade || '待评估'}</span></div>
           <LifecyclePanel detail={detail} dimensions={data.dimensions} busy={busy || attachmentBusy} run={run} refresh={refreshProject} onFollowup={sendMessage} />
           <div className="project-tabs" role="tablist" aria-label="项目工作区">{[{ id: 'chat' as ProjectTab, label: '项目访谈', icon: MessageSquare }, { id: 'facts' as ProjectTab, label: '项目资料', icon: FileText }, { id: 'evidence' as ProjectTab, label: '证据资料', icon: Paperclip }, { id: 'report' as ProjectTab, label: '阶段评价与方案', icon: ShieldCheck }].map(t => <button role="tab" aria-selected={tab === t.id} key={t.id} className={tab === t.id ? 'selected' : ''} onClick={() => setTab(t.id)}><t.icon size={16} />{t.label}{t.id === 'evidence' && <span>{detail.evidence.length}</span>}</button>)}</div>
-          {tab === 'chat' ? <div className="interview-layout"><section className="conversation"><div className="conversation-heading"><span className="assistant-mark">S</span><div><strong>项目分析助手</strong><small>{data.settings.configured ? '根据已有资料，追问关键问题' : '结构化引导 · 分析模型尚未连接'}</small></div></div><div className="messages">{!detail.project.messages.length && <><div className="message user"><div className="message-label">项目描述</div><p>{text(detail.project.description)}</p></div>{!busy && <div className="message assistant"><p>项目描述已保存，点击下方开始访谈。</p><button className="primary" disabled={attachmentBusy} onClick={() => sendMessage(text(detail.project.description).trim() || '请结合公司资料开始项目访谈。')}>开始访谈</button></div>}</>}{detail.project.messages.map((m, i) => <div className={'message ' + m.role} key={i}><div className="message-label">{m.role === 'user' ? '你' : '分析助手'}</div>{m.role === 'assistant' ? <ChatReply message={m} evidence={detail.evidence} onEvidence={() => setTab('evidence')} /> : <p>{m.content}</p>}</div>)}{busy && streamReply && <div className="message assistant"><div className="message-label">分析助手 · 正在生成</div><ChatMarkdown evidence={detail.evidence} streaming onEvidence={() => setTab('evidence')}>{streamReply}</ChatMarkdown></div>}{busy && <div className="thinking"><LoaderCircle size={15} className="spin" />正在处理…</div>}<div ref={chatEnd} /></div><ChatAttachments key={detail.project.id} projectId={detail.project.id} disabled={busy || attachmentBusy} onBusy={setAttachmentBusy} onSaved={refreshProject} /><form className="chat-form" onSubmit={e => { e.preventDefault(); sendMessage(); }}><label className="sr-only" htmlFor="message">回答或补充项目内容</label><textarea id="message" value={message} onChange={e => setMessage(e.target.value)} placeholder={detail.project.messages.length ? '回答问题，或补充新的项目信息…' : '补充项目内容，或点击开始访谈…'} rows={2} maxLength={12000} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }} /><div><span>Enter 发送 · Shift + Enter 换行</span><button className="send-button" aria-label="发送消息" disabled={busy || attachmentBusy || !message.trim()} type="submit"><ArrowUp size={20} /></button></div></form></section>
+          {tab === 'chat' ? <div className="interview-layout"><section className="conversation"><div className="conversation-heading"><span className="assistant-mark">S</span><div><strong>项目分析助手</strong><small>{data.settings.configured ? '根据已有资料，追问关键问题' : '结构化引导 · 分析模型尚未连接'}</small></div></div><div className="messages">{!detail.project.messages.length && <><div className="message user"><div className="message-label">项目描述</div><p>{text(detail.project.description)}</p></div>{!busy && <div className="message assistant"><p>首次回答尚未完成，可以重试。</p><button className="primary" disabled={attachmentBusy} onClick={() => run(() => initialReply(detail.project.id, true))}>重试回答</button></div>}</>}{detail.project.messages.map((m, i) => <div className={'message ' + m.role} key={i}><div className="message-label">{m.role === 'user' ? '你' : '分析助手'}</div>{m.role === 'assistant' ? <ChatReply message={m} evidence={detail.evidence} onEvidence={() => setTab('evidence')} /> : <p>{m.content}</p>}</div>)}{busy && streamReply && <div className="message assistant"><div className="message-label">分析助手 · 正在生成</div><ChatMarkdown evidence={detail.evidence} streaming onEvidence={() => setTab('evidence')}>{streamReply}</ChatMarkdown></div>}{busy && <div className="thinking"><LoaderCircle size={15} className="spin" />正在处理…</div>}<div ref={chatEnd} /></div><ChatAttachments key={detail.project.id} projectId={detail.project.id} disabled={busy || attachmentBusy} onBusy={setAttachmentBusy} onSaved={refreshProject} /><form className="chat-form" onSubmit={e => { e.preventDefault(); sendMessage(); }}><label className="sr-only" htmlFor="message">回答或补充项目内容</label><textarea id="message" value={message} onChange={e => setMessage(e.target.value)} placeholder="回答问题，或补充新的项目信息…" rows={2} maxLength={12000} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }} /><div><span>Enter 发送 · Shift + Enter 换行</span><button className="send-button" aria-label="发送消息" disabled={busy || attachmentBusy || !message.trim()} type="submit"><ArrowUp size={20} /></button></div></form></section>
           <aside className="context-panel"><h2>这次评估的依据</h2><div className="context-block"><span>公司现状</span><strong>{text(data.company.name) || '尚未建立公司资料'}</strong><button className="text-button" onClick={() => setPage('company')}>{companyReady ? '查看公司基线' : '补充公司资料'}<ChevronRight size={14} /></button></div><div className="context-block"><span>项目关键信息</span><strong>{completed} / 7 项已整理</strong><div className="fact-progress" aria-label={`7项信息中已整理${completed}项`}>{projectFields.map(k => <i key={k} className={text(detail.project.pending_patch?.[k] ?? detail.project[k]) ? 'complete' : ''} />)}</div><button className="text-button" onClick={() => setTab('facts')}>检查项目资料<ChevronRight size={14} /></button></div><div className="context-block"><span>证据资料</span><strong>{detail.evidence.length} 条已保存</strong><button className="text-button" onClick={() => setTab('evidence')}>添加或核验资料<ChevronRight size={14} /></button></div><div className="context-tip"><CircleHelp size={17} /><p>不确定的信息可以直说。关键依据不足时，先补资料，不急着给等级。</p></div>{detail.project.pending_patch && Object.keys(detail.project.pending_patch).length > 0 && <button className="secondary" onClick={() => setTab('facts')}>核对模型整理的事实</button>}<button className="primary full" onClick={() => setTab('report')}>查看阶段评价与下一步<ArrowUpRight size={16} /></button></aside></div> :
           tab === 'facts' ? <ProjectForm project={detail.project} types={data.types} busy={busy} save={body => run(async () => { await api('/projects/' + detail.project.id, 'PATCH', body); await refreshProject(); }, '项目资料已保存')} /> :
           tab === 'evidence' ? <EvidencePanel projectId={detail.project.id} evidence={detail.evidence} busy={busy} run={run} refresh={refreshProject} /> :

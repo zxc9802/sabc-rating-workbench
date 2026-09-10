@@ -5,6 +5,17 @@ import re
 import time
 
 progress = ContextVar('model_progress', default=None)
+cancel_signal = ContextVar('model_cancel_signal', default=None)
+
+
+class JobCancelled(BaseException):
+    pass
+
+
+def check_cancelled():
+    signal = cancel_signal.get()
+    if signal is not None and signal.is_set():
+        raise JobCancelled()
 
 
 def reply_prefix(content):
@@ -31,10 +42,12 @@ def reply_prefix(content):
 
 
 def completion(client, url, payload, headers, remaining):
+    check_cancelled()
     notify = progress.get()
     if notify is None:
         r = client.post(url, json=payload, headers=headers, timeout=remaining)
         r.raise_for_status()
+        check_cancelled()
         choice = r.json()['choices'][0]
         if choice.get('finish_reason') not in (None, 'stop'):
             raise ValueError('模型未完成有效回答')
@@ -46,6 +59,7 @@ def completion(client, url, payload, headers, remaining):
     with client.stream('POST', url, json={**payload, 'stream':True}, headers=headers, timeout=remaining) as response:
         response.raise_for_status()
         for line in response.iter_lines():
+            check_cancelled()
             if time.monotonic() > deadline:
                 raise ValueError('模型回答超时，请重试')
             if not line.startswith('data:'):
