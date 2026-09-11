@@ -92,6 +92,11 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
                 'dimension_coverage': coverage, 'proposal': assessment_proposal,
                 'stage_review': {'conclusion': 'trial', 'summary': '阶段初评', 'next_action': '验证', 'next_review_days': 14}}
     monkeypatch.setattr(module, 'analyze', reply)
+    reviews = []
+    def review(*args):
+        reviews.append(1)
+        return {**deepcopy(args[-1]), 'project_patch': {}, 'review_notes': []}
+    monkeypatch.setattr(module, 'review_report', review)
     url = f'/api/projects/{pid}'
     ordinary = client.post(url + '/chat', json={'message': '资料补充完了'})
     assert ordinary.status_code == 200
@@ -100,11 +105,13 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     assert detail['project']['interview']['state'] == 'ready'
     assert detail['assessments'] == []
     assert not detail['project']['lifecycle'].get('review')
+    assert reviews == []
     requested = client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True})
     assert requested.status_code == 200
     assert requested.json()['proposal'] is not None
     assert requested.json()['stage_review'] is not None
     assert requests == [False, True]
+    assert len(reviews) == (0 if outcome == 'ask' else 1)
     reports = client.get(url).json()['assessments']
     if outcome in ('ask', 'pending'):
         assert reports == []

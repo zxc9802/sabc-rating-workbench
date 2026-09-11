@@ -14,13 +14,13 @@ from pydantic import BaseModel, Field
 
 from sabc.catalog import catalog
 from sabc.key_storage import encrypt_key, decrypt_key
-from sabc.llm import analyze, guide
+from sabc.llm import review_report, analyze, guide
 from sabc import planner
 from sabc import auth, lifecycle, model_router, sso
 from sabc.tenancy import AccountStore, account_id
 from sabc import speech
 from sabc.jobs import jobs
-from sabc.streaming import check_cancelled
+from sabc.streaming import check_cancelled, progress
 from sabc.rating import assess, DIMENSIONS, TYPES, RULE_VERSION, PROJECT_FIELDS
 from sabc.store import Store, utcnow
 from sabc.schema import validate_amounts, validate_proposal
@@ -253,6 +253,7 @@ def chat_turn(pid,body):
     check_cancelled()
     p=project_or_404(pid)
     p['lifecycle'] = {**lifecycle.state(p), 'mode': 'continuous', 'confirmed': True}
+    p.pop('assessment_review', None)
     if body.generate_report and not lifecycle.collection_ready(p.get('lifecycle', {})):
         raise ValueError('本阶段八维信息尚未梳理完整，请先补充关键问题')
     previous_report = None
@@ -287,6 +288,21 @@ def chat_turn(pid,body):
         check_cancelled()
         context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
         result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': body.generate_report, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+        if body.generate_report and result.get('proposal') and not result.get('questions'):
+            check_cancelled()
+            if progress.get():
+                progress.get()('正在核对关键依据、反对理由和试点建议…')
+            draft = deepcopy(result)
+            review_project = {**p, '_previous_stage_report': previous_report,
+                              'pending_patch': {**p.get('pending_patch', {}), **draft.get('project_patch', {})}}
+            result = review_report(s, decrypt_key(s.get('encrypted_key', '')), review_project,
+                                   company(), model_evidence_for(pid), messages, draft)
+            check_cancelled()
+            # Review may revise judgments, never the user's extracted facts.
+            result['project_patch'] = draft.get('project_patch', {})
+            p['assessment_review'] = {'time': utcnow(), 'draft_proposal': draft['proposal'],
+                                      'revised_proposal': result.get('proposal'),
+                                      'notes': result.get('review_notes', []), 'questions': result.get('questions', [])}
         result['retrieval_results']=outcomes
         result['retrieval_plan']=plan
         result['data_requests']=[]
@@ -516,6 +532,8 @@ def evaluate(pid:str,body:dict):
     proposal=body.get('proposal') or p.get('proposal') or {}
     if proposal and body.get('confirmed') is not True: raise ValueError('请先核对并确认评分建议')
     proposal=validate_proposal(proposal)
+    if p.get('assessment_review', {}).get('revised_proposal') != proposal:
+        p.pop('assessment_review', None)
     c=company(); e=evidence_for(pid)
     result=assess(p,c,e,proposal)
     if result['grade'] == 'NR':
