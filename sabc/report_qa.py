@@ -2,6 +2,7 @@
 import json
 import httpx
 from sabc.streaming import completion
+from sabc.model_router import routed
 
 MODEL = 'glm-5.3-flash'
 
@@ -31,15 +32,20 @@ def answer(settings, key, report, history, question):
         messages.extend([{'role': 'user', 'content': turn['question']},
                          {'role': 'assistant', 'content': turn['reply'][:6000]}])
     messages.append({'role': 'user', 'content': question})
-    try:
+    def execute(route):
+        payload = {'model': route['model'], 'messages': messages, 'temperature': 0.2,
+                   'max_tokens': 3000, 'response_format': {'type': 'json_object'}}
+        if route.get('deepseek'):
+            payload.pop('temperature')
+            payload.update(thinking={'type': 'enabled'}, reasoning_effort=route['effort'])
         with httpx.Client() as client:
-            raw = completion(client, settings['base_url'].rstrip('/') + '/chat/completions',
-                             {'model': MODEL, 'messages': messages, 'temperature': 0.2,
-                              'max_tokens': 3000, 'response_format': {'type': 'json_object'}},
-                             {'Authorization': 'Bearer ' + key}, 90)
+            raw = completion(client, route['base_url'].rstrip('/') + '/chat/completions',
+                             payload, {'Authorization': 'Bearer ' + route['key']}, 90)
         reply = json.loads(raw)['reply']
         if not isinstance(reply, str) or not reply.strip():
             raise ValueError()
         return reply.strip()
+    try:
+        return routed('report_chat', {**settings, 'model': MODEL, 'key': key}, execute)
     except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
         raise ValueError('报告助手回答未完成，请稍后重试') from error

@@ -1,4 +1,4 @@
-"""Role-specific models first; DeepSeek is a request-local fallback."""
+"""Request-local model retries and ordered fallbacks."""
 from contextvars import ContextVar
 import os
 import time
@@ -19,19 +19,26 @@ def deepseek():
 
 def routed(role, preferred, execute):
     fallback = deepseek()
-    routes = [{**preferred, 'primary': True, 'deepseek': False}]
+    primary = {**preferred, 'primary': True, 'deepseek': False}
+    model = preferred.get('model', '').lower().replace('-', '').replace('.', '')
+    if model.startswith('glm53'):
+        # Retry GLM once, then use Luna on exactly the same endpoint and credentials.
+        routes = [{**primary, 'single_attempt': True, 'attempt': attempt} for attempt in (1, 2)]
+        routes.append({**preferred, 'model': 'gpt-5.6-luna', 'primary': False, 'deepseek': False})
+    else:
+        routes = [primary]
     if fallback:
         routes.append(fallback)
     for index, config in enumerate(routes):
         check_cancelled()
         started = time.monotonic()
-        event = {'role': role, 'model': config['model'], 'primary': config['primary'], 'attempt': 1}
+        event = {'role': role, 'model': config['model'], 'primary': config['primary'], 'attempt': config.get('attempt', 1)}
         try:
             result = execute(config)
             check_cancelled()
         except Exception as error:
             event.update(status='failed', error_type=type(error).__name__)
-            if role == 'analysis' and progress.get():
+            if role in ('analysis', 'report_chat') and progress.get():
                 progress.get()('')
             if index == len(routes) - 1:
                 raise

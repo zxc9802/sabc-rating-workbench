@@ -107,3 +107,22 @@ def test_invalid_model_output_is_not_accepted(monkeypatch,reply):
     monkeypatch.setattr(report_qa,'completion',lambda *args:reply)
     with pytest.raises(ValueError,match='未完成'):
         report_qa.answer({'base_url':'https://model.example'},'test',{'result':{},'snapshot':{}},[],'问题')
+
+
+def test_report_qa_uses_same_fallback_chain(monkeypatch):
+    monkeypatch.setenv('SABC_DEEPSEEK_API_KEY','synthetic-deepseek')
+    monkeypatch.setenv('SABC_DEEPSEEK_MODEL','deepseek-flash')
+    seen=[]
+    def complete(client,url,payload,headers,remaining):
+        seen.append(payload['model'])
+        if payload['model']!='deepseek-flash':
+            assert url=='https://provider.example/v1/chat/completions'
+            assert headers['Authorization']=='Bearer synthetic-shared'
+            raise ValueError('invalid response')
+        assert headers['Authorization']=='Bearer synthetic-deepseek'
+        assert payload['thinking']=={'type':'enabled'}
+        return json.dumps({'reply':'根据这份报告说明'})
+    monkeypatch.setattr(report_qa,'completion',complete)
+    report={'result':{'grade':'B'},'snapshot':{}}
+    assert report_qa.answer({'base_url':'https://provider.example/v1'},'synthetic-shared',report,[],'为什么')=='根据这份报告说明'
+    assert seen==['glm-5.3-flash','glm-5.3-flash','gpt-5.6-luna','deepseek-flash']

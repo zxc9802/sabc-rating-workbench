@@ -70,3 +70,47 @@ def test_all_models_fail_without_sticky_route(primary):
     def fail(route): calls.append(route['model']);raise ValueError('failed')
     with pytest.raises(ValueError):routed('analysis',{'model':'old'},fail)
     assert calls==['old','deepseek-flash']
+
+
+@pytest.mark.parametrize('success_at', [1, 2, 3, 4, None])
+def test_glm_retry_luna_same_provider_then_deepseek(primary, success_at):
+    calls=[];events=[]
+    def execute(route):
+        calls.append(route)
+        if len(calls)==success_at: return 'ok'
+        raise ValueError('model failed')
+    token=audit.set(events.append)
+    try:
+        if success_at:
+            assert routed('review',{'model':'glm-5.3-flash','base_url':'https://provider.example/v1','key':'synthetic-shared'},execute)=='ok'
+        else:
+            with pytest.raises(ValueError):
+                routed('review',{'model':'glm-5.3-flash','base_url':'https://provider.example/v1','key':'synthetic-shared'},execute)
+    finally:audit.reset(token)
+    assert [r['model'] for r in calls]==['glm-5.3-flash','glm-5.3-flash','gpt-5.6-luna','deepseek-flash'][:success_at or 4]
+    assert [r['attempt'] for r in events][:2]==[1,2][:min(success_at or 4,2)]
+    for r in calls[:3]:
+        assert r['base_url']=='https://provider.example/v1' and r['key']=='synthetic-shared'
+    assert 'synthetic-shared' not in json.dumps(events)
+
+
+def test_glm_invalid_json_only_retries_once_before_luna(primary,monkeypatch):
+    calls=[]
+    def post(self,url,**kwargs):
+        model=kwargs['json']['model'];calls.append(model)
+        content='bad json' if model.startswith('glm') else '{"reply":"继续访谈","proposal":null}'
+        return httpx.Response(200,request=httpx.Request('POST',url),json={'choices':[{'message':{'content':content}}]})
+    monkeypatch.setattr(httpx.Client,'post',post)
+    assert analyze({'base_url':'https://provider.example/v1','model':'glm-5.3-flash'},'synthetic-key',{}, {},[],[])['reply']=='继续访谈'
+    assert calls==['glm-5.3-flash','glm-5.3-flash','gpt-5.6-luna']
+
+
+def test_cancel_does_not_retry_or_fallback(primary):
+    from sabc.streaming import JobCancelled
+    calls=[]
+    def execute(route):
+        calls.append(route['model'])
+        raise JobCancelled()
+    with pytest.raises(JobCancelled):
+        routed('review',{'model':'glm-5.3-flash'},execute)
+    assert calls==['glm-5.3-flash']
