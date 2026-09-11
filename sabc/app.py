@@ -1,4 +1,5 @@
 from io import BytesIO
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -481,8 +482,8 @@ def import_company(file:UploadFile):
 def evaluate(pid:str,body:dict):
     p=project_or_404(pid)
     life=lifecycle.state(p)
-    if p.get('lifecycle') and (not life['confirmed'] or life['stage']!='post'):
-        raise ValueError('当前阶段请先查看阶段评价；确认试点结束后生成综合评分')
+    if p.get('lifecycle') and not life['confirmed']:
+        raise ValueError('请先确认项目实际阶段，再生成阶段评级报告')
     if any(p.get(k)!=v for k,v in p.get('pending_patch',{}).items()):
         raise ValueError('模型整理了待核对的项目事实，请先到项目资料核对并保存，再生成评级')
     proposal=body.get('proposal') or p.get('proposal') or {}
@@ -490,9 +491,12 @@ def evaluate(pid:str,body:dict):
     proposal=validate_proposal(proposal)
     c=company(); e=evidence_for(pid)
     result=assess(p,c,e,proposal)
+    if p.get('lifecycle'):
+        result.update(stage=life['stage'], provisional=True,
+                      status='待评级' if result['grade']=='NR' else '阶段暂定评级')
     record=store.save('assessments',{'project_id':pid,'result':result,
-        'snapshot':{'project':p,'company':c,'evidence':e,'proposal':proposal}})
-    if result['grade']!='NR' and p.get('lifecycle'):
+        'snapshot':{'project':deepcopy(p),'company':c,'evidence':e,'proposal':proposal}})
+    if result['grade']!='NR' and p.get('lifecycle') and life['stage']=='post':
         p['lifecycle']['next_review_on']=None
     store.save('projects',{**p,'proposal':proposal,'last_grade':result['grade'],'last_assessment_id':record['id']})
     return record

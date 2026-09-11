@@ -104,9 +104,11 @@ def test_lifecycle_context_keeps_plan_and_coverage_not_full_history():
     assert 'plan_history' not in c['project']['lifecycle']
 
 
-def test_http_stage_transition_requires_version_and_final_scoring_requires_post(client):
+def test_http_stage_transition_requires_version_and_all_stages_allow_reports(client):
     p=client.post('/api/projects',json={'name':'合成阶段测试'}).json();pid=p['id']
-    assert client.post(f'/api/projects/{pid}/assess',json={}).status_code==422
+    initial=client.post(f'/api/projects/{pid}/assess',json={})
+    assert initial.status_code==200
+    assert initial.json()['result']['stage']=='pre'
     action={'action':'set_stage','version':p['version'],'payload':{'stage':'post','actual_start':'2026-09-01','actual_end':'2026-09-05'}}
     response=client.post(f'/api/projects/{pid}/lifecycle',json=action)
     assert response.status_code==200 and response.json()['lifecycle']['stage']=='post'
@@ -120,3 +122,58 @@ def test_scheduling_preserves_existing_report_and_proposal(client):
     p=module.store.save('projects',{**p,'last_grade':'B','proposal':{'test':'retained'},'interview':{'state':'ready'}})
     result=client.post(f'/api/projects/{pid}/lifecycle',json={'action':'schedule','version':p['version'],'payload':{'date':lc.today().isoformat(),'reason':'补充记录'}}).json()
     assert result['last_grade']=='B' and result['proposal']==p['proposal'] and result['interview']==p['interview']
+
+
+@pytest.mark.parametrize('stage', ['pre', 'during', 'post'])
+@pytest.mark.parametrize('level,grade', [(0,'B'), (2,'A'), (3,'S')])
+def test_each_stage_saves_provisional_report_with_evidence_caps(client, stage, level, grade):
+    p,c,e,proposal=case(level)
+    client.put('/api/company',json=c)
+    p=client.post('/api/projects',json={**p,'stage':stage,
+        'actual_start':'2026-09-01','actual_end':'2026-09-05'}).json()
+    pid=p['id']
+    evidence=client.post(f'/api/projects/{pid}/evidence',json=e[0]).json()
+    for dim in proposal['dimensions'].values(): dim['evidence_ids']=[evidence['id']]
+    for assumption in proposal['assumptions']: assumption['evidence_ids']=[evidence['id']]
+    due=lc.today().isoformat()
+    client.post(f'/api/projects/{pid}/lifecycle',json={'action':'schedule','version':p['version'],
+        'payload':{'date':due,'reason':'阶段回访'}})
+    response=client.post(f'/api/projects/{pid}/assess',json={'proposal':proposal,'confirmed':True})
+    assert response.status_code==200, response.text
+    report=response.json()
+    assert report['result']['grade']==grade
+    assert report['result']['stage']==stage and report['result']['provisional'] is True
+    assert report['result']['status']=='阶段暂定评级'
+    assert report['snapshot']['project']['lifecycle']['stage']==stage
+    saved=client.get(f'/api/projects/{pid}').json()
+    assert saved['project']['lifecycle']['next_review_on']==(None if stage=='post' else due)
+    assert client.get(f'/api/assessments/{report["id"]}/export').json()==report
+
+
+def test_stage_reports_and_revisions_survive_transitions_without_reusing_old_grade(client):
+    p,c,_,proposal=case(0)
+    client.put('/api/company',json=c)
+    pid=client.post('/api/projects',json=p).json()['id']
+    records=[]
+    for stage in ['pre','pre','during','post']:
+        current=client.get(f'/api/projects/{pid}').json()['project']
+        if current['lifecycle']['stage']!=stage:
+            changed=client.post(f'/api/projects/{pid}/lifecycle',json={'action':'set_stage',
+                'version':current['version'],'payload':{'stage':stage,'actual_start':'2026-09-01',
+                'actual_end':'2026-09-05','reason':'合成阶段记录'}}).json()
+            assert 'last_grade' not in changed and changed['proposal'] is None
+        response=client.post(f'/api/projects/{pid}/assess',json={'proposal':proposal,'confirmed':True})
+        assert response.status_code==200, response.text
+        records.append(response.json())
+    history=client.get(f'/api/projects/{pid}').json()['assessments']
+    assert len(history)==4 and len({r['id'] for r in history})==4
+    assert {r['id']:r for r in history}=={r['id']:r for r in records}
+    assert [r['result']['stage'] for r in records]==['pre','pre','during','post']
+
+
+def test_unconfirmed_stage_cannot_generate_stage_report(client):
+    from sabc import app as module
+    p=client.post('/api/projects',json={'name':'合成未确认阶段'}).json()
+    p['lifecycle']['confirmed']=False
+    module.store.save('projects',p)
+    assert client.post(f'/api/projects/{p["id"]}/assess',json={}).status_code==422
