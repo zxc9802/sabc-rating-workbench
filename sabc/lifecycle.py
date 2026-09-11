@@ -149,7 +149,12 @@ def transition(project, action, body, company):
     life = state(project)
     on = today()
     reason = str(body.get('reason', '')).strip()
-    if action == 'set_stage':
+    if action == 'advance':
+        if life['stage'] not in ('pre', 'during'):
+            raise ValueError('已经处于试点后，请继续本阶段复盘')
+        life.update(stage='during' if life['stage'] == 'pre' else 'post', confirmed=True,
+                    paused=False, coverage={}, review=None, next_review_on=None)
+    elif action == 'set_stage':
         stage = body.get('stage')
         if stage not in STAGES:
             raise ValueError('请选择实际项目阶段')
@@ -249,3 +254,10 @@ pilot_plan结构为{objective,scope,method,metrics:[{name,baseline,target,measur
 草稿要与评价发现的关键假设一一对应。用户不会设计时先建议，不让用户完成所有设计；无需为了试点而要求用户提供未来结果。方案确认、实际启动、结束以及回访日期变更都由用户操作，不在正文声称已经替用户完成。
 仅输出与本轮相关的stage_review/pilot_plan，否则为null。用户明确要求当前阶段评分时，pre、during、post都输出用于独立阶段报告的proposal：八维判断、关键假设及验证任务、至少3条支持理由和3条反对理由。启动前和试点中的未来效果可基于已知价值路径作方向性推断，basis必须为assumption，并写明待验证条件，不能伪装成实际结果；真正无法判断的维度保持score=null、basis=unknown，由程序保留NR。缺少未来试点结果本身不阻止有依据的方向性初评。沿用统一权重、证据上限和否决规则，不为了给等级补造依据。不自行生成等级，程序计算并保存当期暂定评级，详细阶段评价和方案在报告面板显示。
 '''
+
+PROMPT += """
+连续阶段访谈：用户通过顶部按钮进入下一阶段。进入访谈阶段不代表任何结果已被验证，实际开始/结束时间未提供时询问，不编造日期。
+previous_stage_report是上一阶段已保存报告，只作为历史判断基线。试点中先简述上阶段最关键的假设和验证目标，再结合项目询问实际做了什么、观察到了什么及与原计划的差异；试点后以试点中报告为基线，询问最终结果、完整成本与停止/继续的原因。
+随后逐项重新梳理当前八维：保留仍适用的已有事实，用本轮实际输入更新判断；旧预测、旧评分、旧完整状态不得当作本轮验证结果。新旧信息冲突时明确指出并核对。本轮未提供结果保持未知，不因阶段变化自动提级。
+只有用户点击生成报告后才综合上一阶段报告与本阶段新增事实生成当前阶段评分建议，说明关键判断变化及其依据。
+"""

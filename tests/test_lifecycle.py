@@ -177,3 +177,48 @@ def test_unconfirmed_stage_cannot_generate_stage_report(client):
     p['lifecycle']['confirmed']=False
     module.store.save('projects',p)
     assert client.post(f'/api/projects/{p["id"]}/assess',json={}).status_code==422
+
+
+def test_advance_requires_report_and_carries_previous_snapshot(client, monkeypatch):
+    import sabc.app as module
+    from sabc.context import model_context
+    p, company, _, proposal = case()
+    client.put('/api/company', json=company)
+    pid = client.post('/api/projects', json=p).json()['id']
+    url = f'/api/projects/{pid}'
+    current = client.get(url).json()['project']
+    def advance(version):
+        return client.post(url + '/lifecycle', json={'action': 'advance', 'payload': {}, 'version': version})
+    assert advance(current['version']).status_code == 422
+    # A saved report anchors the next stage; entering it does not invent execution dates.
+    module.store.save('assessments', {'id': 'pre-report', 'project_id': pid,
+        'result': {'stage': 'pre', 'grade': 'B', 'assumptions': [{'claim': '待验证付费需求'}]},
+        'snapshot': {'project': deepcopy(current)}})
+    response = advance(current['version'])
+    assert response.status_code == 200
+    during = response.json()
+    assert during['lifecycle']['stage'] == 'during'
+    assert during['lifecycle']['previous_report_id'] == 'pre-report'
+    assert during['lifecycle']['coverage'] == {}
+    assert not during['lifecycle'].get('actual_start')
+    assert during['proposal'] is None and not during.get('last_grade')
+    assert advance(current['version']).status_code == 409
+    assert advance(during['version']).status_code == 422
+    monkeypatch.setattr(module, 'settings', lambda: {'base_url': 'https://model.example', 'model': 'test'})
+    captured = []
+    def analyze(settings, key, project, company, evidence, messages):
+        captured.append(model_context(project, company, evidence, messages))
+        return {'mode': 'model', 'reply': '试点目前做了哪些验证？', 'questions': ['试点目前做了哪些验证？'], 'project_patch': {}, 'proposal': None}
+    monkeypatch.setattr(module, 'analyze', analyze)
+    assert client.post(url + '/chat', json={'message': '继续试点中访谈'}).status_code == 200
+    assert captured[-1]['project']['previous_stage_report']['id'] == 'pre-report'
+    current = client.get(url).json()['project']
+    module.store.save('assessments', {'id': 'during-report', 'project_id': pid,
+        'result': {'stage': 'during', 'grade': 'B'}, 'snapshot': {'project': deepcopy(current)}})
+    post = advance(current['version']).json()
+    assert post['lifecycle']['stage'] == 'post'
+    assert post['lifecycle']['previous_report_id'] == 'during-report'
+    assert not post['lifecycle'].get('actual_end')
+    assert client.post(url + '/chat', json={'message': '开始复盘'}).status_code == 200
+    assert captured[-1]['project']['previous_stage_report']['id'] == 'during-report'
+    assert module.store.get('assessments', 'pre-report')['result']['grade'] == 'B'

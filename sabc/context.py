@@ -9,6 +9,8 @@ def model_context(project, company, evidence, messages):
     clean['interview']=project.get('interview',{})
     from sabc.lifecycle import context
     clean['lifecycle']=context(project)
+    if project.get('_previous_stage_report'):
+        clean['previous_stage_report']=project['_previous_stage_report']
     # Never include project.messages/proposal: history has one bounded location.
     recent=messages[-16:]
     superseded={e.get('supersedes') for e in evidence if e.get('supersedes')}

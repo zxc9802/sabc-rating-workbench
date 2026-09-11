@@ -210,8 +210,17 @@ def update_lifecycle(pid:str,body:LifecycleAction):
         for job in store.list('jobs'):
             if job.get('project_id')==pid and jobs.read(store,job['id'])['status']=='running':
                 raise HTTPException(409,'请等待本项目当前任务完成后再修改阶段')
+        previous = None
+        if body.action == 'advance':
+            stage = lifecycle.state(p)['stage']
+            previous = next((a for a in store.list('assessments') if a.get('project_id') == pid
+                             and (a['result'].get('stage') or a['snapshot']['project'].get('lifecycle', {}).get('stage')) == stage), None)
+            if not previous:
+                raise ValueError('请先生成并保存当前阶段报告，再进入下一阶段')
         changed=lifecycle.transition(p,body.action,body.payload,company())
-        if body.action in ('set_stage','confirm_plan','start','complete'):
+        if previous:
+            changed['lifecycle']['previous_report_id'] = previous['id']
+        if body.action in ('set_stage','confirm_plan','start','complete','advance'):
             changed['proposal']=None
             changed['interview']={}
             # Old ratings remain in immutable reports, never label a new stage as final.
@@ -245,6 +254,18 @@ def chat_turn(pid,body):
     p=project_or_404(pid)
     if body.generate_report and not lifecycle.collection_ready(p.get('lifecycle', {})):
         raise ValueError('本阶段八维信息尚未梳理完整，请先补充关键问题')
+    previous_report = None
+    previous_id = p.get('lifecycle', {}).get('previous_report_id')
+    if not previous_id:
+        prior_stage = {'during': 'pre', 'post': 'during'}.get(p.get('lifecycle', {}).get('stage'))
+        prior = next((a for a in store.list('assessments') if a.get('project_id') == pid and prior_stage
+                      and (a['result'].get('stage') or a['snapshot']['project'].get('lifecycle', {}).get('stage')) == prior_stage), None)
+        previous_id = prior['id'] if prior else None
+    if previous_id:
+        saved = store.get('assessments', previous_id)
+        if saved and saved.get('project_id') == pid:
+            previous_report = {'id': saved['id'], 'created_at': saved['created_at'], 'result': saved['result'],
+                               'lifecycle': lifecycle.context(saved['snapshot']['project'])}
     messages=p.get('messages',[])+[{'role':'user','content':body.message,'time':utcnow()}]
     s=settings()
     if model_router.deepseek() or (s.get('base_url') and s.get('model')):
@@ -268,7 +289,7 @@ def chat_turn(pid,body):
                 outcomes=[f.result() for f in futures]
         check_cancelled()
         context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
-        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': body.generate_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': body.generate_report, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
         result['retrieval_results']=outcomes
         result['retrieval_plan']=plan
         result['data_requests']=[]
