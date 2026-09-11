@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Download, FileCheck2, RefreshCw, ArrowUpRight, ChevronDown, Printer, ShieldCheck } from 'lucide-react';
-import { api, Detail, Dimension, Proposal, Score, Assumption, Assessment, Evidence, Stage } from '../lib/types';
+import { api, Detail, Dimension, Proposal, Score, Assumption, Assessment, Evidence, Stage, Lifecycle } from '../lib/types';
 import { Field } from './workbench-forms';
 import { readableWarning } from '../lib/readable-reply';
 
@@ -26,6 +26,26 @@ function EvidenceReferences({ ids, evidence }: { ids: string[]; evidence: Eviden
     if (!item) return <p className="source-location" key={id}>引用的资料未包含在本次快照中，请复核引用。</p>;
     return <details key={id}><summary>{item.title}</summary><div className="evidence-content"><p className="source-location">来源：{item.source_locator || '未记录'}<br />数据期间：{item.data_period || '未记录'}<br />采集时间：{item.retrieved_at || '未记录'}<br />适用范围 / 口径：{item.scope || '未记录'}<br />核验状态：{item.verification_status === 'verified' ? '已核验' : '未核验'} · 登记等级：E{item.level}<br />有效至：{item.valid_until || '未设定'}{item.conflict && ' · 存在待解释冲突'}</p><pre>{item.content || '未保存正文'}</pre></div></details>;
   })}</div>;
+}
+
+function PilotRecommendation({ life }: { life?: Lifecycle }) {
+  const review = life?.review;
+  const plan = life?.draft_plan || life?.plan;
+  if (!review && !plan) return null;
+  return <section className="report-section">
+    <h3>试点建议与下一步行动</h3>
+    {review && <><p>{review.summary}</p><h4>下一步建议</h4><p>{review.next_action}</p>{review.next_review_days && <p>建议 {review.next_review_days} 天后回访复评。</p>}</>}
+    {plan && <><h4>{life?.draft_plan ? '试点方案建议（待确认）' : `已确认试点方案 · 第 ${plan.version} 版`}</h4>
+      <p><strong>验证目标：</strong>{plan.objective}</p><p><strong>参与范围：</strong>{plan.scope}</p><p><strong>验证方法：</strong>{plan.method}</p>
+      {plan.metrics.map((metric, i) => <div className="validation-item" key={i}><h4>{metric.name}</h4><p>现状：{metric.baseline}</p><p>目标：{metric.target}</p><p>测量：{metric.measurement}</p></div>)}
+      <p><strong>停止或调整条件：</strong>{plan.stop_conditions}</p>
+      <p>负责人：{plan.owner} · 人员与资源：{plan.resources}</p>
+      <p>现金预算上限：¥{plan.cash_budget.toLocaleString('zh-CN')} · 内部工时折算：¥{plan.internal_cost.toLocaleString('zh-CN')}</p>
+      <p>最大可承受损失：¥{plan.max_loss.toLocaleString('zh-CN')} · 估计不可回收损失：¥{plan.loss_estimate.toLocaleString('zh-CN')}</p>
+      <p>计划周期：{plan.duration_days} 天 · 开始后 {plan.checkin_after_days} 天首次回访{plan.planned_start && ` · 预计开始：${plan.planned_start}`}</p>
+      <p><strong>需要保留的记录：</strong>{plan.records}</p>
+    </>}
+  </section>;
 }
 
 export function ReportPanel({ detail, dimensions, busy, run, refresh }: { detail: Detail; dimensions: Dimension[]; busy: boolean; run: Run; refresh: () => Promise<void> }) {
@@ -54,10 +74,9 @@ export function ReportPanel({ detail, dimensions, busy, run, refresh }: { detail
       return <button key={key} aria-pressed={stage === key} className={stage === key ? 'selected' : ''} onClick={() => { setStage(key); setEdit(false); }}>{stageLabels[key]} · {latest?.result.grade || '未生成'}{key === currentStage ? '（当前）' : ''}</button>;
     })}</div>
     {reports.length > 0 && <label className="history-select">{stageLabels[stage]}报告版本<select value={selected?.id || ''} onChange={e => setSelected(reports.find(a => a.id === e.target.value) || null)}>{reports.map((a, i) => <option key={a.id} value={a.id}>{new Date(a.created_at).toLocaleString('zh-CN')} · {a.result.grade}{i === 0 ? ' · 本阶段最新' : ''}</option>)}</select></label>}
-    {!r ? <div className="report-empty"><FileCheck2 size={35} /><h3>{stageLabels[stage]}报告尚未生成</h3><p>{stage === currentStage ? '完成本阶段八维信息梳理，选择开始评分，再核对建议并保存阶段评级报告。' : '该阶段尚无留存报告，不能用其他阶段的结论代替。'}</p></div> : <article className="rating-document">
-      <h3>{stageLabels[reportStage(selected!)]} · SABC 评级报告</h3>
-      <p>本报告是评估时点的判断；新增信息或进入下一阶段后应重新评级，历史报告保留原始依据。</p>
+    {!r ? <div className="report-empty"><FileCheck2 size={35} /><h3>{stageLabels[stage]}报告尚未生成</h3><p>{stage === currentStage ? '完成本阶段八维信息梳理，选择开始评分，再核对建议并保存阶段评级报告。' : '该阶段尚无留存报告，不能用其他阶段的结论代替。'}</p>{stage === currentStage && <PilotRecommendation life={detail.project.lifecycle} />}</div> : <article className="rating-document">
       <div className="rating-summary"><div className={'final-grade grade-' + r.grade}>{r.grade}</div><div className="rating-summary-text"><h2>{r.action}</h2><p>{r.status} · 判断置信度：{r.confidence}</p><span>评估于 {new Date(selected!.created_at).toLocaleString('zh-CN')} · 公司基线 v{String(selected!.snapshot.company.version || '未建立')}</span></div>{r.base_score !== null && <div className="rating-score"><strong>{r.base_score}<span>/100</span></strong><small>业务分 · {r.evidence_level} 证据</small></div>}</div>
+      <PilotRecommendation life={selected!.snapshot.project.lifecycle} />
       {r.grade === 'NR' ? <section className="report-section"><h3>补齐这些信息后，再判断</h3><p>当前依据还不足。这不表示项目不好，也不形成投入建议。</p><ul className="missing-list">{r.missing.map((m, i) => <li key={i}><span />{m}</li>)}</ul>{r.validation_plan?.length > 0 && <><h3>现在可以执行的补证任务</h3>{r.validation_plan.map((v, i) => <div className="validation-item" key={i}><h4>{v.claim}</h4><p>{v.method}</p><p>通过：{v.pass}</p><p>停止 / 调整：{v.fail}</p></div>)}</>}</section> : <>
         <section className="report-section"><div className="section-heading"><h3>八维业务判断</h3><span className="footnote">业务质量与证据强度分开计算</span></div><div className="dimension-results">{r.dimensions.map(d => <div className="dimension-result" key={d.key}><div><strong>{d.name}</strong><span>{d.weighted} / {d.weight}</span></div><div className="score-track"><span style={{ width: `${Number(d.score) / 5 * 100}%` }} /></div><p><strong>{d.basis === "fact" ? "事实判断" : d.basis === "unknown" ? "未知" : "假设 / 推断"}：</strong>{d.reason}</p><EvidenceReferences ids={d.evidence_ids} evidence={selected!.snapshot.evidence} /></div>)}</div></section>
         <section className="report-section"><h3>影响本阶段评级的规则</h3><ul className="rule-list">{r.triggered_rules.map((rule, i) => <li key={i}><ShieldCheck size={16} />{rule}</li>)}</ul>{!!r.warnings.length && <div className="review-note">{r.warnings.map((w, i) => <p key={i}>{readableWarning(w, selected!.snapshot.evidence)}</p>)}</div>}</section>

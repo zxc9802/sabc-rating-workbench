@@ -27,7 +27,7 @@ export function SessionGate({ children }: { children: (logout: ReactNode) => Rea
         setAccount(state.user.id);
       }
       setAuthenticated(state.authenticated); setRequired(state.required);
-    } catch (e) { setAuthenticated(false); setError(e instanceof Error ? e.message : '连接失败'); }
+    } catch (e) { setError(e instanceof Error ? e.message : '连接失败'); }
     finally { setLoading(false); }
   }
   useEffect(() => {
