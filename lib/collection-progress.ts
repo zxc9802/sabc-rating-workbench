@@ -2,11 +2,11 @@ import type { Lifecycle } from './types';
 
 const DIMENSIONS = ['strategy', 'market', 'return', 'resources', 'replication', 'cash', 'risk', 'opportunity'] as const;
 
-export function collectionProgress(life?: Lifecycle) {
+export function collectionProgress(life?: Lifecycle, pendingQuestions: string[] = []) {
   const complete = DIMENSIONS.filter(key => {
     const item = life?.coverage[key];
     return !!item?.reason.trim() && ['known', 'unknown', 'external', 'future'].includes(item.status);
   }).length;
-  const ready = !!life?.confirmed && complete === DIMENSIONS.length;
+  const ready = !!life?.confirmed && complete === DIMENSIONS.length && !pendingQuestions.length;
   return { complete, ready, percent: ready ? 100 : Math.min(99, Math.round(complete / DIMENSIONS.length * 100)) };
 }

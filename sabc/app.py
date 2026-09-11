@@ -166,7 +166,7 @@ def get_project(pid:str):
     p=project_or_404(pid)
     evidence=evidence_for(pid)
     analysis_complete=report_readiness.prepared(p,company(),evidence)
-    report_ready=analysis_complete and not any(p.get(k)!=v for k,v in p.get('pending_patch',{}).items())
+    report_ready=analysis_complete
     return {'project':{**p,'followup':lifecycle.followup(p),'analysis_complete':analysis_complete, 'report_ready':report_ready},'evidence':evidence,
             'assessments':[r for r in store.list('assessments') if r['project_id']==pid],
             'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running' and r.get('operation')!='report_chat'],
@@ -265,8 +265,11 @@ def chat_turn(pid,body):
             p=project_or_404(pid)
             if not report_readiness.prepared(p,company(),evidence_for(pid)):
                 return {'mode':'model','needs_collection':True,'reply':'八维信息尚未整理完整，或资料发生变化，请先继续补充。'}
-            if not report_readiness.ready(p,company(),evidence_for(pid)):
-                return {'mode':'model','needs_fact_confirmation':True,'reply':'请先核对并保存项目资料。'}
+            # The explicit report choice accepts this interview's extracted project facts.
+            # Company confirmation and evidence verification remain independent.
+            if p.get('pending_patch'):
+                allowed=(set(PROJECT_FIELDS)-{'name'})|{'budget_requested'}
+                update_project(pid,{k:v for k,v in p['pending_patch'].items() if k in allowed})
             record=evaluate(pid,{'confirmed':True})
             return {'mode':'model','report_id':record['id'],'reply':'报告已生成。'}
     p['lifecycle'] = {**lifecycle.state(p), 'mode': 'continuous', 'confirmed': True}
@@ -335,9 +338,9 @@ def chat_turn(pid,body):
         lifecycle.absorb(p,result,company(),model_evidence_for(pid))
         life = p.get('lifecycle', {})
         gaps = lifecycle.collection_gaps(life)
-        state='ready' if lifecycle.collection_ready(life) else 'gathering' if result.get('questions') else 'paused'
+        state='gathering' if result.get('questions') else 'ready' if lifecycle.collection_ready(life) else 'paused'
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
-                        'note':'可进入人工核对，尚未批准投入' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
+                        'note':'信息已整理完成，可选择生成报告或继续补充' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
     if result['mode']=='model' and not result.get('questions') and lifecycle.collection_ready(p.get('lifecycle', {})):
         if not p.get('proposal'):
             raise ValueError('信息完整但未返回完整判断，请重试。')

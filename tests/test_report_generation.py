@@ -44,13 +44,33 @@ def test_changed_inputs_require_updated_judgment(client,monkeypatch,change):
     assert calls==['analysis']
 
 
-def test_confirm_pending_facts_without_repeat_analysis(client,monkeypatch):
+def test_generate_uses_collected_facts_without_another_confirmation(client,monkeypatch):
     module,url,calls=prepare(client,monkeypatch,{'risks':'新风险'})
-    assert not client.get(url).json()['project']['report_ready']
-    assert client.post(url+'/chat',json={'message':'生成','generate_report':True}).json()['needs_fact_confirmation']
-    assert client.patch(url,json={'risks':'新风险'}).status_code==200
     assert client.get(url).json()['project']['report_ready']
+    assert client.get(url).json()['assessments']==[]
+    result=client.post(url+'/chat',json={'message':'生成','generate_report':True}).json()
+    assert result['report_id'] and 'needs_fact_confirmation' not in result
+    detail=client.get(url).json()
+    assert detail['project']['risks']=='新风险' and detail['project']['pending_patch']=={}
+    assert detail['assessments'][0]['snapshot']['project']['risks']=='新风险'
     assert calls==['analysis']
+
+
+def test_pending_question_wins_over_complete_coverage(client,monkeypatch):
+    module,url,calls=prepare(client,monkeypatch)
+    question='持证代理的费用能退多少？'
+    def ask(*args):
+        calls.append('analysis')
+        result=draft_reply();result.update(reply=question,questions=[question]);return result
+    monkeypatch.setattr(module,'analyze',ask)
+    client.post(url+'/chat',json={'message':'新的投入情况'})
+    detail=client.get(url).json();p=detail['project']
+    assert p['interview']['state']=='gathering'
+    assert p['interview']['questions']==[question]
+    assert p['messages'][-1]['content']==question
+    assert not p['report_ready'] and not p['analysis_complete'] and not p['proposal']
+    assert client.post(url+'/chat',json={'message':'生成','generate_report':True}).json()['needs_collection']
+    assert calls==['analysis','analysis'] and detail['assessments']==[]
 
 
 def test_old_prepared_project_does_not_need_review_again(client,monkeypatch):

@@ -10,6 +10,8 @@ const life = { confirmed: true, stage: 'pre', coverage: Object.fromEntries(keys.
 assert.equal(collectionProgress().percent, 0);
 assert.equal(collectionProgress(life).ready, true);
 assert.equal(collectionProgress(life).percent, 100);
+assert.equal(collectionProgress(life, ['费用能退多少？']).ready, false);
+assert.ok(collectionProgress(life, ['费用能退多少？']).percent < 100);
 for (const status of ['ask']) {
   life.coverage.risk.status = status;
   assert.equal(collectionProgress(life).ready, false);

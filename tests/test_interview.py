@@ -98,14 +98,14 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     detail = client.get(url).json()
     assert detail['assessments'] == []
     assert not ordinary.json().get('report_id')
-    assert detail['project']['report_ready'] == (outcome in ('rated','unknown'))
+    assert detail['project']['report_ready'] == (outcome != 'ask')
     requested = client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True})
     assert requested.status_code == 200
     assert requests == [False]  # Click never calls analysis or review.
     reports = client.get(url).json()['assessments']
-    if outcome in ('ask', 'pending'):
+    if outcome == 'ask':
         assert reports == []
-        assert requested.json().get('needs_collection' if outcome=='ask' else 'needs_fact_confirmation')
+        assert requested.json().get('needs_collection')
     else:
         assert len(reports) == 1
         assert reports[0]['id'] == requested.json()['report_id']

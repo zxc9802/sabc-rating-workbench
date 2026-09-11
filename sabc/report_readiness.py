@@ -27,9 +27,10 @@ def prepared(project, company, evidence):
     expected=saved.get('proposal') if saved else legacy.get('revised_proposal')
     stamp=saved.get('input_fingerprint') if saved else legacy.get('input_fingerprint')
     return bool(project.get('proposal') and expected==project['proposal']
+                and not project.get('interview', {}).get('questions')
                 and collection_ready(project.get('lifecycle', {}))
                 and stamp==fingerprint(project,company,evidence))
 
 
 def ready(project, company, evidence):
-    return prepared(project,company,evidence) and not any(project.get(k)!=v for k,v in project.get('pending_patch',{}).items())
+    return prepared(project,company,evidence)
