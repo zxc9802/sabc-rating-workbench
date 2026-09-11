@@ -1,4 +1,4 @@
-"""Bind prepared interview judgments to the exact inputs used for the report."""
+"""Bind completed information collection to the inputs accepted for generation."""
 import hashlib
 import json
 from datetime import date
@@ -20,17 +20,10 @@ def fingerprint(project, company, evidence):
     return hashlib.sha256(json.dumps(inputs,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
 
 
-def prepared(project, company, evidence):
-    saved=project.get('report_preparation') or {}
-    # Existing report-ready projects retain their saved judgment without another model call.
-    legacy=project.get('assessment_review') or {}
-    expected=saved.get('proposal') if saved else legacy.get('revised_proposal')
-    stamp=saved.get('input_fingerprint') if saved else legacy.get('input_fingerprint')
-    return bool(project.get('proposal') and expected==project['proposal']
-                and not project.get('interview', {}).get('questions')
-                and collection_ready(project.get('lifecycle', {}))
-                and stamp==fingerprint(project,company,evidence))
-
-
 def ready(project, company, evidence):
-    return prepared(project,company,evidence)
+    # Legacy completion stamps remain usable, but their drafts are never reused.
+    saved=(project.get('collection_completion') or project.get('report_preparation')
+           or project.get('assessment_review') or {})
+    return bool(not project.get('interview', {}).get('questions')
+                and collection_ready(project.get('lifecycle', {}))
+                and saved.get('input_fingerprint')==fingerprint(project,company,evidence))

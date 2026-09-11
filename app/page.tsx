@@ -118,7 +118,10 @@ function Workbench({ logout }: { logout: ReactNode }) {
     });
   }
   function receiveProgress(reply: string) {
-    setStreamReply(reply);
+    // Completion is displayed once, with choices, after the collection result is saved.
+    const value = reply.trim();
+    const closing = ['信息已整理完成，现在生成报告吗？', '八维信息已梳理完成。', '八维收集完毕。'];
+    setStreamReply(value && closing.some(line => line.startsWith(value) || value.startsWith(line.replace(/[。？]$/, ''))) ? '' : reply);
   }
   useEffect(() => { if (tab === 'report') window.scrollTo({ top: 0 }); }, [tab]);
   async function sendMessage(content = message, generateReport = false) {

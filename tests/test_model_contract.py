@@ -122,3 +122,28 @@ def test_ordinary_interview_does_not_accept_unsolicited_scoring(monkeypatch):
     result = analyze({'base_url': 'https://model.example', 'model': 'test'}, '', {}, {}, [], [])
     assert result['proposal'] is None
     assert result['stage_review'] is None
+
+
+def test_completed_collection_does_not_request_or_return_report(monkeypatch):
+    from tests.report_fixtures import draft_reply
+    from sabc.lifecycle import initial
+    calls=[]
+    reply=draft_reply();reply.pop('mode')
+    def post(*args,**kwargs):
+        calls.append(kwargs['json'])
+        return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps(reply)}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
+    monkeypatch.setattr(httpx.Client,'post',post)
+    project={'_prepare_report':True,'lifecycle':initial()}
+    result=analyze({'base_url':'https://model.example','model':'test'},'',project,{},[],[])
+    assert len(calls)==1
+    assert result['proposal'] is None and result['stage_review'] is None
+    prompt=calls[0]['messages'][0]['content']
+    assert '仅整理事实与八维覆盖状态，不生成或预备评分草稿' in prompt
+    assert '本轮生成报告，proposal结构' not in prompt
+
+
+def test_explicit_report_requires_scoring_and_advice(monkeypatch):
+    from sabc.lifecycle import initial, DIMENSIONS
+    model_response(monkeypatch,{'reply':'信息已整理完成，现在生成报告吗？','dimension_coverage':{key:{'status':'known','reason':'已提供'} for key in DIMENSIONS}})
+    with pytest.raises(ValueError,match='报告必须包含完整评分和建议'):
+        analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested':True,'lifecycle':initial()}, {}, [], [])

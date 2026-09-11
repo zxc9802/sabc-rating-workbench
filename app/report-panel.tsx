@@ -1,11 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Download, FileCheck2, RefreshCw, ArrowUpRight, ChevronDown, Printer, ShieldCheck } from 'lucide-react';
+import { Download, FileCheck2, RefreshCw, ArrowUpRight, ChevronDown, Printer } from 'lucide-react';
 import { api, Detail, Dimension, Proposal, Score, Assumption, Assessment, Evidence, Lifecycle, gradeLabel } from '../lib/types';
 import { ReportAssistant } from './report-assistant';
 import { Field } from './workbench-forms';
 import { deferralReason } from '../lib/deferral-reason';
-import { readableWarning } from '../lib/readable-reply';
 
 type Run = (action: () => Promise<void>, success?: string) => Promise<void>;
 function initialProposal(dimensions: Dimension[]): Proposal {
@@ -19,7 +18,7 @@ function ReferenceSelect({ ids, evidence, onChange }: { ids: string[]; evidence:
 }
 
 function EvidenceReferences({ ids, evidence }: { ids: string[]; evidence: Evidence[] }) {
-  if (!ids.length) return <p className="source-location">未关联证据；依据来自项目陈述或假设，需进一步核验。</p>;
+  if (!ids.length) return null;
   return <div className="report-references">{ids.map(id => {
     const item = evidence.find(e => e.id === id);
     if (!item) return <p className="source-location" key={id}>引用的资料未包含在本次快照中，请复核引用。</p>;
@@ -72,7 +71,6 @@ export function ReportPanel({ detail, dimensions, busy, run, refresh, onGenerate
       <PilotRecommendation life={selected!.snapshot.project.lifecycle} />
       {r.grade === 'NR' ? <section className="report-section"><h3>已形成的方向性判断</h3>{r.dimensions.length ? r.dimensions.map(d => <p key={d.key}><strong>{d.name}：</strong>{d.reason}</p>) : <p>尚无足够依据形成方向性判断。</p>}<h3>影响当前决策的关键缺口</h3><p>已保存当前判断。以下关键缺口仍会影响决策；不能因为缺信息把项目判为 C，也不能据此建议投入。</p><ul className="missing-list">{r.missing.map((m, i) => <li key={i}><span />{m}</li>)}</ul>{r.validation_plan?.length > 0 && <><h3>现在可以执行的补证任务</h3>{r.validation_plan.map((v, i) => <div className="validation-item" key={i}><h4>{v.claim}</h4><p>{v.method}</p><p>通过：{v.pass}</p><p>停止 / 调整：{v.fail}</p></div>)}</>}</section> : <>
         <section className="report-section"><div className="section-heading"><h3>八维业务判断</h3><span className="footnote">业务质量与证据强度分开计算</span></div><div className="dimension-results">{r.dimensions.map(d => <div className="dimension-result" key={d.key}><div><strong>{d.name}</strong><span>{d.weighted} / {d.weight}</span></div><div className="score-track"><span style={{ width: `${Number(d.score) / 5 * 100}%` }} /></div><p><strong>{d.basis === "fact" ? "事实判断" : d.basis === "unknown" ? "未知" : "假设 / 推断"}：</strong>{d.reason}</p><EvidenceReferences ids={d.evidence_ids} evidence={selected!.snapshot.evidence} /></div>)}</div></section>
-        <section className="report-section"><h3>影响本次评级的规则</h3><ul className="rule-list">{r.triggered_rules.map((rule, i) => <li key={i}><ShieldCheck size={16} />{rule}</li>)}</ul>{!!r.warnings.length && <div className="review-note">{r.warnings.map((w, i) => <p key={i}>{readableWarning(w, selected!.snapshot.evidence)}</p>)}</div>}</section>
         <section className="report-section argument-columns"><div><h3>支持投入的理由</h3><ol>{r.pros.map((p, i) => <li key={i}>{p}</li>)}</ol></div><div><h3>必须认真面对的反对理由</h3><ol>{r.cons.map((p, i) => <li key={i}>{p}</li>)}</ol></div></section>
         <section className="report-section"><h3>关键假设与证据</h3>{r.assumptions.map(a => <div className="assumption-result" key={a.id}><span className="evidence-level">{a.level}</span><div><strong>{a.claim}</strong><EvidenceReferences ids={a.evidence_ids} evidence={selected!.snapshot.evidence} /></div></div>)}</section>
         <section className="report-section"><h3>下一步投入与验证</h3><div className="resource-summary"><div><span>当前资源上限</span><strong>¥{r.resource_plan.available_limit?.toLocaleString('zh-CN')}</strong><small>{r.resource_plan.formula}</small></div><div><span>本次投入建议</span><strong>{r.resource_plan.proposed_budget == null ? '需进一步核定' : '¥' + r.resource_plan.proposed_budget.toLocaleString('zh-CN')}</strong><small>{r.resource_plan.note}</small></div></div>{r.validation_plan.map((v, i) => <div className="validation-item" key={i}><h4>{v.claim}</h4><p>{v.method}</p><div><span>通过：{v.pass}</span><span>停止 / 调整：{v.fail}</span></div></div>)}</section>

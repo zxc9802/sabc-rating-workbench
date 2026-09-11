@@ -12,7 +12,7 @@ fixture={'bootstrap':{'projects':[p],'company':c,'dimensions':[{'key':k,'name':n
 
 with sync_playwright() as playwright:
     browser=playwright.chromium.launch(headless=True)
-    for outcome in ('success','failure','ask','stale','supplement'):
+    for outcome in ('success','failure','ask','stale','supplement','report_failure'):
         page=browser.new_page(viewport={'width':1440,'height':1000})
         current=deepcopy(fixture)
         project=current['detail']['project']
@@ -30,13 +30,15 @@ with sync_playwright() as playwright:
             elif path=='/projects/qa-project/jobs':
                 body=r.request.post_data_json;requests.append(body)
                 generating=body['payload'].get('generate_report',False)
-                data={'id':body['id'],'project_id':'qa-project','generate_report':generating,'status':'running','partial_reply':'正在生成报告…' if generating else ''}
+                data={'id':body['id'],'project_id':'qa-project','generate_report':generating,'status':'running','partial_reply':'正在生成报告…' if generating else '八维信息已梳理完成。'}
                 jobs[data['id']]=data
             elif path.startswith('/jobs/'):
                 data=jobs[path.split('/')[-1]]
                 if finish and data['status']=='running':
                     if data['generate_report']:
-                        if outcome=='stale':
+                        if outcome=='report_failure':
+                            data.update(status='failed',error='报告生成超时，请重试')
+                        elif outcome=='stale':
                             project['report_ready']=False;project['analysis_complete']=False
                             data.update(status='success',result={'needs_collection':True})
                         else:
@@ -67,6 +69,7 @@ with sync_playwright() as playwright:
         page.locator('#message').fill('可以退一半，其余信息已说明')
         page.get_by_role('button',name='发送消息',exact=True).click()
         expect(page.get_by_text('正在思考…',exact=True)).to_be_visible()
+        expect(page.get_by_text('八维信息已梳理完成。',exact=True)).to_have_count(0)
         expect(page.get_by_role('button',name='生成报告',exact=True)).to_have_count(0)
         assert not current['detail']['assessments']
         finish=True
@@ -79,6 +82,7 @@ with sync_playwright() as playwright:
         else:
             expect(page.get_by_role('button',name='生成报告',exact=True)).to_be_visible()
             expect(page.get_by_role('button',name='继续补充',exact=True)).to_be_visible()
+            expect(page.get_by_text('信息已整理完成，现在生成报告吗？',exact=True)).to_have_count(1)
             assert len(requests)==1 and not requests[0]['payload']['generate_report']
             assert not current['detail']['assessments']
             if outcome=='supplement':
@@ -98,6 +102,9 @@ with sync_playwright() as playwright:
             if outcome=='success':
                 expect(page.get_by_role('tab',name='历史报告与建议')).to_have_attribute('aria-selected','true')
                 expect(page.locator('.rating-document')).to_be_visible()
+            elif outcome=='report_failure':
+                expect(page.get_by_role('button',name='重试生成报告',exact=True)).to_be_visible()
+                assert not current['detail']['assessments']
             else:
                 expect(page.get_by_role('button',name='继续核对',exact=True)).to_have_count(0)
                 expect(page.get_by_role('button',name='生成报告',exact=True)).to_have_count(0)

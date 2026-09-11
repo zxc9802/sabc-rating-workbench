@@ -79,10 +79,11 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
         assessment_proposal = deepcopy(proposal)
         questions = []
         patch = {}
-        if project['_prepare_report']:
+        if outcome == 'unknown':
+            assessment_proposal['dimensions']['market'].update(score=None, basis='unknown')
+        if not project['_report_requested']:
             if outcome == 'unknown':
                 coverage['market'] = {'status': 'unknown', 'reason': '用户明确无法提供需求信息'}
-                assessment_proposal['dimensions']['market'].update(score=None, basis='unknown')
             elif outcome == 'ask':
                 coverage['market'] = {'status': 'ask', 'reason': '尚可回答的目标客户问题'}
                 questions = ['目标客户是谁？']
@@ -101,7 +102,7 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     assert detail['project']['report_ready'] == (outcome != 'ask')
     requested = client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True})
     assert requested.status_code == 200
-    assert requests == [False]  # Click never calls analysis or review.
+    assert requests == ([False] if outcome=='ask' else [False,True])
     reports = client.get(url).json()['assessments']
     if outcome == 'ask':
         assert reports == []
@@ -116,7 +117,7 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     project['lifecycle']['coverage']['risk']['status'] = 'ask'
     module.store.save('projects', project)
     assert client.post(url + '/chat', json={'message':'生成报告','generate_report':True}).json()['needs_collection']
-    assert requests == [False]
+    assert requests == ([False] if outcome=='ask' else [False,True])
 
 
 def test_continuous_interview_uses_latest_report_across_legacy_stages(client, monkeypatch):

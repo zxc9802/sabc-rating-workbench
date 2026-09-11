@@ -165,7 +165,7 @@ def delete_projects(body:DeleteProjects):
 def get_project(pid:str):
     p=project_or_404(pid)
     evidence=evidence_for(pid)
-    analysis_complete=report_readiness.prepared(p,company(),evidence)
+    analysis_complete=report_readiness.ready(p,company(),evidence)
     report_ready=analysis_complete
     return {'project':{**p,'followup':lifecycle.followup(p),'analysis_complete':analysis_complete, 'report_ready':report_ready},'evidence':evidence,
             'assessments':[r for r in store.list('assessments') if r['project_id']==pid],
@@ -258,36 +258,52 @@ def chat(pid:str,body:Chat):
 def chat_turn(pid,body):
     check_cancelled()
     p=project_or_404(pid)
+    previous_report = None
+    previous = next((a for a in store.list('assessments') if a.get('project_id') == pid), None)
+    if previous:
+        previous_report = {'id': previous['id'], 'created_at': previous['created_at'], 'result': previous['result'],
+                           'lifecycle': lifecycle.context(previous['snapshot']['project'])}
     if body.generate_report:
         if progress.get(): progress.get()('正在生成报告…')
+        c=company();e=evidence_for(pid)
+        if not report_readiness.ready(p,c,e):
+            return {'mode':'model','needs_collection':True,'reply':'信息尚未整理完整，或资料发生变化，请先继续补充。'}
+        starting_inputs=report_readiness.fingerprint(p,c,e)
+        s=settings()
+        # Generate only after the explicit action. No retrieval or independent review.
+        result=analyze(s,decrypt_key(s.get('encrypted_key','')),
+                       {**p,'_report_requested':True,'_previous_stage_report':previous_report},
+                       c,model_evidence_for(pid),p.get('messages',[]))
+        if not result.get('proposal') or not result.get('stage_review') or result.get('questions'):
+            raise ValueError('报告内容未完整生成，请重试生成报告。')
         with jobs.lock:
             check_cancelled()
             p=project_or_404(pid)
-            if not report_readiness.prepared(p,company(),evidence_for(pid)):
-                return {'mode':'model','needs_collection':True,'reply':'八维信息尚未整理完整，或资料发生变化，请先继续补充。'}
+            if report_readiness.fingerprint(p,company(),evidence_for(pid))!=starting_inputs:
+                raise ValueError('生成期间资料发生变化，请根据最新资料重新整理后再生成报告。')
             # The explicit report choice accepts this interview's extracted project facts.
             # Company confirmation and evidence verification remain independent.
             if p.get('pending_patch'):
                 allowed=(set(PROJECT_FIELDS)-{'name'})|{'budget_requested'}
-                update_project(pid,{k:v for k,v in p['pending_patch'].items() if k in allowed})
+                p=update_project(pid,{k:v for k,v in p['pending_patch'].items() if k in allowed})
+            p['proposal']=validate_proposal(result['proposal'])
+            # Reporting cannot rewrite the facts or reopen collection.
+            lifecycle.absorb(p,{'proposal':p['proposal'],'stage_review':result['stage_review']},c,e)
+            p.pop('report_preparation',None)
+            p.pop('assessment_review',None)
+            p['collection_completion']={'input_fingerprint':report_readiness.fingerprint(p,c,e)}
+            store.save('projects',p)
             record=evaluate(pid,{'confirmed':True})
             return {'mode':'model','report_id':record['id'],'reply':'报告已生成。'}
     p['lifecycle'] = {**lifecycle.state(p), 'mode': 'continuous', 'confirmed': True}
     p.pop('assessment_review', None)
     p.pop('report_preparation', None)
+    p.pop('collection_completion', None)
     p['proposal']=None
     # New input invalidates the old approval even if this interview request fails.
     with jobs.lock:
         check_cancelled()
         store.save('projects',p)
-    previous_report = None
-    previous = next((a for a in store.list('assessments') if a.get('project_id') == pid), None)
-    previous_id = previous['id'] if previous else None
-    if previous_id:
-        saved = store.get('assessments', previous_id)
-        if saved and saved.get('project_id') == pid:
-            previous_report = {'id': saved['id'], 'created_at': saved['created_at'], 'result': saved['result'],
-                               'lifecycle': lifecycle.context(saved['snapshot']['project'])}
     messages=p.get('messages',[])+[{'role':'user','content':body.message,'stage':lifecycle.state(p)['stage'],'time':utcnow()}]
     s=settings()
     if model_router.deepseek() or (s.get('base_url') and s.get('model')):
@@ -312,10 +328,10 @@ def chat_turn(pid,body):
         check_cancelled()
         context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
         starting_inputs=report_readiness.fingerprint(p,company(),evidence_for(pid))
-        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': False, '_prepare_report': True, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
-        if result.get('questions') or not lifecycle.collection_ready({'confirmed':True,'coverage':result.get('dimension_coverage',{})}):
-            result['proposal']=None
-            result['stage_review']=None
+        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': False, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+        result['proposal']=None
+        result['stage_review']=None
+        result['pilot_plan']=None
         result['retrieval_results']=outcomes
         result['retrieval_plan']=plan
         result['data_requests']=[]
@@ -342,11 +358,9 @@ def chat_turn(pid,body):
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
                         'note':'信息已整理完成，可选择生成报告或继续补充' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
     if result['mode']=='model' and not result.get('questions') and lifecycle.collection_ready(p.get('lifecycle', {})):
-        if not p.get('proposal'):
-            raise ValueError('信息完整但未返回完整判断，请重试。')
-        result['reply']='八维信息已梳理完成。'
+        result['reply']='信息已整理完成，现在生成报告吗？'
         p['messages'][-1]['content']=result['reply']
-        p['report_preparation']={'input_fingerprint':report_readiness.fingerprint(p,company(),evidence_for(pid)), 'proposal':deepcopy(p['proposal'])}
+        p['collection_completion']={'input_fingerprint':report_readiness.fingerprint(p,company(),evidence_for(pid))}
     p['version']+=1
     with jobs.lock:
         check_cancelled()
