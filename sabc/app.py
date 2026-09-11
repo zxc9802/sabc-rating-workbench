@@ -17,6 +17,7 @@ from sabc.llm import analyze, guide
 from sabc import planner
 from sabc import auth, lifecycle, model_router, sso
 from sabc.tenancy import AccountStore, account_id
+from sabc import speech
 from sabc.jobs import jobs
 from sabc.streaming import check_cancelled
 from sabc.rating import assess, DIMENSIONS, TYPES, RULE_VERSION, PROJECT_FIELDS
@@ -28,6 +29,7 @@ from sabc.local_sources import REGIONS, save_capture, use_capture
 ROOT=Path(__file__).resolve().parent.parent
 store=AccountStore(Path(os.getenv('SABC_DB',str(ROOT/'data'/'sabc.db'))))
 app=FastAPI(title='SABC 项目评级',docs_url=None,redoc_url=None,openapi_url=None)
+app.include_router(speech.router)
 app.include_router(auth.router)
 app.include_router(sso.router)
 initial_interview_lock=Lock()

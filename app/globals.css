@@ -198,3 +198,10 @@ textarea { resize: vertical; line-height: 1.8; }
 .collection-progress progress { width: 100%; height: 6px; accent-color: #365dc7; }
 .collection-progress small { font-size: 11px; }
 @media (max-width: 650px) { .composer-tools { flex-wrap: wrap; padding-right: 16px; }.collection-progress { margin: 0 0 12px auto; } }
+
+.chat-form > div .voice-input { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; margin-left: auto; margin-right: 8px; }
+.voice-button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid #3158db; border-radius: 12px; background: #edf2ff; color: #254ac5; font-weight: 600; cursor: pointer; }
+.voice-button.is-recording { background: #fff1f0; color: #b42318; border-color: #e77970; }
+.voice-button:disabled { opacity: .55; cursor: default; }
+.chat-form .voice-input small { max-width: 290px; color: #64748b; font-size: 12px; }
+@media (max-width: 640px) { .chat-form > div { flex-wrap: wrap; gap: 10px; } .chat-form > div > span { width: 100%; } .chat-form > div .voice-input { margin-left: 0; margin-right: auto; align-items: flex-start; } }
