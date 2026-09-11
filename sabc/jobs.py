@@ -54,7 +54,8 @@ class Jobs:
             if len(self.active)>=2 and not queue: raise HTTPException(429,'正在处理其他任务，请稍后重试')
             if any(j['project_id']==pid and j['status']=='running' and j['process_id']==self.process_id for j in store.list('jobs')):
                 raise HTTPException(409,'本项目已有任务正在处理，请等待结果后继续')
-            job=store.save('jobs',{'id':ident,'project_id':pid,'operation':request.get('operation'),'fingerprint':fingerprint,'process_id':self.process_id,'status':'running','phase':'queued'})
+            metadata={'assessment_id':request['payload']['assessment_id'],'question':request['payload']['message']} if request.get('operation')=='report_chat' else {'generate_report':True} if request.get('operation')=='chat' and request.get('payload',{}).get('generate_report') else {}
+            job=store.save('jobs',{**metadata,'id':ident,'project_id':pid,'operation':request.get('operation'),'fingerprint':fingerprint,'process_id':self.process_id,'status':'running','phase':'queued'})
             self.active.add(key)
             signal=Event();self.signals[key]=signal
             self.futures[key]=self.pool.submit(copy_context().run,self.run,store,job,action,signal)
@@ -66,6 +67,7 @@ class Jobs:
         def save(update):
             with self.lock:
                 check_cancelled()
+                # Keep request metadata so a reloaded page can still tell this job apart.
                 return store.save('jobs',{**job,**update})
         def publish(text):
             now=time.monotonic()

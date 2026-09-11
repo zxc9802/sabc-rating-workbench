@@ -79,7 +79,7 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
         assessment_proposal = deepcopy(proposal)
         questions = []
         patch = {}
-        if project['_report_requested']:
+        if project['_prepare_report']:
             if outcome == 'unknown':
                 coverage['market'] = {'status': 'unknown', 'reason': '用户明确无法提供需求信息'}
                 assessment_proposal['dimensions']['market'].update(score=None, basis='unknown')
@@ -100,40 +100,30 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     url = f'/api/projects/{pid}'
     ordinary = client.post(url + '/chat', json={'message': '资料补充完了'})
     assert ordinary.status_code == 200
-    assert ordinary.json()['proposal'] is None and ordinary.json()['stage_review'] is None
     detail = client.get(url).json()
-    assert detail['project']['interview']['state'] == 'ready'
     assert detail['assessments'] == []
-    assert not detail['project']['lifecycle'].get('review')
-    assert reviews == []
+    assert not ordinary.json().get('report_id')
+    assert reviews == ([] if outcome == 'ask' else [1])
+    assert detail['project']['report_ready'] == (outcome in ('rated','unknown'))
     requested = client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True})
     assert requested.status_code == 200
-    assert requested.json()['proposal'] is not None
-    assert requested.json()['stage_review'] is not None
-    assert requests == [False, True]
+    assert requests == [False]  # Click never calls analysis or review.
     assert len(reviews) == (0 if outcome == 'ask' else 1)
     reports = client.get(url).json()['assessments']
     if outcome in ('ask', 'pending'):
         assert reports == []
-        assert not requested.json().get('report_id')
-        if outcome == 'pending':
-            assert requested.json()['needs_fact_confirmation'] is True
+        assert requested.json().get('needs_review' if outcome=='ask' else 'needs_fact_confirmation')
     else:
         assert len(reports) == 1
         assert reports[0]['id'] == requested.json()['report_id']
         assert reports[0]['result']['grade'] == ('NR' if outcome == 'unknown' else 'B')
         if outcome == 'unknown':
-            assert '市场空间 / 需求价值的方向性判断' in reports[0]['result']['missing']
-            opening = reports[0]['result']['deferral_reason']
-            assert opening.startswith('暂缓评级：')
-            assert '市场空间 / 需求价值' in opening
-            assert '用户明确无法提供需求信息' in opening
-            assert '影响投入与验证是否可行' in opening
+            assert '用户明确无法提供需求信息' in reports[0]['result']['deferral_reason']
     project = module.store.get('projects', pid)
     project['lifecycle']['coverage']['risk']['status'] = 'ask'
     module.store.save('projects', project)
-    assert client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True}).status_code == 422
-    assert requests == [False, True]
+    assert client.post(url + '/chat', json={'message':'生成报告','generate_report':True}).json()['needs_review']
+    assert requests == [False]
 
 
 def test_continuous_interview_uses_latest_report_across_legacy_stages(client, monkeypatch):

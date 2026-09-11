@@ -16,6 +16,8 @@ import { ChatMarkdown } from './chat-markdown';
 type Page = 'projects' | 'company' | 'sources' | 'settings';
 const SCORE_CONFIRMATION = '我已核对当前资料，没有其他补充，请开始本次评分，给出评价结论和下一步建议。';
 
+type ChatResult = { needs_review?: boolean; report_id?: string; needs_fact_confirmation?: boolean; questions?: string[] };
+
 type ProjectTab = 'chat' | 'facts' | 'evidence' | 'report';
 
 export default function Page() { return <SessionGate>{logout => <Workbench logout={logout} />}</SessionGate>; }
@@ -34,6 +36,10 @@ function Workbench({ logout }: { logout: ReactNode }) {
   const [name, setName] = useState('');
   const [kind, setKind] = useState('growth');
   const [streamReply, setStreamReply] = useState('');
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [reportError, setReportError] = useState('');
+  const [reportAfterFacts, setReportAfterFacts] = useState<string | null>(null);
+  const [continueSupplementing, setContinueSupplementing] = useState(false);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
   const [message, setMessage] = useState('');
   const [pendingMessage, setPendingMessage] = useState('');
@@ -61,9 +67,15 @@ function Workbench({ logout }: { logout: ReactNode }) {
     sessionStorage.setItem('sabc-project', id);
     const fresh = await api<Detail>('/projects/' + id);
     setDetail(fresh); setPage('projects'); setTab('chat');
+    setReportError(''); setReportAfterFacts(null); setContinueSupplementing(false);
     if (fresh.active_jobs?.length) {
-      try { for (const job of fresh.active_jobs) { setCurrentJob(job); await waitForJob(job.id, setStreamReply, setCurrentJob); } }
-      finally { const fresh = await api<Detail>('/projects/' + id); setDetail(fresh); setStreamReply(''); await reload(); }
+      try {
+        for (const job of fresh.active_jobs) {
+          receiveJob(job);
+          try { await finishChat(id, await waitForJob<ChatResult>(job.id, receiveProgress, receiveJob)); }
+          catch (error) { if (job.generate_report) setReportError((error as Error).message); throw error; }
+        }
+      } finally { setStreamReply(''); setGeneratingReport(false); await refreshProjectById(id); }
     } else if (!fresh.project.messages.length) {
       await initialReply(id);
     }
@@ -71,9 +83,25 @@ function Workbench({ logout }: { logout: ReactNode }) {
   async function initialReply(id: string, retry = false) {
     try {
       const job = await api<Job>('/projects/' + id + '/start-interview' + (retry ? '?retry=true' : ''), 'POST');
-      setCurrentJob(job);
-      if (job.id) await waitForJob(job.id, setStreamReply, setCurrentJob);
-    } finally { const fresh = await api<Detail>('/projects/' + id); setDetail(fresh); setStreamReply(''); await reload(); }
+      receiveJob(job);
+      if (job.id) await finishChat(id, await waitForJob<ChatResult>(job.id, receiveProgress, receiveJob));
+    } finally { setStreamReply(''); setGeneratingReport(false); await refreshProjectById(id); }
+  }
+  async function refreshProjectById(id: string) {
+    setDetail(await api<Detail>('/projects/' + id)); await reload();
+  }
+  function receiveJob(job: Job) {
+    setCurrentJob(job);
+    if (job.generate_report) setGeneratingReport(true);
+  }
+  async function finishChat(id: string, response: ChatResult) {
+    // Load the saved report before changing tabs, so an older version never flashes.
+    setDetail(await api<Detail>('/projects/' + id));
+    if (response.report_id) { setTab('report'); setReportAfterFacts(null); }
+    else if (response.needs_fact_confirmation) {
+      setReportAfterFacts(id); setTab('facts'); setNotice('请核对并保存项目资料，保存后继续生成报告。');
+    } else if (response.needs_review) { setTab('chat'); setReportAfterFacts(null); setNotice('请先完成对抗性审查，审查通过后再生成报告。'); }
+    else if (response.questions?.length) setTab('chat');
   }
   async function stopReply() {
     if (!currentJob || currentJob.status !== 'running') return false;
@@ -92,28 +120,48 @@ function Workbench({ logout }: { logout: ReactNode }) {
       await initialReply(p.id);
     });
   }
+  function receiveProgress(reply: string) {
+    setStreamReply(reply);
+  }
+  useEffect(() => { if (tab === 'report') window.scrollTo({ top: 0 }); }, [tab]);
   async function sendMessage(content = message, generateReport = false) {
     if (!content.trim() || !detail || voiceBusy || attachmentBusy || running.current) return;
     setTab('chat');
+    if (!generateReport) setReportAfterFacts(null);
     const sent = content.trim();
     const last = detail.project.messages.at(-1);
     await run(async () => {
-      setPendingMessage(sent); setMessage(''); setStreamReply(''); setCurrentJob(null);
+      setReportError(''); setReportAfterFacts(null); setContinueSupplementing(false); setGeneratingReport(generateReport); setPendingMessage(generateReport ? '' : sent); setMessage(''); setStreamReply(''); setCurrentJob(null);
+      let reconciled = false;
       try {
-        const response = await api<{ report_id?: string; needs_fact_confirmation?: boolean }>('/projects/' + detail.project.id + '/chat', 'POST', { message: sent, generate_report: generateReport, field: last?.role === 'assistant' ? last.field : undefined }, setStreamReply, setCurrentJob);
-        if (response.report_id) setTab('report');
-        else if (response.needs_fact_confirmation) { setTab('facts'); setNotice('请核对并保存已整理的项目事实，再生成报告。'); }
+        const response = await api<ChatResult>('/projects/' + detail.project.id + '/chat', 'POST', { message: sent, generate_report: generateReport, field: last?.role === 'assistant' ? last.field : undefined }, receiveProgress, receiveJob);
+        await finishChat(detail.project.id, response);
+        reconciled = true;
       } catch (error) {
-        setMessage(draft => draft || sent);
+        if (generateReport) setReportError((error as Error).message);
+        else setMessage(draft => draft || sent);
         throw error;
       } finally {
         // Reconcile the persisted conversation before removing the optimistic turn.
         try {
-          const fresh = await api<Detail>('/projects/' + detail.project.id);
-          setDetail(fresh);
-        } finally { setPendingMessage(''); setStreamReply(''); }
+          if (!reconciled) setDetail(await api<Detail>('/projects/' + detail.project.id));
+        } finally { setPendingMessage(''); setStreamReply(''); setGeneratingReport(false); }
         await reload();
       }
+    });
+  }
+  async function saveProjectFacts(body: RecordData) {
+    if (!detail) return;
+    const id = detail.project.id;
+    await run(async () => {
+      await api('/projects/' + id, 'PATCH', body);
+      if (reportAfterFacts !== id) { await refreshProjectById(id); setTab('chat'); return; }
+      setTab('chat'); setReportError(''); setGeneratingReport(true);
+      try {
+        const response = await api<ChatResult>('/projects/' + id + '/chat', 'POST', { message: SCORE_CONFIRMATION, generate_report: true }, receiveProgress, receiveJob);
+        await finishChat(id, response);
+      } catch (error) { setReportError((error as Error).message); throw error; }
+      finally { setGeneratingReport(false); setStreamReply(''); }
     });
   }
   async function confirmScoring() {
@@ -141,10 +189,10 @@ function Workbench({ logout }: { logout: ReactNode }) {
   const projectFields = ['target_user', 'business_goal', 'value_mechanism', 'success_metric', 'timeframe', 'budget_requested', 'risks'];
   const completed = detail ? projectFields.filter(k => text(detail.project.pending_patch?.[k] ?? detail.project[k]) && !['未知', '不知道'].includes(text(detail.project.pending_patch?.[k] ?? detail.project[k]))).length : 0;
 
-  const coverage = detail?.project.lifecycle?.coverage;
-  const collection = collectionProgress(detail?.project.lifecycle);
+  const collection = generatingReport ? { ready: true, complete: 8, percent: 100 } : collectionProgress(detail?.project.lifecycle);
   const messages = detail?.project.messages || [];
-  const informationReady = collection.ready;
+  const informationReady = detail?.project.report_ready === true && !continueSupplementing;
+  const hideClosingReply = collection.ready && !continueSupplementing && messages.at(-1)?.role === 'assistant';
 
 
   return <div className="workspace">
@@ -172,14 +220,12 @@ function Workbench({ logout }: { logout: ReactNode }) {
           <section className="recent-projects"><div className="section-heading"><h2>项目记录 <span>{data.projects.length}</span></h2>{!!data.projects.length && <label className="search-input"><Search size={16} /><input aria-label="搜索项目" placeholder="搜索项目" value={filter} onChange={e => { setFilter(e.target.value); setSelected([]); }} /></label>}</div>{!!visibleProjects.length && <div className="project-selection"><label><input type="checkbox" aria-label="选择当前搜索结果" checked={visibleProjects.every(p => selected.includes(p.id))} onChange={e => setSelected(e.target.checked ? visibleProjects.map(p => p.id) : [])} /> 全选当前结果</label><button className="secondary" disabled={(busy && currentJob?.status !== 'running') || !selected.length} onClick={() => deleteProjects(selected)}>删除所选（{selected.length}）</button></div>}{data.projects.length ? <div className="project-list">{visibleProjects.map(p => <div className="project-list-item" key={p.id}><input type="checkbox" aria-label={'选择项目：' + p.name} checked={selected.includes(p.id)} onChange={e => setSelected(e.target.checked ? [...selected, p.id] : selected.filter(id => id !== p.id))} /><button className="project-row" onClick={() => openProject(p.id)}><span className="document-icon"><FileText size={22} /></span><span className="project-row-title"><strong>{p.name}</strong><small>{data.types[p.project_type]} · {displayDate(p.updated_at)} 更新{p.followup && ` · ${p.followup.due ? '待回访' : '下次回访'} ${p.followup.date}`}</small></span><span className={'grade-badge grade-' + (p.last_grade || 'NR')}>{gradeLabel(p.last_grade)}</span><ChevronRight size={17} /></button><button className="text-button project-delete" disabled={busy && currentJob?.status !== 'running'} aria-label={'删除项目：' + p.name} onClick={() => deleteProjects([p.id])}>删除</button></div>)}</div> : <div className="empty-records"><FolderOpen size={25} /><p>你的第一份评估，会保存在这里。</p><span>可以随时补充证据，回来看评级如何变化。</span></div>}</section>
         </main> : <main className="page-content project-detail">
           <button className="back-link" onClick={() => { sessionStorage.removeItem('sabc-project'); setDetail(null); }}><ArrowLeft size={15} /> 全部项目</button><div className="project-title"><div><h1>{detail.project.name}</h1><p>{data.types[detail.project.project_type]}<span>·</span> 项目 v{detail.project.version}<span>·</span> {displayDate(detail.project.updated_at)} 更新</p></div><span className={'grade-badge large grade-' + (detail.project.last_grade || 'NR')}>{gradeLabel(detail.project.last_grade)}</span></div>
-          <section className="stage-strip" aria-label="持续项目评估"><p>结合已有资料和新增情况，持续进行八维评估。</p><button className="secondary" disabled={busy || attachmentBusy || voiceBusy} onClick={() => sendMessage('请结合最近的历史报告和已有资料，先和我讨论项目的新情况，再继续八维评估。不要自动生成报告。')}>继续评估</button></section><div className="project-tabs" role="tablist" aria-label="项目工作区">{[{ id: 'chat' as ProjectTab, label: '项目访谈', icon: MessageSquare }, { id: 'facts' as ProjectTab, label: '项目资料', icon: FileText }, { id: 'evidence' as ProjectTab, label: '证据资料', icon: Paperclip }, { id: 'report' as ProjectTab, label: '历史报告与建议', icon: ShieldCheck }].map(t => <button role="tab" aria-selected={tab === t.id} key={t.id} className={tab === t.id ? 'selected' : ''} onClick={() => setTab(t.id)}><t.icon size={16} />{t.label}{t.id === 'evidence' && <span>{detail.evidence.length}</span>}</button>)}</div>
-          {tab === 'chat' ? <div className="interview-layout"><section className="conversation"><div className="conversation-heading"><span className="assistant-mark">S</span><div><strong>项目分析助手</strong><small>{data.settings.configured ? '根据已有资料，追问关键问题' : '结构化引导 · 分析模型尚未连接'}</small></div></div><div className="messages">{!detail.project.messages.length && <><div className="message user"><div className="message-label">项目描述</div><p>{text(detail.project.description)}</p></div>{!busy && <div className="message assistant"><p>首次回答尚未完成，可以重试。</p><button className="primary" disabled={attachmentBusy} onClick={() => run(() => initialReply(detail.project.id, true))}>重试回答</button></div>}</>}{messages.map((m, i) => <div className={'message ' + m.role} key={i}><div className="message-label">{m.role === 'user' ? '你' : '分析助手'}</div>{m.role === 'assistant' ? <ChatReply message={m} evidence={detail.evidence} onEvidence={() => setTab('evidence')} /> : <p>{m.content}</p>}</div>)}{pendingMessage && <div className="message user"><div className="message-label">你</div><p>{pendingMessage}</p></div>}{busy && streamReply && <div className="message assistant"><div className="message-label">分析助手 · 正在生成</div><ChatMarkdown evidence={detail.evidence} streaming onEvidence={() => setTab('evidence')}>{streamReply}</ChatMarkdown></div>}{busy && !streamReply && <div className="thinking" role="status"><LoaderCircle size={15} className="spin" />正在思考…</div>}{!busy && informationReady && <div className="message assistant scoring-confirmation" role="status">
-<><strong>本次评估信息已梳理</strong><p>八个维度已完成本次评估梳理。请选择生成报告或继续补充。关键依据仍不足时，将保存项目分析记录并标注“暂缓评级”。</p>{data.dimensions.some(d => coverage?.[d.key]?.status !== 'known') && <p>尚未知、需外部核查或等待试点验证的内容会保留，不会当作已验证事实。</p>}<div className="scoring-actions"><button className="primary" disabled={attachmentBusy} onClick={confirmScoring}>生成报告</button><button className="secondary" onClick={() => document.getElementById('message')?.focus()}>我还有信息要补充</button></div><p>补充后会重新核对，再请你确认是否生成报告。</p></>
-</div>}<div ref={chatEnd} /></div>{<><div className="composer-tools"><ChatAttachments key={detail.project.id} projectId={detail.project.id} disabled={busy || attachmentBusy} onBusy={setAttachmentBusy} onSaved={refreshProject} /><div className="collection-progress" aria-live="polite"><span>信息收集 {collection.percent}%</span><progress aria-label="本次评估八维信息收集进度" max={100} value={collection.percent} /><small>{collection.complete}/8 维已梳理{busy ? ' · 核对中' : ''}</small></div></div><form className="chat-form" onSubmit={e => { e.preventDefault(); sendMessage(); }}><label className="sr-only" htmlFor="message">回答或补充项目内容</label><textarea id="message" readOnly={voiceBusy} value={message} onChange={e => setMessage(e.target.value)} placeholder="回答问题，或补充新的项目信息…" rows={2} maxLength={12000} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }} /><div><span>Enter 发送 · Shift + Enter 换行</span><VoiceInput key={detail.project.id} value={message} onChange={setMessage} onBusy={setVoiceBusy} disabled={busy || attachmentBusy} />{busy ? <button className="send-button" aria-label="停止回答" title="停止回答" type="button" disabled={currentJob?.status !== 'running'} onClick={stopReply}><X size={20} /></button> : <button className="send-button" aria-label="发送消息" disabled={voiceBusy || attachmentBusy || !message.trim()} type="submit"><ArrowUp size={20} /></button>}</div></form></>}</section>
+          <section className="stage-strip" aria-label="持续项目评估"><p>结合已有资料和新增情况，持续进行八维评估。</p><button className="secondary" disabled={busy || attachmentBusy || voiceBusy} onClick={() => sendMessage('请结合最近的历史报告和已有资料，先和我讨论项目的新情况，再继续八维评估。')}>继续评估</button></section><div className="project-tabs" role="tablist" aria-label="项目工作区">{[{ id: 'chat' as ProjectTab, label: '项目访谈', icon: MessageSquare }, { id: 'facts' as ProjectTab, label: '项目资料', icon: FileText }, { id: 'evidence' as ProjectTab, label: '证据资料', icon: Paperclip }, { id: 'report' as ProjectTab, label: '历史报告与建议', icon: ShieldCheck }].map(t => <button role="tab" aria-selected={tab === t.id} key={t.id} className={tab === t.id ? 'selected' : ''} onClick={() => setTab(t.id)}><t.icon size={16} />{t.label}{t.id === 'evidence' && <span>{detail.evidence.length}</span>}</button>)}</div>
+          {tab === 'chat' ? <div className="interview-layout"><section className="conversation"><div className="conversation-heading"><span className="assistant-mark">S</span><div><strong>项目分析助手</strong><small>{data.settings.configured ? '根据已有资料，追问关键问题' : '结构化引导 · 分析模型尚未连接'}</small></div></div><div className="messages">{!detail.project.messages.length && <><div className="message user"><div className="message-label">项目描述</div><p>{text(detail.project.description)}</p></div>{!busy && <div className="message assistant"><p>首次回答尚未完成，可以重试。</p><button className="primary" disabled={attachmentBusy} onClick={() => run(() => initialReply(detail.project.id, true))}>重试回答</button></div>}</>}{messages.filter((_, i) => !(hideClosingReply && i === messages.length - 1)).map((m, i) => <div className={'message ' + m.role} key={i}><div className="message-label">{m.role === 'user' ? '你' : '分析助手'}</div>{m.role === 'assistant' ? <ChatReply message={m} evidence={detail.evidence} onEvidence={() => setTab('evidence')} /> : <p>{m.content}</p>}</div>)}{pendingMessage && <div className="message user"><div className="message-label">你</div><p>{pendingMessage}</p></div>}{busy && !generatingReport && streamReply && <div className="message assistant"><div className="message-label">分析助手 · 正在生成</div><ChatMarkdown evidence={detail.evidence} streaming onEvidence={() => setTab('evidence')}>{streamReply}</ChatMarkdown></div>}{busy && !generatingReport && !streamReply && <div className="thinking" role="status"><LoaderCircle size={15} className="spin" />正在思考…</div>}{busy && generatingReport && <div className="thinking" role="status"><LoaderCircle size={15} className="spin" />正在生成报告…</div>}{!busy && reportError && <div className="message assistant report-generation-error" role="alert"><p>{reportError}</p><button className="primary" disabled={attachmentBusy} onClick={confirmScoring}>重试生成报告</button></div>}{!busy && error && !reportError && <div className="message assistant" role="alert"><p>{error}</p>{message.trim() && <button className="primary" onClick={() => sendMessage()}>重试回答</button>}</div>}{!busy && collection.ready && !detail.project.report_ready && !reportError && <div className="message assistant scoring-confirmation"><button className="primary" disabled={attachmentBusy || voiceBusy} onClick={() => detail.project.review_complete ? setTab('facts') : sendMessage('请结合已有访谈与资料继续对抗性审查；有关键缺口就直接追问，完成后让我选择是否生成报告。')}>{detail.project.review_complete ? '核对项目资料' : '继续核对'}</button></div>}{!busy && informationReady && !reportError && <div className="message assistant scoring-confirmation"><div className="scoring-actions"><button className="primary" disabled={attachmentBusy} onClick={confirmScoring}>生成报告</button><button className="secondary" onClick={() => { setContinueSupplementing(true); setReportAfterFacts(null); document.getElementById('message')?.focus(); }}>继续补充</button></div></div>}<div ref={chatEnd} /></div>{<><div className="composer-tools"><ChatAttachments key={detail.project.id} projectId={detail.project.id} disabled={busy || attachmentBusy} onBusy={setAttachmentBusy} onSaved={refreshProject} /><div className="collection-progress" aria-live="polite"><span>信息收集 {collection.percent}%</span><progress aria-label="本次评估八维信息收集进度" max={100} value={collection.percent} /><small>{collection.complete}/8 维已梳理{busy && !generatingReport ? ' · 核对中' : ''}</small></div></div><form className="chat-form" onSubmit={e => { e.preventDefault(); sendMessage(); }}><label className="sr-only" htmlFor="message">回答或补充项目内容</label><textarea id="message" readOnly={voiceBusy} value={message} onChange={e => setMessage(e.target.value)} placeholder="回答问题，或补充新的项目信息…" rows={2} maxLength={12000} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }} /><div><span>Enter 发送 · Shift + Enter 换行</span><VoiceInput key={detail.project.id} value={message} onChange={setMessage} onBusy={setVoiceBusy} disabled={busy || attachmentBusy} />{busy ? <button className="send-button" aria-label="停止回答" title="停止回答" type="button" disabled={currentJob?.status !== 'running'} onClick={stopReply}><X size={20} /></button> : <button className="send-button" aria-label="发送消息" disabled={voiceBusy || attachmentBusy || !message.trim()} type="submit"><ArrowUp size={20} /></button>}</div></form></>}</section>
           <aside className="context-panel"><h2>这次评估的依据</h2><div className="context-block"><span>公司现状</span><strong>{text(data.company.name) || '尚未建立公司资料'}</strong><button className="text-button" onClick={() => setPage('company')}>{companyReady ? '查看公司基线' : '补充公司资料'}<ChevronRight size={14} /></button></div><div className="context-block"><span>项目关键信息</span><strong>{completed} / 7 项已整理</strong><div className="fact-progress" aria-label={`7项信息中已整理${completed}项`}>{projectFields.map(k => <i key={k} className={text(detail.project.pending_patch?.[k] ?? detail.project[k]) ? 'complete' : ''} />)}</div><button className="text-button" onClick={() => setTab('facts')}>检查项目资料<ChevronRight size={14} /></button></div><div className="context-block"><span>证据资料</span><strong>{detail.evidence.length} 条已保存</strong><button className="text-button" onClick={() => setTab('evidence')}>添加或核验资料<ChevronRight size={14} /></button></div><div className="context-tip"><CircleHelp size={17} /><p>不确定的信息可以直说。关键依据不足时，先补资料，不急着给等级。</p></div>{detail.project.pending_patch && Object.keys(detail.project.pending_patch).length > 0 && <button className="secondary" onClick={() => setTab('facts')}>核对模型整理的事实</button>}<button className="primary full" onClick={() => setTab('report')}>查看历史报告<ArrowUpRight size={16} /></button></aside></div> :
-          tab === 'facts' ? <ProjectForm project={detail.project} types={data.types} busy={busy} save={body => run(async () => { await api('/projects/' + detail.project.id, 'PATCH', body); await refreshProject(); }, '项目资料已保存')} /> :
+          tab === 'facts' ? <ProjectForm project={detail.project} types={data.types} busy={busy} save={saveProjectFacts} /> :
           tab === 'evidence' ? <EvidencePanel projectId={detail.project.id} evidence={detail.evidence} busy={busy} run={run} refresh={refreshProject} /> :
-          <>{<ReportPanel detail={detail} dimensions={data.dimensions} busy={busy} run={run} refresh={refreshProject} onGenerate={() => { if (collection.ready) confirmScoring(); else { setTab('chat'); setNotice('请先完成当前可回答的关键问题，再生成报告。'); } }} />}</>}
+          <>{<ReportPanel detail={detail} dimensions={data.dimensions} busy={busy} run={run} refresh={refreshProject} onGenerate={() => { if (detail.project.report_ready) confirmScoring(); else { setTab('chat'); setNotice('请先完成八维问答与对抗性审查，再生成报告。'); } }} />}</>}
         </main>}
       <footer className="page-footer"><span>SABC 项目评级</span><span>依据当前信息提供决策参考 · 实际准确性需历史案例验证</span></footer>
     </div>

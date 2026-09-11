@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from sabc.catalog import catalog
 from sabc.key_storage import encrypt_key, decrypt_key
 from sabc.llm import review_report, analyze, guide
-from sabc import planner
+from sabc import planner, report_qa, report_readiness
 from sabc import auth, lifecycle, model_router, sso
 from sabc.tenancy import AccountStore, account_id
 from sabc import speech
@@ -164,9 +164,12 @@ def delete_projects(body:DeleteProjects):
 @app.get('/api/projects/{pid}')
 def get_project(pid:str):
     p=project_or_404(pid)
-    return {'project':{**p,'followup':lifecycle.followup(p)},'evidence':evidence_for(pid),
+    evidence=evidence_for(pid)
+    review_complete=report_readiness.reviewed(p,company(),evidence)
+    report_ready=review_complete and not any(p.get(k)!=v for k,v in p.get('pending_patch',{}).items())
+    return {'project':{**p,'followup':lifecycle.followup(p),'review_complete':review_complete, 'report_ready':report_ready},'evidence':evidence,
             'assessments':[r for r in store.list('assessments') if r['project_id']==pid],
-            'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running'],
+            'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running' and r.get('operation')!='report_chat'],
             'initial_job':jobs.read(store,p['initial_job_id']) if p.get('initial_job_id') else None}
 
 
@@ -243,19 +246,36 @@ class Chat(BaseModel):
 @app.post('/api/projects/{pid}/chat')
 def chat(pid:str,body:Chat):
     token=model_router.audit.set(lambda event:store.save('model_runs',{'project_id':pid,**event}))
+    notify = progress.get()
+    report_progress = progress.set(lambda _: notify('正在生成报告…')) if body.generate_report and notify else None
     try:
         return chat_turn(pid,body)
     finally:
+        if report_progress is not None: progress.reset(report_progress)
         model_router.audit.reset(token)
 
 
 def chat_turn(pid,body):
     check_cancelled()
     p=project_or_404(pid)
+    if body.generate_report:
+        if progress.get(): progress.get()('正在生成报告…')
+        with jobs.lock:
+            check_cancelled()
+            p=project_or_404(pid)
+            if not report_readiness.reviewed(p,company(),evidence_for(pid)):
+                return {'mode':'model','needs_review':True,'reply':'资料尚未完成对抗性审查，或审查后发生变化，请先继续核对。'}
+            if not report_readiness.ready(p,company(),evidence_for(pid)):
+                return {'mode':'model','needs_fact_confirmation':True,'reply':'请先核对并保存项目资料。'}
+            record=evaluate(pid,{'confirmed':True})
+            return {'mode':'model','report_id':record['id'],'reply':'报告已生成。'}
     p['lifecycle'] = {**lifecycle.state(p), 'mode': 'continuous', 'confirmed': True}
     p.pop('assessment_review', None)
-    if body.generate_report and not lifecycle.collection_ready(p.get('lifecycle', {})):
-        raise ValueError('本阶段八维信息尚未梳理完整，请先补充关键问题')
+    p['proposal']=None
+    # New input invalidates the old approval even if this interview request fails.
+    with jobs.lock:
+        check_cancelled()
+        store.save('projects',p)
     previous_report = None
     previous = next((a for a in store.list('assessments') if a.get('project_id') == pid), None)
     previous_id = previous['id'] if previous else None
@@ -287,11 +307,13 @@ def chat_turn(pid,body):
                 outcomes=[f.result() for f in futures]
         check_cancelled()
         context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
-        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': body.generate_report, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
-        if body.generate_report and result.get('proposal') and not result.get('questions'):
+        starting_inputs=report_readiness.fingerprint(p,company(),evidence_for(pid))
+        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': False, '_prepare_report': True, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+        ready_to_review = not result.get('questions') and lifecycle.collection_ready({'confirmed':True,'coverage':result.get('dimension_coverage',{})})
+        if ready_to_review and result.get('proposal'):
             check_cancelled()
             if progress.get():
-                progress.get()('正在核对关键依据、反对理由和试点建议…')
+                progress.get()('正在核对关键依据…')
             draft = deepcopy(result)
             review_project = {**p, '_previous_stage_report': previous_report,
                               'pending_patch': {**p.get('pending_patch', {}), **draft.get('project_patch', {})}}
@@ -302,7 +324,11 @@ def chat_turn(pid,body):
             result['project_patch'] = draft.get('project_patch', {})
             p['assessment_review'] = {'time': utcnow(), 'draft_proposal': draft['proposal'],
                                       'revised_proposal': result.get('proposal'),
-                                      'notes': result.get('review_notes', []), 'questions': result.get('questions', [])}
+                                      'notes': result.get('review_notes', []), 'questions': result.get('questions', []),
+                                      'approved':bool(result.get('proposal') and not result.get('questions'))}
+        if not ready_to_review:
+            result['proposal']=None
+            result['stage_review']=None
         result['retrieval_results']=outcomes
         result['retrieval_plan']=plan
         result['data_requests']=[]
@@ -312,9 +338,6 @@ def chat_turn(pid,body):
     else:
         result=guide(p,body.message,body.field)
         p.update(result['project_patch'])
-    if not body.generate_report:
-        result['proposal'] = None
-        result['stage_review'] = None
     followups=[q for q in result.get('questions',[])[:2] if q.strip() and q not in result['reply']]
     # Some providers put the questions in both fields, with different wording.
     # Keep the intact conversational reply instead of adding a second interview.
@@ -331,16 +354,20 @@ def chat_turn(pid,body):
         state='ready' if lifecycle.collection_ready(life) else 'gathering' if result.get('questions') else 'paused'
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
                         'note':'可进入人工核对，尚未批准投入' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
+    if result['mode']=='model' and not result.get('questions') and lifecycle.collection_ready(p.get('lifecycle', {})):
+        if not p.get('assessment_review',{}).get('approved'):
+            raise ValueError('对抗性审查尚未完成，请重试核对。')
+        result['reply']='八维信息与对抗性审查已完成。'
+        p['messages'][-1]['content']=result['reply']
+        p['assessment_review']['input_fingerprint']=report_readiness.fingerprint(p,company(),evidence_for(pid))
     p['version']+=1
     with jobs.lock:
         check_cancelled()
+        if result['mode']=='model':
+            current=project_or_404(pid)
+            if report_readiness.fingerprint(current,company(),evidence_for(pid))!=starting_inputs:
+                raise ValueError('核对期间项目资料发生变化，请根据最新资料重新核对。')
         store.save('projects',p)
-        if body.generate_report and result.get('proposal') and not result.get('questions') and lifecycle.collection_ready(p.get('lifecycle', {})):
-            if any(p.get(k) != v for k, v in p.get('pending_patch', {}).items()):
-                result['needs_fact_confirmation'] = True
-            else:
-                record = evaluate(pid, {'confirmed': True})
-                result['report_id'] = record['id']
     return result
 
 
@@ -373,9 +400,41 @@ def fetch_source(pid:str,source:str,body:SourceQuery):
         return {'status':'skipped'}
 
 
+class ReportQuestion(BaseModel):
+    assessment_id:str=Field(min_length=1,max_length=100)
+    message:str=Field(min_length=1,max_length=6000)
+
+
+def report_or_404(pid, ident):
+    project_or_404(pid)
+    report=store.get('assessments',ident)
+    if not report or report['project_id']!=pid: raise HTTPException(404,'报告不存在')
+    return report
+
+
+def report_turns(pid, ident):
+    return sorted([t for t in store.list('report_turns') if t['project_id']==pid and t['assessment_id']==ident],key=lambda t:t['created_at'])
+
+
+@app.get('/api/projects/{pid}/reports/{ident}/chat')
+def report_history(pid:str,ident:str):
+    report_or_404(pid,ident)
+    active=[jobs.read(store,j['id']) for j in store.list('jobs') if j['project_id']==pid and j.get('assessment_id')==ident and j['status']=='running']
+    return {'turns':report_turns(pid,ident),'active_job':next((j for j in active if j['status']=='running'),None)}
+
+
+def report_chat(pid, body, job_id):
+    report=report_or_404(pid,body.assessment_id)
+    config=settings()
+    reply=report_qa.answer(config,decrypt_key(config.get('encrypted_key','')),report,report_turns(pid,body.assessment_id),body.message.strip())
+    with jobs.lock:
+        check_cancelled()
+        return store.save('report_turns',{'id':job_id,'project_id':pid,'assessment_id':body.assessment_id,'question':body.message.strip(),'reply':reply})
+
+
 class SlowOperation(BaseModel):
     id:str=Field(pattern=r'^[a-f0-9-]{36}$')
-    operation:str=Field(pattern=r'^(chat|source)$')
+    operation:str=Field(pattern=r'^(chat|source|report_chat)$')
     source:str=''
     payload:dict
 
@@ -386,6 +445,11 @@ def start_job(pid:str,body:SlowOperation):
     if body.operation=='chat':
         parsed=Chat.model_validate(body.payload)
         action=lambda: chat(pid,parsed)
+    elif body.operation=='report_chat':
+        parsed=ReportQuestion.model_validate(body.payload)
+        if not parsed.message.strip(): raise ValueError('请输入报告问题')
+        report_or_404(pid,parsed.assessment_id)
+        action=lambda: report_chat(pid,parsed,body.id)
     else:
         parsed=SourceQuery.model_validate(body.payload)
         from sabc.sources import request_spec

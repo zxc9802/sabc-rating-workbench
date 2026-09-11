@@ -209,3 +209,19 @@ textarea { resize: vertical; line-height: 1.8; }
 /* Align stage tab text with the interview content below. */
 .conversation > .project-tabs { padding-inline: 22px; }
 @media (max-width: 650px) { .conversation > .project-tabs { padding-inline: 14px; } }
+
+.report-assistant { position: fixed; bottom: 0; left: 232px; right: 0; z-index: 20; padding: 12px 28px max(12px, env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -8px 24px #213a5010; }
+.report-assistant-inner { max-width: 1100px; margin: auto; }
+.report-assistant header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+.report-assistant header small { display: block; color: var(--muted); font-size: 11px; }
+.report-assistant header button { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.report-assistant form { display: flex; align-items: center; gap: 12px; }
+.report-assistant textarea { flex: 1; min-width: 0; min-height: 48px; max-height: 120px; resize: vertical; }
+.report-qa-history { max-height: 38dvh; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--line); margin-bottom: 12px; overflow-wrap: anywhere; }
+.report-qa-turn { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.report-qa-turn > p { white-space: pre-wrap; }
+.report-qa-error { color: #a43e3e; margin: 8px 0; font-size: 12px; }
+@media (max-width: 1150px) { .report-assistant { left: 205px; } }
+@media (max-width: 900px) { .report-assistant { left: 178px; } }
+@media (max-width: 650px) { .report-assistant { left: 0; padding-inline: 14px; }.report-assistant header small { max-width: 220px; }.report-assistant form { gap: 8px; }.report-assistant textarea { font-size: 16px; } }
+@media print { .report-assistant { display: none !important; }.report-area { padding-bottom: 0 !important; } }

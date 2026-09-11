@@ -43,7 +43,7 @@ def test_review_controls_report_save_and_preserves_audit(client, monkeypatch, ou
         return answer
     monkeypatch.setattr(module, 'review_report', review)
     url = f"/api/projects/{project['id']}"
-    response = client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True})
+    response = client.post(url + '/chat', json={'message': '最后一条访谈信息'})
     detail = client.get(url).json()
     if outcome == 'failure':
         assert response.status_code == 422
@@ -56,7 +56,10 @@ def test_review_controls_report_save_and_preserves_audit(client, monkeypatch, ou
         assert detail['project']['messages'][-1]['content'] == '退出时能收回多少押金？'
         assert detail['project']['assessment_review']['questions']
     else:
-        report = detail['assessments'][0]
+        assert detail['assessments'] == []
+        assert detail['project']['report_ready']
+        assert client.post(url + '/chat', json={'message':'生成报告','generate_report':True}).json()['report_id']
+        report = client.get(url).json()['assessments'][0]
         assert report['result']['base_score'] == 80
         audit = report['snapshot']['project']['assessment_review']
         assert audit['draft_proposal']['dimensions']['return']['score'] == 5
