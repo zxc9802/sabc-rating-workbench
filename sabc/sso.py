@@ -1,6 +1,7 @@
 """Browser-bound, single-use ticket SSO with live main-site revocation checks."""
 import hashlib
 import hmac
+import math
 import os
 import re
 import secrets
@@ -10,11 +11,11 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from sabc.sso_sessions import SessionStore
 
 router = APIRouter(prefix='/api/sso')
 COOKIE = 'sabc_sso_session'
 STATE_COOKIE = 'sabc_sso_state'
-sessions = {}
 
 
 def enabled():
@@ -27,23 +28,26 @@ def main_origin():
 
 def identity(request):
     key = hashlib.sha256(request.cookies.get(COOKIE, '').encode()).hexdigest()
+    sessions = SessionStore()
     entry = sessions.get(key)
     if not entry or entry['expires'] <= time.time():
-        sessions.pop(key, None)
+        sessions.delete(key)
         return None
     if time.time() - entry['checked'] >= 15:
         try:
             response = httpx.get(main_origin() + '/api/sso/session',
                                 headers={'Authorization': 'Bearer ' + entry['token']}, timeout=10)
             if response.status_code in (401, 403, 404):
-                sessions.pop(key, None)
+                sessions.delete(key)
                 return None
             response.raise_for_status()
             user = response.json()['data']['user']
             if user['id'] != entry['user']['id']:
-                sessions.pop(key, None)
+                sessions.delete(key)
                 return None
             entry.update(user=user, checked=time.time())
+            if not sessions.refresh(key, entry):
+                return None
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
             raise HTTPException(503, '主站登录校验暂时不可用，请稍后重试')
     return entry['user']
@@ -83,16 +87,13 @@ def callback(request: Request, ticket: str = '', state: str = ''):
         checked.raise_for_status()
         if checked.json()['data']['user']['id'] != user['id']:
             raise ValueError('Identity mismatch')
-        expires = min(time.time() + 8 * 3600, float(data['expiresAt']) / 1000)
-        if expires <= time.time():
+        expires = float(data['expiresAt']) / 1000
+        if not math.isfinite(expires) or expires <= time.time():
             raise ValueError('Expired ticket')
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
         raise HTTPException(401, '主站登录未完成，请重新登录主站后进入')
     token = secrets.token_urlsafe(32)
-    for key, entry in list(sessions.items()):
-        if entry['expires'] <= time.time():
-            sessions.pop(key, None)
-    sessions[hashlib.sha256(token.encode()).hexdigest()] = {'user': user, 'token': data['token'], 'expires': expires, 'checked': time.time()}
+    SessionStore().save(hashlib.sha256(token.encode()).hexdigest(), {'user': user, 'token': data['token'], 'expires': expires, 'checked': time.time()})
     response = RedirectResponse('/', status_code=303)
     response.set_cookie(COOKIE, token, max_age=int(expires - time.time()), httponly=True, secure=True, samesite='lax', path='/api')
     response.delete_cookie(STATE_COOKIE, path='/api/sso', secure=True, httponly=True, samesite='lax')
@@ -102,5 +103,6 @@ def callback(request: Request, ticket: str = '', state: str = ''):
 
 def logout(request, response):
     key = hashlib.sha256(request.cookies.get(COOKIE, '').encode()).hexdigest()
-    sessions.pop(key, None)
+    if enabled():
+        SessionStore().delete(key)
     response.delete_cookie(COOKIE, path='/api')

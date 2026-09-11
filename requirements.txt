@@ -11,3 +11,4 @@ Pillow>=11,<13
 python-pptx>=1,<2
 pymupdf>=1.25,<2
 websockets>=15,<16
+cryptography>=43,<50
