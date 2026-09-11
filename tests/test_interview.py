@@ -59,7 +59,8 @@ def test_no_followup_keeps_incomplete_interview_paused(client,monkeypatch):
     assert project['interview']['gaps'] and not project['interview']['questions']
 
 
-def test_collection_completion_waits_for_explicit_report_action(client, monkeypatch):
+@pytest.mark.parametrize('outcome', ['rated', 'unknown', 'ask', 'pending'])
+def test_collection_completion_waits_for_explicit_report_action(client, monkeypatch, outcome):
     from copy import deepcopy
     import sabc.app as module
     p, company, _, proposal = case()
@@ -74,8 +75,21 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     requests = []
     def reply(settings, key, project, *args):
         requests.append(project['_report_requested'])
-        return {'mode': 'model', 'reply': '本阶段信息已梳理完整', 'questions': [], 'project_patch': {},
-                'dimension_coverage': project['lifecycle']['coverage'], 'proposal': deepcopy(proposal),
+        coverage = deepcopy(project['lifecycle']['coverage'])
+        assessment_proposal = deepcopy(proposal)
+        questions = []
+        patch = {}
+        if project['_report_requested']:
+            if outcome == 'unknown':
+                coverage['market'] = {'status': 'unknown', 'reason': '用户明确无法提供需求信息'}
+                assessment_proposal['dimensions']['market'].update(score=None, basis='unknown')
+            elif outcome == 'ask':
+                coverage['market'] = {'status': 'ask', 'reason': '尚可回答的目标客户问题'}
+                questions = ['目标客户是谁？']
+            elif outcome == 'pending':
+                patch = {'risks': '新补充的风险需要确认'}
+        return {'mode': 'model', 'reply': '本阶段信息已梳理完整', 'questions': questions, 'project_patch': patch,
+                'dimension_coverage': coverage, 'proposal': assessment_proposal,
                 'stage_review': {'conclusion': 'trial', 'summary': '阶段初评', 'next_action': '验证', 'next_review_days': 14}}
     monkeypatch.setattr(module, 'analyze', reply)
     url = f'/api/projects/{pid}'
@@ -91,8 +105,56 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     assert requested.json()['proposal'] is not None
     assert requested.json()['stage_review'] is not None
     assert requests == [False, True]
+    reports = client.get(url).json()['assessments']
+    if outcome in ('ask', 'pending'):
+        assert reports == []
+        assert not requested.json().get('report_id')
+        if outcome == 'pending':
+            assert requested.json()['needs_fact_confirmation'] is True
+    else:
+        assert len(reports) == 1
+        assert reports[0]['id'] == requested.json()['report_id']
+        assert reports[0]['result']['grade'] == ('NR' if outcome == 'unknown' else 'B')
+        if outcome == 'unknown':
+            assert '市场空间 / 需求价值的方向性判断' in reports[0]['result']['missing']
+            opening = reports[0]['result']['deferral_reason']
+            assert opening.startswith('暂缓评级：')
+            assert '市场空间 / 需求价值' in opening
+            assert '用户明确无法提供需求信息' in opening
+            assert '影响投入与验证是否可行' in opening
     project = module.store.get('projects', pid)
     project['lifecycle']['coverage']['risk']['status'] = 'ask'
     module.store.save('projects', project)
     assert client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True}).status_code == 422
     assert requests == [False, True]
+
+
+def test_continuous_interview_uses_latest_report_across_legacy_stages(client, monkeypatch):
+    import sabc.app as module
+    p, c, _, _ = case()
+    client.put('/api/company', json=c)
+    project = client.post('/api/projects', json=p).json()
+    assert project['lifecycle']['mode'] == 'continuous'
+    pid = project['id']
+    for stage in ('pre', 'post'):
+        module.store.save('assessments', {
+            'id': stage + '-saved', 'project_id': pid, 'result': {'stage': stage},
+            'snapshot': {'project': {'lifecycle': module.lifecycle.initial(stage)}}})
+    project['lifecycle']['previous_report_id'] = 'pre-saved'
+    project['lifecycle']['confirmed'] = False  # An old record must not need a stage selector.
+    module.store.save('projects', project)
+    seen = []
+    def reply(settings, key, current, *args):
+        seen.append(current)
+        return {'mode': 'model', 'reply': '实际执行后成本有什么变化？',
+                'questions': ['实际执行后成本有什么变化？'], 'project_patch': {}, 'proposal': None,
+                'dimension_coverage': {key: {'status': 'ask', 'reason': '核对本次新情况'} for key in module.DIMENSIONS}}
+    monkeypatch.setattr(module, 'settings', lambda: {'base_url': 'https://model.example', 'model': 'test'})
+    monkeypatch.setattr(module, 'analyze', reply)
+    response = client.post(f'/api/projects/{pid}/chat', json={'message': '继续评估'})
+    assert response.status_code == 200
+    assert seen[0]['_previous_stage_report']['id'] == 'post-saved'
+    detail = client.get(f'/api/projects/{pid}').json()
+    assert len(detail['assessments']) == 2
+    assert detail['project']['lifecycle']['confirmed'] is True
+    assert detail['project']['messages'][-1]['content'] == '实际执行后成本有什么变化？'

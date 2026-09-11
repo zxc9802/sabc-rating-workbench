@@ -1,0 +1,16 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const ts = require('typescript');
+const vm = require('node:vm');
+const exportsValue = {};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/deferral-reason.ts', 'utf8'), {compilerOptions: {module: ts.ModuleKind.CommonJS}}).outputText, {exports: exportsValue});
+const { deferralReason } = exportsValue;
+const result = {missing: ['公司可用现金', '负责人确认公司基线']};
+const old = deferralReason(result, {coverage: {risk: {status: 'external', reason: '入驻条件需官方核查'}}});
+assert.ok(old.startsWith('暂缓评级：'));
+assert.ok(old.includes('公司可用现金'));
+assert.ok(old.includes('负责人确认公司基线'));
+assert.ok(old.includes('需外部核查：入驻条件需官方核查'));
+assert.ok(!old.includes('用户无法提供'));
+assert.equal(deferralReason({...result, deferral_reason: '暂缓评级：已保存的具体原因。'}), '暂缓评级：已保存的具体原因。');
+console.log('Deferred report opening cases passed');

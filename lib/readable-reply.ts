@@ -21,5 +21,5 @@ export function readableReply(content: string, evidence: Reference[] = [], strea
   if (streaming) result = result.replace(/(?:证据\s*(?:ID|编号)\s*(?:为|是|：|:)?\s*[a-f0-9-]*|[a-f0-9-]{8,35})$/i, '');
   const types: Record<string, string> = { growth: '商业增长', internal: '内部AI / 提效', strategic: '战略能力 / 资产', asset: '重资产 / 扩张' };
   result = result.replace(/https?:\/\/[^\s)]+|\b(growth|internal|strategic|asset)\b/g, (value, type) => type ? types[type] : value);
-  return result;
+  return result.replace(/https?:\/\/[^\s)]+|\bNR\b/g, value => value === 'NR' ? '暂缓评级' : value);
 }

@@ -136,7 +136,7 @@ def create_project(body:dict):
     data['project_type']=data.get('project_type','growth')
     data['version']=1
     data['messages']=[]
-    data['lifecycle']=lifecycle.initial()
+    data['lifecycle']={**lifecycle.initial(), 'mode': 'continuous'}
     if body.get('stage') and body['stage']!='pre':
         data=lifecycle.transition(data,'set_stage',body,company())
     saved=store.save('projects',data)
@@ -252,15 +252,12 @@ def chat(pid:str,body:Chat):
 def chat_turn(pid,body):
     check_cancelled()
     p=project_or_404(pid)
+    p['lifecycle'] = {**lifecycle.state(p), 'mode': 'continuous', 'confirmed': True}
     if body.generate_report and not lifecycle.collection_ready(p.get('lifecycle', {})):
         raise ValueError('本阶段八维信息尚未梳理完整，请先补充关键问题')
     previous_report = None
-    previous_id = p.get('lifecycle', {}).get('previous_report_id')
-    if not previous_id:
-        prior_stage = {'during': 'pre', 'post': 'during'}.get(p.get('lifecycle', {}).get('stage'))
-        prior = next((a for a in store.list('assessments') if a.get('project_id') == pid and prior_stage
-                      and (a['result'].get('stage') or a['snapshot']['project'].get('lifecycle', {}).get('stage')) == prior_stage), None)
-        previous_id = prior['id'] if prior else None
+    previous = next((a for a in store.list('assessments') if a.get('project_id') == pid), None)
+    previous_id = previous['id'] if previous else None
     if previous_id:
         saved = store.get('assessments', previous_id)
         if saved and saved.get('project_id') == pid:
@@ -322,6 +319,12 @@ def chat_turn(pid,body):
     with jobs.lock:
         check_cancelled()
         store.save('projects',p)
+        if body.generate_report and result.get('proposal') and not result.get('questions') and lifecycle.collection_ready(p.get('lifecycle', {})):
+            if any(p.get(k) != v for k, v in p.get('pending_patch', {}).items()):
+                result['needs_fact_confirmation'] = True
+            else:
+                record = evaluate(pid, {'confirmed': True})
+                result['report_id'] = record['id']
     return result
 
 
@@ -515,6 +518,14 @@ def evaluate(pid:str,body:dict):
     proposal=validate_proposal(proposal)
     c=company(); e=evidence_for(pid)
     result=assess(p,c,e,proposal)
+    if result['grade'] == 'NR':
+        missing = '、'.join(result['missing']) or '足以支持八维判断的关键依据'
+        labels = {'unknown': '当前无法补足', 'external': '需外部核查', 'future': '需实际验证'}
+        details = [labels[v['status']] + '：' + v['reason'] for v in life.get('coverage', {}).values()
+                   if v.get('status') in labels and str(v.get('reason', '')).strip()]
+        result['deferral_reason'] = ('暂缓评级：尚未形成可靠判断的关键依据包括' + missing + '；'
+                                    + ('；'.join(details) + '。' if details else '')
+                                    + '这些缺口会影响投入与验证是否可行的判断，当前无法给出可靠等级。')
     if p.get('lifecycle'):
         result.update(stage=life['stage'], provisional=True,
                       status='待评级' if result['grade']=='NR' else '阶段暂定评级')
