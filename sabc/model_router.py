@@ -2,11 +2,24 @@
 from contextvars import ContextVar
 import os
 import time
+from urllib.parse import urlparse
 
 from sabc.streaming import progress, check_cancelled
 from sabc.model_output import ModelResponseError
 
 audit = ContextVar('model_routing_audit', default=None)
+
+
+def gemini_route(preferred):
+    if urlparse(preferred.get('base_url', '')).hostname != 'api.openlux.ai' or not preferred.get('key'):
+        return None
+    return {**preferred, 'model': 'gemini-3.8-flash', 'primary': True, 'deepseek': False,
+            'single_attempt': True, 'auth_scheme': 'Gemini',
+            'endpoint': 'https://api.openlux.ai/v1beta/models/gemini-3.8-flash:generateContent'}
+
+
+def endpoint(route):
+    return route.get('endpoint') or route['base_url'].rstrip('/') + '/chat/completions'
 
 
 def deepseek():
@@ -34,6 +47,9 @@ def routed(role, preferred, execute):
         routes = [primary]
     if fallback:
         routes.append(fallback)
+    gemini = gemini_route(preferred) if role in ('analysis', 'report_chat') else None
+    if gemini:
+        routes = [gemini] + [{**route, 'primary': False} for route in routes]
     for index, config in enumerate(routes):
         check_cancelled()
         started = time.monotonic()
@@ -63,4 +79,6 @@ def routed(role, preferred, execute):
 
 
 def authorization(route, key):
+    if route.get('auth_scheme') == 'Gemini':
+        return {'x-goog-api-key': key}
     return {'Authorization': route.get('auth_scheme', 'Bearer') + ' ' + key} if key else {}

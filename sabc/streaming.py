@@ -44,6 +44,8 @@ def reply_prefix(content):
 
 def completion(client, url, payload, headers, remaining):
     check_cancelled()
+    if url.endswith(':generateContent'):
+        return gemini_completion(client, url, payload, headers, remaining)
     notify = progress.get()
     if notify is None:
         r = client.post(url, json=payload, headers=headers, timeout=remaining)
@@ -87,4 +89,29 @@ def completion(client, url, payload, headers, remaining):
                     notify(reply_prefix(content))
     if not finished:
         raise ModelResponseError('模型流式回答中断，请重试', 'stream_transport', error_code='missing_finish')
+    return content
+
+
+def gemini_completion(client, url, payload, headers, remaining):
+    messages = payload['messages']
+    body = {'contents': [
+        {'role': 'model' if message['role'] == 'assistant' else 'user',
+         'parts': [{'text': message['content']}]} for message in messages if message['role'] != 'system'],
+        'systemInstruction': {'parts': [{'text': '\n'.join(
+            message['content'] for message in messages if message['role'] == 'system')}]},
+        'generationConfig': {'responseMimeType': 'application/json'}}
+    for source, target in (('temperature', 'temperature'), ('max_tokens', 'maxOutputTokens')):
+        if source in payload:
+            body['generationConfig'][target] = payload[source]
+    response = client.post(url, json=body, headers=headers, timeout=remaining)
+    response.raise_for_status()
+    check_cancelled()
+    candidates = decode_json(response.text, 'transport_json').get('candidates') or []
+    if not candidates or candidates[0].get('finishReason') != 'STOP':
+        raise ModelResponseError('模型未完成有效回答', 'response_incomplete', error_code='unfinished_output')
+    content = ''.join(part.get('text', '') for part in candidates[0].get('content', {}).get('parts', [])
+                      if not part.get('thought'))
+    if not content.strip():
+        raise ModelResponseError('模型未返回有效正文', 'response_incomplete', error_code='empty_output')
+    # Publish only after the caller validates the structured response; failed attempts stay invisible.
     return content

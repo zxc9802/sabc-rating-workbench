@@ -98,7 +98,8 @@ def health():
 def public_settings():
     s=settings()
     primary=model_router.deepseek()
-    return {'managed':sso.enabled(),'primary_model':'z-ai/glm-5.3-flash' if os.getenv('SABC_FAL_API_KEY','').strip() else s.get('model',''), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
+    gemini=model_router.gemini_route({**s, 'key': bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY'))})
+    return {'managed':sso.enabled(),'primary_model':gemini['model'] if gemini else ('z-ai/glm-5.3-flash' if os.getenv('SABC_FAL_API_KEY','').strip() else s.get('model','')), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
             'has_key':bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
             'configured':bool(primary or (s.get('base_url') and s.get('model')))}
 

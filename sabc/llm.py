@@ -1,6 +1,6 @@
 """Model proposes facts and analysis; only the rule engine assigns grades."""
 from sabc.streaming import completion, progress
-from sabc.model_router import routed, authorization
+from sabc.model_router import routed, authorization, endpoint
 from sabc.model_output import ModelResponseError, parse_object, format_failure
 import json
 import math
@@ -145,7 +145,7 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                 # Keep fal's connection streaming when model output is not displayed.
                 hidden_stream = progress.set(lambda _: None) if settings.get('auth_scheme') == 'Key' and progress.get() is None else None
                 try:
-                    content=completion(client,base+'/chat/completions',payload,headers,remaining)
+                    content=completion(client,endpoint(settings),payload,headers,remaining)
                 finally:
                     if hidden_stream is not None: progress.reset(hidden_stream)
                 try:

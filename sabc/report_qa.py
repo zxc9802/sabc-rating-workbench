@@ -2,7 +2,7 @@
 import json
 import httpx
 from sabc.streaming import completion
-from sabc.model_router import routed, authorization
+from sabc.model_router import routed, authorization, endpoint
 from sabc.model_output import ModelResponseError, parse_object, format_failure
 
 MODEL = 'glm-5.3-flash'
@@ -40,7 +40,7 @@ def answer(settings, key, report, history, question):
             payload.pop('temperature')
             payload.update(thinking={'type': 'enabled'}, reasoning_effort=route['effort'])
         with httpx.Client() as client:
-            raw = completion(client, route['base_url'].rstrip('/') + '/chat/completions',
+            raw = completion(client, endpoint(route),
                              payload, authorization(route, route['key']), 90)
         try:
             reply = parse_object(raw).get('reply')
