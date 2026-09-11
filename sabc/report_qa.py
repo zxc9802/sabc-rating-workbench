@@ -2,7 +2,7 @@
 import json
 import httpx
 from sabc.streaming import completion
-from sabc.model_router import routed
+from sabc.model_router import routed, authorization
 
 MODEL = 'glm-5.3-flash'
 
@@ -40,7 +40,7 @@ def answer(settings, key, report, history, question):
             payload.update(thinking={'type': 'enabled'}, reasoning_effort=route['effort'])
         with httpx.Client() as client:
             raw = completion(client, route['base_url'].rstrip('/') + '/chat/completions',
-                             payload, {'Authorization': 'Bearer ' + route['key']}, 90)
+                             payload, authorization(route, route['key']), 90)
         reply = json.loads(raw)['reply']
         if not isinstance(reply, str) or not reply.strip():
             raise ValueError()

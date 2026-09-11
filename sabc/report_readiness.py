@@ -1,4 +1,4 @@
-"""Bind interview review approval to the exact inputs used for the report."""
+"""Bind prepared interview judgments to the exact inputs used for the report."""
 import hashlib
 import json
 from datetime import date
@@ -20,13 +20,16 @@ def fingerprint(project, company, evidence):
     return hashlib.sha256(json.dumps(inputs,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
 
 
-def reviewed(project, company, evidence):
-    review=project.get('assessment_review') or {}
-    return bool(review.get('approved') and not review.get('questions') and project.get('proposal')
-                and review.get('revised_proposal')==project.get('proposal')
+def prepared(project, company, evidence):
+    saved=project.get('report_preparation') or {}
+    # Existing report-ready projects retain their saved judgment without another model call.
+    legacy=project.get('assessment_review') or {}
+    expected=saved.get('proposal') if saved else legacy.get('revised_proposal')
+    stamp=saved.get('input_fingerprint') if saved else legacy.get('input_fingerprint')
+    return bool(project.get('proposal') and expected==project['proposal']
                 and collection_ready(project.get('lifecycle', {}))
-                and review.get('input_fingerprint')==fingerprint(project,company,evidence))
+                and stamp==fingerprint(project,company,evidence))
 
 
 def ready(project, company, evidence):
-    return reviewed(project,company,evidence) and not any(project.get(k)!=v for k,v in project.get('pending_patch',{}).items())
+    return prepared(project,company,evidence) and not any(project.get(k)!=v for k,v in project.get('pending_patch',{}).items())

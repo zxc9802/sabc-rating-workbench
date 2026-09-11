@@ -20,9 +20,13 @@ def deepseek():
 def routed(role, preferred, execute):
     fallback = deepseek()
     primary = {**preferred, 'primary': True, 'deepseek': False}
-    model = preferred.get('model', '').lower().replace('-', '').replace('.', '')
+    fal_key = os.getenv('SABC_FAL_API_KEY', '').strip()
+    if fal_key and role in ('analysis', 'review', 'report_chat'):
+        primary.update(base_url='https://fal.run/openrouter/router/openai/v1',
+                       model='z-ai/glm-5.3-flash', key=fal_key, auth_scheme='Key')
+    model = primary.get('model', '').split('/')[-1].lower().replace('-', '').replace('.', '')
     if model.startswith('glm53'):
-        # Retry GLM once, then use Luna on exactly the same endpoint and credentials.
+        # Retry GLM once, then use Luna on the original provider endpoint and credentials.
         routes = [{**primary, 'single_attempt': True, 'attempt': attempt} for attempt in (1, 2)]
         routes.append({**preferred, 'model': 'gpt-5.6-luna', 'primary': False, 'deepseek': False})
     else:
@@ -49,3 +53,7 @@ def routed(role, preferred, execute):
             event['elapsed_seconds'] = round(time.monotonic() - started, 2)
             if audit.get():
                 audit.get()(event)
+
+
+def authorization(route, key):
+    return {'Authorization': route.get('auth_scheme', 'Bearer') + ' ' + key} if key else {}

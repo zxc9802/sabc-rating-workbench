@@ -114,3 +114,20 @@ def test_cancel_does_not_retry_or_fallback(primary):
     with pytest.raises(JobCancelled):
         routed('review',{'model':'glm-5.3-flash'},execute)
     assert calls==['glm-5.3-flash']
+
+
+def test_fal_primary_keeps_luna_on_original_provider(primary,monkeypatch):
+    from sabc.model_router import authorization
+    monkeypatch.setenv('SABC_FAL_API_KEY','synthetic-fal')
+    calls=[]
+    def execute(route):
+        calls.append(route)
+        if route['model'].startswith('z-ai/'):
+            assert authorization(route,route['key'])=={'Authorization':'Key synthetic-fal'}
+            raise ValueError('fal failed')
+        assert route['model']=='gpt-5.6-luna'
+        assert route['base_url']=='https://original.example/v1'
+        assert authorization(route,route['key'])=={'Authorization':'Bearer synthetic-original'}
+        return 'ok'
+    assert routed('review',{'model':'glm-5.3-flash','base_url':'https://original.example/v1','key':'synthetic-original'},execute)=='ok'
+    assert [r['model'] for r in calls]==['z-ai/glm-5.3-flash']*2+['gpt-5.6-luna']

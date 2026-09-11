@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from sabc.catalog import catalog
 from sabc.key_storage import encrypt_key, decrypt_key
-from sabc.llm import review_report, analyze, guide
+from sabc.llm import analyze, guide
 from sabc import planner, report_qa, report_readiness
 from sabc import auth, lifecycle, model_router, sso
 from sabc.tenancy import AccountStore, account_id
@@ -98,7 +98,7 @@ def health():
 def public_settings():
     s=settings()
     primary=model_router.deepseek()
-    return {'managed':sso.enabled(),'primary_model':s.get('model',''), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
+    return {'managed':sso.enabled(),'primary_model':'z-ai/glm-5.3-flash' if os.getenv('SABC_FAL_API_KEY','').strip() else s.get('model',''), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
             'has_key':bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
             'configured':bool(primary or (s.get('base_url') and s.get('model')))}
 
@@ -165,9 +165,9 @@ def delete_projects(body:DeleteProjects):
 def get_project(pid:str):
     p=project_or_404(pid)
     evidence=evidence_for(pid)
-    review_complete=report_readiness.reviewed(p,company(),evidence)
-    report_ready=review_complete and not any(p.get(k)!=v for k,v in p.get('pending_patch',{}).items())
-    return {'project':{**p,'followup':lifecycle.followup(p),'review_complete':review_complete, 'report_ready':report_ready},'evidence':evidence,
+    analysis_complete=report_readiness.prepared(p,company(),evidence)
+    report_ready=analysis_complete and not any(p.get(k)!=v for k,v in p.get('pending_patch',{}).items())
+    return {'project':{**p,'followup':lifecycle.followup(p),'analysis_complete':analysis_complete, 'report_ready':report_ready},'evidence':evidence,
             'assessments':[r for r in store.list('assessments') if r['project_id']==pid],
             'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running' and r.get('operation')!='report_chat'],
             'initial_job':jobs.read(store,p['initial_job_id']) if p.get('initial_job_id') else None}
@@ -263,17 +263,15 @@ def chat_turn(pid,body):
         with jobs.lock:
             check_cancelled()
             p=project_or_404(pid)
-            if not report_readiness.reviewed(p,company(),evidence_for(pid)):
-                return {'mode':'model','needs_review':True,'reply':'资料尚未完成对抗性审查，或审查后发生变化，请先继续核对。'}
+            if not report_readiness.prepared(p,company(),evidence_for(pid)):
+                return {'mode':'model','needs_collection':True,'reply':'八维信息尚未整理完整，或资料发生变化，请先继续补充。'}
             if not report_readiness.ready(p,company(),evidence_for(pid)):
                 return {'mode':'model','needs_fact_confirmation':True,'reply':'请先核对并保存项目资料。'}
             record=evaluate(pid,{'confirmed':True})
             return {'mode':'model','report_id':record['id'],'reply':'报告已生成。'}
     p['lifecycle'] = {**lifecycle.state(p), 'mode': 'continuous', 'confirmed': True}
-    previous_review = deepcopy(p.get('assessment_review') or {})
-    continuation = bool(previous_review.get('questions') and previous_review.get('draft')
-                        and previous_review.get('continuation_fingerprint') == report_readiness.fingerprint(p,company(),evidence_for(pid)))
     p.pop('assessment_review', None)
+    p.pop('report_preparation', None)
     p['proposal']=None
     # New input invalidates the old approval even if this interview request fails.
     with jobs.lock:
@@ -311,38 +309,8 @@ def chat_turn(pid,body):
         check_cancelled()
         context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
         starting_inputs=report_readiness.fingerprint(p,company(),evidence_for(pid))
-        # Reuse only an unchanged reviewed baseline; newly retrieved evidence requires a full review.
-        continuation = continuation and not outcomes
-        if continuation:
-            draft = deepcopy(previous_review['draft'])
-            review_project = {**p, '_previous_stage_report': previous_report,
-                              '_review_followup': {'notes':previous_review.get('notes',[]),
-                                                   'questions':previous_review['questions']}}
-            if progress.get(): progress.get()('正在核对本次补充…')
-            result = review_report(s, decrypt_key(s.get('encrypted_key', '')), review_project,
-                                   company(), model_evidence_for(pid), messages, draft)
-            ready_to_review = True
-        else:
-            result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': False, '_prepare_report': True, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
-            ready_to_review = not result.get('questions') and lifecycle.collection_ready({'confirmed':True,'coverage':result.get('dimension_coverage',{})})
-            if ready_to_review and not result.get('proposal'):
-                raise ValueError('信息完整但未返回可审查的内部判断')
-            if ready_to_review and result.get('proposal'):
-                check_cancelled()
-                if progress.get(): progress.get()('正在核对关键依据…')
-                draft = deepcopy(result)
-                review_project = {**p, '_previous_stage_report': previous_report,
-                                  'pending_patch': {**p.get('pending_patch', {}), **draft.get('project_patch', {})}}
-                result = review_report(s, decrypt_key(s.get('encrypted_key', '')), review_project,
-                                       company(), model_evidence_for(pid), messages, draft)
-                result['project_patch'] = draft.get('project_patch', {})
-        check_cancelled()
-        if ready_to_review:
-            p['assessment_review'] = {'time': utcnow(), 'draft_proposal': draft['proposal'],
-                                      'draft': draft, 'revised_proposal': result.get('proposal'),
-                                      'notes': result.get('review_notes', []), 'questions': result.get('questions', []),
-                                      'approved':bool(result.get('proposal') and not result.get('questions'))}
-        else:
+        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': False, '_prepare_report': True, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+        if result.get('questions') or not lifecycle.collection_ready({'confirmed':True,'coverage':result.get('dimension_coverage',{})}):
             result['proposal']=None
             result['stage_review']=None
         result['retrieval_results']=outcomes
@@ -371,13 +339,11 @@ def chat_turn(pid,body):
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
                         'note':'可进入人工核对，尚未批准投入' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
     if result['mode']=='model' and not result.get('questions') and lifecycle.collection_ready(p.get('lifecycle', {})):
-        if not p.get('assessment_review',{}).get('approved'):
-            raise ValueError('对抗性审查尚未完成，请重试核对。')
-        result['reply']='八维信息与对抗性审查已完成。'
+        if not p.get('proposal'):
+            raise ValueError('信息完整但未返回完整判断，请重试。')
+        result['reply']='八维信息已梳理完成。'
         p['messages'][-1]['content']=result['reply']
-        p['assessment_review']['input_fingerprint']=report_readiness.fingerprint(p,company(),evidence_for(pid))
-    if p.get('assessment_review', {}).get('questions'):
-        p['assessment_review']['continuation_fingerprint']=report_readiness.fingerprint(p,company(),evidence_for(pid))
+        p['report_preparation']={'input_fingerprint':report_readiness.fingerprint(p,company(),evidence_for(pid)), 'proposal':deepcopy(p['proposal'])}
     p['version']+=1
     with jobs.lock:
         check_cancelled()

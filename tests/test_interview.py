@@ -92,27 +92,20 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
                 'dimension_coverage': coverage, 'proposal': assessment_proposal,
                 'stage_review': {'conclusion': 'trial', 'summary': '阶段初评', 'next_action': '验证', 'next_review_days': 14}}
     monkeypatch.setattr(module, 'analyze', reply)
-    reviews = []
-    def review(*args):
-        reviews.append(1)
-        return {**deepcopy(args[-1]), 'project_patch': {}, 'review_notes': []}
-    monkeypatch.setattr(module, 'review_report', review)
     url = f'/api/projects/{pid}'
     ordinary = client.post(url + '/chat', json={'message': '资料补充完了'})
     assert ordinary.status_code == 200
     detail = client.get(url).json()
     assert detail['assessments'] == []
     assert not ordinary.json().get('report_id')
-    assert reviews == ([] if outcome == 'ask' else [1])
     assert detail['project']['report_ready'] == (outcome in ('rated','unknown'))
     requested = client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True})
     assert requested.status_code == 200
     assert requests == [False]  # Click never calls analysis or review.
-    assert len(reviews) == (0 if outcome == 'ask' else 1)
     reports = client.get(url).json()['assessments']
     if outcome in ('ask', 'pending'):
         assert reports == []
-        assert requested.json().get('needs_review' if outcome=='ask' else 'needs_fact_confirmation')
+        assert requested.json().get('needs_collection' if outcome=='ask' else 'needs_fact_confirmation')
     else:
         assert len(reports) == 1
         assert reports[0]['id'] == requested.json()['report_id']
@@ -122,7 +115,7 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     project = module.store.get('projects', pid)
     project['lifecycle']['coverage']['risk']['status'] = 'ask'
     module.store.save('projects', project)
-    assert client.post(url + '/chat', json={'message':'生成报告','generate_report':True}).json()['needs_review']
+    assert client.post(url + '/chat', json={'message':'生成报告','generate_report':True}).json()['needs_collection']
     assert requests == [False]
 
 
