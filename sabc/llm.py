@@ -1,6 +1,7 @@
 """Model proposes facts and analysis; only the rule engine assigns grades."""
 from sabc.streaming import completion, progress
 from sabc.model_router import routed, authorization
+from sabc.model_output import ModelResponseError, parse_object, format_failure
 import json
 import math
 import os
@@ -129,6 +130,7 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
              'response_format':{'type':'json_object'}}
     payload['messages'][0]['content']+='\n面向用户的reply、评分理由及验证说明禁止出现内部证据ID、数据库编号、字段名或growth等枚举代码。引用资料使用可读标题与来源网址；项目类型使用中文名称。内部ID仅允许出现在结构化evidence_ids等关联字段中。'
+    payload['messages'] += settings.get('format_retry', [])
     if settings.get('deepseek'):
         payload.update(thinking={'type':'enabled'}, reasoning_effort=settings['effort'])
         payload.pop('temperature', None)
@@ -146,9 +148,8 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                     content=completion(client,base+'/chat/completions',payload,headers,remaining)
                 finally:
                     if hidden_stream is not None: progress.reset(hidden_stream)
-                if content.startswith('```'): content=content.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
                 try:
-                    raw=json.loads(content)
+                    raw=parse_object(content)
                     # This transport marker belongs to the server, not the model schema.
                     if isinstance(raw, dict): raw.pop('mode', None)
                     parsed=ModelReply.model_validate(raw).model_dump(mode='json')
@@ -168,11 +169,15 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                     if project.get('lifecycle'):
                         absorb(deepcopy(project), parsed, company, evidence)
                     break
-                except ValueError:
-                    if attempt or settings.get('deepseek') or settings.get('single_attempt'): raise
-                    payload['messages'] += [{'role':'assistant','content':content}, {'role':'user','content':'格式补正：刚才的JSON未通过结构或验证条件校验。这只是内部格式修复，不是用户的新请求。请继续回答原用户的问题，保留原本需要继续追问的业务缺口；reply不得说明“已重整”“完整结构”“格式补正”，也不得因补正而结束访谈或重复已知信息。请基于同一份原始资料重新输出完整JSON，保留未知与事实边界，不生成最终等级。dimensions为以维度名为键的对象，未知score为null；questions最多2项；列表字段用数组而不是null；确认条件使用true/false。非空proposal至少有一项关键假设，每项保留结构化id、claim、evidence_ids、validation_method、pass_threshold、fail_threshold。内部id仅供结构关联，不能写入聊天正文。未知阈值明确待负责人确认及确认前暂停的动作，禁止编造事实。'}]
+                except ValueError as error:
+                    failure = format_failure(error, content)
+                    if attempt or settings.get('deepseek') or settings.get('single_attempt'): raise failure
+                    payload['messages'] += failure.retry_messages
     except httpx.HTTPStatusError as e:
-        raise ValueError(f'模型请求失败（HTTP {e.response.status_code}），请检查服务地址、模型权限和密钥。') from None
+        raise ModelResponseError(f'模型请求失败（HTTP {e.response.status_code}），请检查服务地址、模型权限和密钥。',
+                                 'http', status_code=e.response.status_code) from None
+    except httpx.TimeoutException:
+        raise ModelResponseError('模型请求超时，请重试。', 'timeout', error_code='request_timeout') from None
     except (httpx.HTTPError,KeyError,IndexError,TypeError):
         raise ValueError('未取得有效模型结果，请检查连接后重试。') from None
     allowed=(set(PROJECT_FIELDS)-{'name'})|{'budget_requested'}

@@ -3,6 +3,7 @@ from contextvars import ContextVar
 import json
 import re
 import time
+from sabc.model_output import ModelResponseError, decode_json
 
 progress = ContextVar('model_progress', default=None)
 cancel_signal = ContextVar('model_cancel_signal', default=None)
@@ -48,9 +49,9 @@ def completion(client, url, payload, headers, remaining):
         r = client.post(url, json=payload, headers=headers, timeout=remaining)
         r.raise_for_status()
         check_cancelled()
-        choice = r.json()['choices'][0]
+        choice = decode_json(r.text, 'transport_json')['choices'][0]
         if choice.get('finish_reason') not in (None, 'stop'):
-            raise ValueError('模型未完成有效回答')
+            raise ModelResponseError('模型未完成有效回答', 'response_incomplete', error_code='unfinished_output')
         return choice['message']['content']
     notify('')
     content = ''
@@ -61,7 +62,7 @@ def completion(client, url, payload, headers, remaining):
         for line in response.iter_lines():
             check_cancelled()
             if time.monotonic() > deadline:
-                raise ValueError('模型回答超时，请重试')
+                raise ModelResponseError('模型回答超时，请重试', 'timeout', error_code='stream_deadline')
             if not line.startswith('data:'):
                 continue
             data = line[5:].strip()
@@ -70,14 +71,14 @@ def completion(client, url, payload, headers, remaining):
                 break
             if not data:
                 continue
-            event = json.loads(data)
+            event = decode_json(data, 'stream_json')
             if event.get('error'):
-                raise ValueError('模型流式回答中断，请重试')
+                raise ModelResponseError('模型流式回答中断，请重试', 'stream_transport', error_code='upstream_error')
             choices = event.get('choices', [])
             if choices:
                 reason = choices[0].get('finish_reason')
                 if reason not in (None, 'stop'):
-                    raise ValueError('模型未完成有效回答')
+                    raise ModelResponseError('模型未完成有效回答', 'response_incomplete', error_code='unfinished_output')
                 if reason == 'stop':
                     finished = True
                 delta = choices[0].get('delta', {}).get('content')
@@ -85,5 +86,5 @@ def completion(client, url, payload, headers, remaining):
                     content += delta
                     notify(reply_prefix(content))
     if not finished:
-        raise ValueError('模型流式回答中断，请重试')
+        raise ModelResponseError('模型流式回答中断，请重试', 'stream_transport', error_code='missing_finish')
     return content

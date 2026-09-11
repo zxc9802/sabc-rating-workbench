@@ -3,6 +3,7 @@ import json
 import httpx
 from sabc.streaming import completion
 from sabc.model_router import routed, authorization
+from sabc.model_output import ModelResponseError, parse_object, format_failure
 
 MODEL = 'glm-5.3-flash'
 
@@ -33,7 +34,7 @@ def answer(settings, key, report, history, question):
                          {'role': 'assistant', 'content': turn['reply'][:6000]}])
     messages.append({'role': 'user', 'content': question})
     def execute(route):
-        payload = {'model': route['model'], 'messages': messages, 'temperature': 0.2,
+        payload = {'model': route['model'], 'messages': messages + route.get('format_retry', []), 'temperature': 0.2,
                    'max_tokens': 3000, 'response_format': {'type': 'json_object'}}
         if route.get('deepseek'):
             payload.pop('temperature')
@@ -41,9 +42,12 @@ def answer(settings, key, report, history, question):
         with httpx.Client() as client:
             raw = completion(client, route['base_url'].rstrip('/') + '/chat/completions',
                              payload, authorization(route, route['key']), 90)
-        reply = json.loads(raw)['reply']
-        if not isinstance(reply, str) or not reply.strip():
-            raise ValueError()
+        try:
+            reply = parse_object(raw).get('reply')
+            if not isinstance(reply, str) or not reply.strip():
+                raise ModelResponseError('模型回答缺少有效 reply 字段。', 'response_schema', error_code='invalid_reply')
+        except ValueError as error:
+            raise format_failure(error, raw)
         return reply.strip()
     try:
         return routed('report_chat', {**settings, 'model': MODEL, 'key': key}, execute)

@@ -4,6 +4,7 @@ import os
 import time
 
 from sabc.streaming import progress, check_cancelled
+from sabc.model_output import ModelResponseError
 
 audit = ContextVar('model_routing_audit', default=None)
 
@@ -42,6 +43,12 @@ def routed(role, preferred, execute):
             check_cancelled()
         except Exception as error:
             event.update(status='failed', error_type=type(error).__name__)
+            if isinstance(error, ModelResponseError):
+                event.update(error_stage=error.stage, error_details=error.details)
+                if error.retry_messages and index + 1 < len(routes):
+                    following = routes[index + 1]
+                    if (following['model'], following.get('base_url')) == (config['model'], config.get('base_url')):
+                        following['format_retry'] = error.retry_messages
             if role in ('analysis', 'report_chat') and progress.get():
                 progress.get()('')
             if index == len(routes) - 1:
