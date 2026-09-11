@@ -99,6 +99,17 @@ def check_budget(plan, company):
         raise ValueError('估计不可收回的损失超过承受上限，请先调整方案')
 
 
+def collection_gaps(life):
+    coverage = life.get('coverage', {})
+    return [key for key in DIMENSIONS
+            if coverage.get(key, {}).get('status') not in ('known', 'unknown', 'external', 'future')
+            or not str(coverage.get(key, {}).get('reason', '')).strip()]
+
+
+def collection_ready(life):
+    return bool(life.get('confirmed')) and not collection_gaps(life)
+
+
 def absorb(project, result, company, evidence):
     life = state(project)
     coverage = result.get('dimension_coverage') or {}

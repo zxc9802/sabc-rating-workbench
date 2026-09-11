@@ -228,6 +228,7 @@ def model_runs(pid:str):
 class Chat(BaseModel):
     message:str=Field(min_length=1,max_length=12000)
     field:str|None=None
+    generate_report:bool=False
 
 
 @app.post('/api/projects/{pid}/chat')
@@ -242,6 +243,8 @@ def chat(pid:str,body:Chat):
 def chat_turn(pid,body):
     check_cancelled()
     p=project_or_404(pid)
+    if body.generate_report and not lifecycle.collection_ready(p.get('lifecycle', {})):
+        raise ValueError('本阶段八维信息尚未梳理完整，请先补充关键问题')
     messages=p.get('messages',[])+[{'role':'user','content':body.message,'time':utcnow()}]
     s=settings()
     if model_router.deepseek() or (s.get('base_url') and s.get('model')):
@@ -265,7 +268,7 @@ def chat_turn(pid,body):
                 outcomes=[f.result() for f in futures]
         check_cancelled()
         context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
-        result=analyze(s,decrypt_key(s.get('encrypted_key','')),p,company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': body.generate_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
         result['retrieval_results']=outcomes
         result['retrieval_plan']=plan
         result['data_requests']=[]
@@ -275,6 +278,9 @@ def chat_turn(pid,body):
     else:
         result=guide(p,body.message,body.field)
         p.update(result['project_patch'])
+    if not body.generate_report:
+        result['proposal'] = None
+        result['stage_review'] = None
     followups=[q for q in result.get('questions',[])[:2] if q.strip() and q not in result['reply']]
     # Some providers put the questions in both fields, with different wording.
     # Keep the intact conversational reply instead of adding a second interview.
@@ -286,12 +292,9 @@ def chat_turn(pid,body):
     if result['mode']=='model': p['proposal']=result.get('proposal')
     if result['mode']=='model':
         lifecycle.absorb(p,result,company(),model_evidence_for(pid))
-        readiness=assess({**p,**p.get('pending_patch',{})},company(),model_evidence_for(pid),p.get('proposal') or {})
-        gaps=readiness['missing']
-        stage_review=p.get('lifecycle',{}).get('review')
-        if stage_review and stage_review.get('conclusion')!='needs_info' and not result.get('questions'):
-            gaps=[]
-        state='ready' if not gaps else 'gathering' if result.get('questions') else 'paused'
+        life = p.get('lifecycle', {})
+        gaps = lifecycle.collection_gaps(life)
+        state='ready' if lifecycle.collection_ready(life) else 'gathering' if result.get('questions') else 'paused'
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
                         'note':'可进入人工核对，尚未批准投入' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
     p['version']+=1

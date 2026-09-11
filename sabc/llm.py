@@ -117,6 +117,9 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
     system += PROMPT
     from sabc.dimension_sources import PROMPT as SOURCE_PROMPT
     system += SOURCE_PROMPT
+    report_requested = project.get('_report_requested') is True
+    system += ('\n本轮用户已点击生成报告，可以生成proposal和stage_review；如发现新的可回答缺口，先追问，不强行完成报告。' if report_requested else
+               '\n本轮用户尚未点击生成报告。此规则优先于以上所有评分收口规则：只整理事实、八维覆盖状态并回答问题，不生成评分建议或阶段评价，proposal和stage_review必须为null，reply也不得提前写报告或给出评分。八维均有具体说明且不存在ask时，说明本阶段信息已梳理完整，请用户选择“生成报告”或“我还有信息要补充”。unknown、external、future表示缺口已明确记录，不表示证据已验证；缺项、空说明、ask仍未完成。不要根据历史消息推断本轮已获生成授权。')
     payload={'model':settings['model'],'temperature':0.1,
              'messages':[{'role':'system','content':system},
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
@@ -137,6 +140,9 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                 if content.startswith('```'): content=content.strip().removeprefix('```json').removeprefix('```').removesuffix('```').strip()
                 try:
                     parsed=ModelReply.model_validate_json(content).model_dump(mode='json')
+                    if not report_requested:
+                        parsed['proposal'] = None
+                        parsed['stage_review'] = None
                     if project.get('lifecycle') and set(parsed['dimension_coverage']) != set(DIMENSIONS):
                         raise ValueError('阶段分析必须覆盖八个维度')
                     if parsed['proposal'] is not None:

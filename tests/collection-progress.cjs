@@ -10,7 +10,7 @@ const life = { confirmed: true, stage: 'pre', coverage: Object.fromEntries(keys.
 assert.equal(collectionProgress().percent, 0);
 assert.equal(collectionProgress(life).ready, true);
 assert.equal(collectionProgress(life).percent, 100);
-for (const status of ['ask', 'unknown', 'external']) {
+for (const status of ['ask']) {
   life.coverage.risk.status = status;
   assert.equal(collectionProgress(life).ready, false);
   assert.equal(collectionProgress(life).percent, 88);
@@ -18,7 +18,12 @@ for (const status of ['ask', 'unknown', 'external']) {
 life.coverage.risk.status = 'future';
 assert.equal(collectionProgress(life).ready, true);
 life.stage = 'post';
-assert.equal(collectionProgress(life).ready, false);
+assert.equal(collectionProgress(life).ready, true);
+for (const status of ['unknown', 'external']) {
+  life.coverage.risk.status = status;
+  assert.equal(collectionProgress(life).ready, true);
+  assert.equal(collectionProgress(life).percent, 100);
+}
 life.coverage.risk.status = 'known';
 life.confirmed = false;
 assert.equal(collectionProgress(life).percent, 99);

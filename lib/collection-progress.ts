@@ -5,8 +5,7 @@ const DIMENSIONS = ['strategy', 'market', 'return', 'resources', 'replication', 
 export function collectionProgress(life?: Lifecycle) {
   const complete = DIMENSIONS.filter(key => {
     const item = life?.coverage[key];
-    return !!item?.reason.trim() && (item.status === 'known' ||
-      (item.status === 'future' && life?.stage !== 'post'));
+    return !!item?.reason.trim() && ['known', 'unknown', 'external', 'future'].includes(item.status);
   }).length;
   const ready = !!life?.confirmed && complete === DIMENSIONS.length;
   return { complete, ready, percent: ready ? 100 : Math.min(99, Math.round(complete / DIMENSIONS.length * 100)) };

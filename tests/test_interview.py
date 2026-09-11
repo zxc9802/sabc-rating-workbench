@@ -20,7 +20,8 @@ def test_pending_facts_merge_and_readiness_uses_rule_engine(client,monkeypatch):
     second=client.get(f'/api/projects/{pid}').json()['project']
     assert second['pending_patch']=={'risks':'早先待确认风险','timeframe':'4周'}
     assert second['risks']==p['risks']
-    assert second['interview']['state']=='ready' and second['interview']['questions']==[]
+    assert second['interview']['state']=='gathering'
+    assert second['proposal'] is None
     assert client.post(f'/api/projects/{pid}/assess',json={'confirmed':True}).status_code==422
 
 
@@ -56,3 +57,42 @@ def test_no_followup_keeps_incomplete_interview_paused(client,monkeypatch):
     project=client.get(f'/api/projects/{pid}').json()['project']
     assert project['interview']['state']=='paused'
     assert project['interview']['gaps'] and not project['interview']['questions']
+
+
+def test_collection_completion_waits_for_explicit_report_action(client, monkeypatch):
+    from copy import deepcopy
+    import sabc.app as module
+    p, company, _, proposal = case()
+    client.put('/api/company', json=company)
+    pid = client.post('/api/projects', json=p).json()['id']
+    project = module.store.get('projects', pid)
+    project['lifecycle'] = {**module.lifecycle.initial(), 'stage': 'pre', 'confirmed': True, 'coverage': {
+        key: {'status': 'external' if key == 'risk' else 'known', 'reason': '已梳理，监管适用留待外部核查'}
+        for key in module.DIMENSIONS}, 'reviews': []}
+    module.store.save('projects', project)
+    monkeypatch.setattr(module, 'settings', lambda: {'base_url': 'https://model.example', 'model': 'test'})
+    requests = []
+    def reply(settings, key, project, *args):
+        requests.append(project['_report_requested'])
+        return {'mode': 'model', 'reply': '本阶段信息已梳理完整', 'questions': [], 'project_patch': {},
+                'dimension_coverage': project['lifecycle']['coverage'], 'proposal': deepcopy(proposal),
+                'stage_review': {'conclusion': 'trial', 'summary': '阶段初评', 'next_action': '验证', 'next_review_days': 14}}
+    monkeypatch.setattr(module, 'analyze', reply)
+    url = f'/api/projects/{pid}'
+    ordinary = client.post(url + '/chat', json={'message': '资料补充完了'})
+    assert ordinary.status_code == 200
+    assert ordinary.json()['proposal'] is None and ordinary.json()['stage_review'] is None
+    detail = client.get(url).json()
+    assert detail['project']['interview']['state'] == 'ready'
+    assert detail['assessments'] == []
+    assert not detail['project']['lifecycle'].get('review')
+    requested = client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True})
+    assert requested.status_code == 200
+    assert requested.json()['proposal'] is not None
+    assert requested.json()['stage_review'] is not None
+    assert requests == [False, True]
+    project = module.store.get('projects', pid)
+    project['lifecycle']['coverage']['risk']['status'] = 'ask'
+    module.store.save('projects', project)
+    assert client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True}).status_code == 422
+    assert requests == [False, True]

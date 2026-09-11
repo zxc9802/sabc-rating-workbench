@@ -14,12 +14,12 @@ def model_response(monkeypatch,content):
 
 def test_model_cannot_return_final_grade_as_authority(monkeypatch):
     model_response(monkeypatch,{'reply':'直接S','project_patch':{},'proposal':None,'grade':'S'})
-    with pytest.raises(ValueError): analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
+    with pytest.raises(ValueError): analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
 
 
 def test_model_cannot_patch_company_or_verification(monkeypatch):
     model_response(monkeypatch,{'reply':'建议','project_patch':{'company':{'budget':999999},'verification_status':'verified','target_user':'已说明用户'},'proposal':None})
-    r=analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
+    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
     assert r['project_patch']=={'target_user':'已说明用户'}
 
 
@@ -40,7 +40,7 @@ def test_boolean_score_rejected_before_coercion():
 
 def test_model_malformed_proposal_is_rejected(monkeypatch):
     model_response(monkeypatch,{'reply':'建议','project_patch':{},'proposal':{'dimensions':[]}})
-    with pytest.raises(ValueError): analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
+    with pytest.raises(ValueError): analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
 
 
 def test_incomplete_assumptions_repaired_once(monkeypatch):
@@ -56,7 +56,7 @@ def test_incomplete_assumptions_repaired_once(monkeypatch):
         content={'reply':'方向待验证','proposal':incomplete if len(calls)==1 else proposal}
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps(content)}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
-    r=analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
+    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
     assert len(calls)==2
     assert r['proposal']['assumptions'][0]['validation_method']=='负责人核对真实订单'
     assert 0<calls[1]['timeout']<=calls[0]['timeout']<=90
@@ -77,7 +77,7 @@ def test_incomplete_assumptions_never_accepted_after_repair(monkeypatch,missing)
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps({'reply':'建议','proposal':proposal})}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
     with pytest.raises(ValueError,match='缺少完整的关键假设'):
-        analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
+        analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
     assert len(calls)==2
 
 
@@ -92,7 +92,7 @@ def test_complete_or_no_proposal_does_not_retry(monkeypatch,has_proposal):
         calls.append(1)
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps({'reply':'建议','proposal':proposal})}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
-    r=analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
+    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
     assert len(calls)==1
     assert (r['proposal'] is not None)==has_proposal
 
@@ -109,7 +109,16 @@ def test_structural_error_is_repaired_without_accepting_invalid_proposal(monkeyp
         content=invalid if len(calls)==1 else {'reply':'还需核实需求。','proposal':None}
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps(content)}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
-    result=analyze({'base_url':'https://model.example','model':'test'},'',{}, {}, [], [])
+    result=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
     assert result['proposal'] is None
     assert result['reply']=='还需核实需求。'
     assert len(calls)==2 and 0<calls[1]<=calls[0]<=90
+
+
+def test_ordinary_interview_does_not_accept_unsolicited_scoring(monkeypatch):
+    model_response(monkeypatch, {'reply': '资料已梳理，请选择生成报告或继续补充。', 'project_patch': {},
+                                'proposal': {'dimensions': []},
+                                'stage_review': {'conclusion': 'trial', 'summary': '提前评价', 'next_action': '试点'}})
+    result = analyze({'base_url': 'https://model.example', 'model': 'test'}, '', {}, {}, [], [])
+    assert result['proposal'] is None
+    assert result['stage_review'] is None
