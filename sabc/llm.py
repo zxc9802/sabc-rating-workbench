@@ -160,12 +160,14 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
 发现影响决策且用户尚能回答的新缺口时，questions给出最多两个问题，对应dimension_coverage设为ask，reply仅给必要解释和具体问题，proposal/stage_review/pilot_plan设为null，返回访谈，不生成报告。用户已明确无法提供、需外部核查或未来验证的事项不能反复追问，保留unknown/external/future及原因。
 无新可答缺口则questions为空，proposal必须包含修订后的八维判断和验证任务，不能只返回同意。未知保留，规则引擎计算等级。若暂缓，stage_review.summary首句明确暂缓原因、具体关键缺口和决策影响。reply只简短衔接报告，不展示顾问轮流发言。review_notes保留核对依据和修订原因，不能把一致意见当新增证据。
 """
+    if project.get('_review_followup'):
+        system += '\n增量复审：上一轮已完成全面审查，本轮直接处理用户对审查问题的补充，不再先重写初稿。优先复核新增事实影响的维度，沿用未受影响且有依据的判断；新增内容改变预算、收益、资源、失败损失或商业模式时，必须同时复核关联维度，必要时全面复核。以原始事实为准，旧初稿和旧审查意见都可能过时。仍有可答缺口时仅返回简短问题、八维覆盖状态和简短review_notes，proposal/stage_review/pilot_plan必须为null，不重写完整建议；所有缺口处理后才返回一次完整修订建议。此时允许project_patch提取本次用户明确提供的事实，作为待用户核对的资料，禁止修改或编造其他事实。三个视角的review_notes各用一句话说明本次变化或沿用理由。'
     payload={'model':settings['model'],'temperature':0.1,
              'messages':[{'role':'system','content':system},
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
              'response_format':{'type':'json_object'}}
     if reviewing:
-        payload['messages'][1]['content'] = json.dumps({'facts': model_context(project,company,evidence,messages), 'draft_to_review': project['_review_draft']}, ensure_ascii=False)
+        payload['messages'][1]['content'] = json.dumps({'facts': model_context(project,company,evidence,messages), 'draft_to_review': project['_review_draft'], 'previous_review': project.get('_review_followup')}, ensure_ascii=False)
     payload['messages'][0]['content']+='\n面向用户的reply、评分理由及验证说明禁止出现内部证据ID、数据库编号、字段名或growth等枚举代码。引用资料使用可读标题与来源网址；项目类型使用中文名称。内部ID仅允许出现在结构化evidence_ids等关联字段中。'
     if settings.get('deepseek'):
         payload.update(thinking={'type':'enabled'}, reasoning_effort=settings['effort'])
@@ -183,7 +185,7 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                 try:
                     parsed=(ReviewReply if reviewing else ModelReply).model_validate_json(content).model_dump(mode='json')
                     if reviewing:
-                        if parsed['project_patch'] or parsed['data_requests']:
+                        if (parsed['project_patch'] and not project.get('_review_followup')) or parsed['data_requests']:
                             raise ValueError('复核不能修改项目事实或发起额外取数')
                         if {n['perspective'] for n in parsed['review_notes']} != {'value', 'execution', 'risk'}:
                             raise ValueError('复核必须覆盖三个审查视角')

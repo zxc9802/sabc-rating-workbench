@@ -270,6 +270,9 @@ def chat_turn(pid,body):
             record=evaluate(pid,{'confirmed':True})
             return {'mode':'model','report_id':record['id'],'reply':'报告已生成。'}
     p['lifecycle'] = {**lifecycle.state(p), 'mode': 'continuous', 'confirmed': True}
+    previous_review = deepcopy(p.get('assessment_review') or {})
+    continuation = bool(previous_review.get('questions') and previous_review.get('draft')
+                        and previous_review.get('continuation_fingerprint') == report_readiness.fingerprint(p,company(),evidence_for(pid)))
     p.pop('assessment_review', None)
     p['proposal']=None
     # New input invalidates the old approval even if this interview request fails.
@@ -308,25 +311,38 @@ def chat_turn(pid,body):
         check_cancelled()
         context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
         starting_inputs=report_readiness.fingerprint(p,company(),evidence_for(pid))
-        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': False, '_prepare_report': True, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
-        ready_to_review = not result.get('questions') and lifecycle.collection_ready({'confirmed':True,'coverage':result.get('dimension_coverage',{})})
-        if ready_to_review and result.get('proposal'):
-            check_cancelled()
-            if progress.get():
-                progress.get()('正在核对关键依据…')
-            draft = deepcopy(result)
+        # Reuse only an unchanged reviewed baseline; newly retrieved evidence requires a full review.
+        continuation = continuation and not outcomes
+        if continuation:
+            draft = deepcopy(previous_review['draft'])
             review_project = {**p, '_previous_stage_report': previous_report,
-                              'pending_patch': {**p.get('pending_patch', {}), **draft.get('project_patch', {})}}
+                              '_review_followup': {'notes':previous_review.get('notes',[]),
+                                                   'questions':previous_review['questions']}}
+            if progress.get(): progress.get()('正在核对本次补充…')
             result = review_report(s, decrypt_key(s.get('encrypted_key', '')), review_project,
                                    company(), model_evidence_for(pid), messages, draft)
-            check_cancelled()
-            # Review may revise judgments, never the user's extracted facts.
-            result['project_patch'] = draft.get('project_patch', {})
+            ready_to_review = True
+        else:
+            result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': False, '_prepare_report': True, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+            ready_to_review = not result.get('questions') and lifecycle.collection_ready({'confirmed':True,'coverage':result.get('dimension_coverage',{})})
+            if ready_to_review and not result.get('proposal'):
+                raise ValueError('信息完整但未返回可审查的内部判断')
+            if ready_to_review and result.get('proposal'):
+                check_cancelled()
+                if progress.get(): progress.get()('正在核对关键依据…')
+                draft = deepcopy(result)
+                review_project = {**p, '_previous_stage_report': previous_report,
+                                  'pending_patch': {**p.get('pending_patch', {}), **draft.get('project_patch', {})}}
+                result = review_report(s, decrypt_key(s.get('encrypted_key', '')), review_project,
+                                       company(), model_evidence_for(pid), messages, draft)
+                result['project_patch'] = draft.get('project_patch', {})
+        check_cancelled()
+        if ready_to_review:
             p['assessment_review'] = {'time': utcnow(), 'draft_proposal': draft['proposal'],
-                                      'revised_proposal': result.get('proposal'),
+                                      'draft': draft, 'revised_proposal': result.get('proposal'),
                                       'notes': result.get('review_notes', []), 'questions': result.get('questions', []),
                                       'approved':bool(result.get('proposal') and not result.get('questions'))}
-        if not ready_to_review:
+        else:
             result['proposal']=None
             result['stage_review']=None
         result['retrieval_results']=outcomes
@@ -360,6 +376,8 @@ def chat_turn(pid,body):
         result['reply']='八维信息与对抗性审查已完成。'
         p['messages'][-1]['content']=result['reply']
         p['assessment_review']['input_fingerprint']=report_readiness.fingerprint(p,company(),evidence_for(pid))
+    if p.get('assessment_review', {}).get('questions'):
+        p['assessment_review']['continuation_fingerprint']=report_readiness.fingerprint(p,company(),evidence_for(pid))
     p['version']+=1
     with jobs.lock:
         check_cancelled()
