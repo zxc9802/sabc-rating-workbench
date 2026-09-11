@@ -221,4 +221,6 @@ def test_advance_requires_report_and_carries_previous_snapshot(client, monkeypat
     assert not post['lifecycle'].get('actual_end')
     assert client.post(url + '/chat', json={'message': '开始复盘'}).status_code == 200
     assert captured[-1]['project']['previous_stage_report']['id'] == 'during-report'
+    saved_messages = client.get(url).json()['project']['messages']
+    assert [m['stage'] for m in saved_messages[-4:]] == ['during', 'during', 'post', 'post']
     assert module.store.get('assessments', 'pre-report')['result']['grade'] == 'B'

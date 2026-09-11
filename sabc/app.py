@@ -266,7 +266,7 @@ def chat_turn(pid,body):
         if saved and saved.get('project_id') == pid:
             previous_report = {'id': saved['id'], 'created_at': saved['created_at'], 'result': saved['result'],
                                'lifecycle': lifecycle.context(saved['snapshot']['project'])}
-    messages=p.get('messages',[])+[{'role':'user','content':body.message,'time':utcnow()}]
+    messages=p.get('messages',[])+[{'role':'user','content':body.message,'stage':lifecycle.state(p)['stage'],'time':utcnow()}]
     s=settings()
     if model_router.deepseek() or (s.get('base_url') and s.get('model')):
         from sabc.dimension_sources import rule_plan
@@ -309,7 +309,7 @@ def chat_turn(pid,body):
         result['reply']+='\n\n'+'\n\n'.join(followups)
     valid_refs={e['id'] for e in model_evidence_for(pid)}
     refs=[eid for eid in result.get('reply_evidence_ids',[]) if eid in valid_refs]
-    p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'evidence_ids':refs,'time':utcnow()}]
+    p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'stage':lifecycle.state(p)['stage'],'evidence_ids':refs,'time':utcnow()}]
     if result['mode']=='model': p['proposal']=result.get('proposal')
     if result['mode']=='model':
         lifecycle.absorb(p,result,company(),model_evidence_for(pid))
