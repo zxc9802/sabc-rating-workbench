@@ -16,7 +16,7 @@ def mixtoken_route():
         return None
     return {'base_url': os.getenv('SABC_MIXTOKEN_BASE_URL', 'https://api.mixtoken.ai/v1').rstrip('/'),
             'model': os.getenv('SABC_MIXTOKEN_MODEL', 'deepseek-v4.1-flash'), 'key': key,
-            'primary': True, 'deepseek': False, 'single_attempt': True, 'stream': True}
+            'primary': True, 'deepseek': False, 'stream': True}
 
 
 def gemini_route(preferred):
@@ -65,7 +65,8 @@ def routed(role, preferred, execute):
     for index, config in enumerate(routes):
         check_cancelled()
         started = time.monotonic()
-        event = {'role': role, 'model': config['model'], 'primary': config['primary'], 'attempt': config.get('attempt', 1)}
+        event = {'role': role, 'model': config['model'], 'primary': config['primary'], 'attempt': config.get('attempt', 1),
+                 'provider': urlparse(config.get('base_url', '')).hostname}
         try:
             result = execute(config)
             check_cancelled()

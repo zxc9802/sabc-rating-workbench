@@ -130,6 +130,7 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
         system += '\n本轮任务：用户已点击生成报告。根据已收集信息和已有证据生成完整proposal与stage_review（包括试点建议），不再提问或独立审查。questions为空，project_patch为空，dimension_coverage沿用已有覆盖状态，pilot_plan为null，reply只写“报告已生成。”。未知依据如实保留，不能编造。'
     else:
         system += '\n本轮任务：仅整理事实与八维覆盖状态，不生成或预备评分草稿。proposal、stage_review、pilot_plan必须为null。有问题直接追问；无可答缺口且questions为空时，reply只写“信息已整理完成，现在生成报告吗？”。不要另说八维收集完毕，也不要在后台继续生成报告。每个覆盖理由只需简洁说明事实或缺口。'
+    system += '\n最终JSON顶层字段固定为reply、reply_evidence_ids、project_patch、proposal、data_requests、questions、needs_external_action、dimension_coverage、stage_review、pilot_plan。dimension_coverage必须含完整八维；stage_review与pilot_plan位于顶层，不能嵌入proposal。proposal内仅有dimensions、assumptions、pros、cons、policy_caps、vetoes、s_conditions、decision_brief。注意每层大括号必须正确闭合，整个响应是一个JSON对象。'
     payload={'model':settings['model'],'temperature':0.1,
              'messages':[{'role':'system','content':system},
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
