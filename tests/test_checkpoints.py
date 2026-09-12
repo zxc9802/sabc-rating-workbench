@@ -80,3 +80,21 @@ def test_saved_project_facts_can_be_used_without_reasking():
     r['dimension_coverage']['market']['items'] = {'user': {'status': 'known', 'source': 'project', 'quote': '泰国通勤女性'}}
     normalize(r, {'target_user': '泰国通勤女性'}, {}, [], [])
     assert r['dimension_coverage']['market']['items']['user']['verified']
+
+
+def test_explicit_unverified_compliance_is_an_acknowledged_gap():
+    for quote, expected in [('FDA通报和准入资格都未书面核验', True), ('产品配方未经独立核验', True), ('未发现违规产品', False)]:
+        r = result()
+        r['dimension_coverage']['risk']['items'] = {
+            'compliance': {'status': 'external', 'source': 'user', 'quote': quote}}
+        normalize(r, {}, {}, [], [{'role': 'user', 'content': quote}])
+        assert r['dimension_coverage']['risk']['items']['compliance']['verified'] is expected
+
+
+def test_corrected_roas_formula_survives_earlier_roi_wording():
+    for quote, expected in [('广告ROAS等于扣退款后的实收销售额除以广告投放费', True), ('广告ROAS目标2.5', False)]:
+        r = result()
+        r['dimension_coverage']['return']['items'] = {
+            'metric_formula': {'status': 'known', 'source': 'user', 'quote': quote}}
+        normalize(r, {}, {}, [], [{'role': 'user', 'content': '之前叫整体ROI不准确。' + quote}])
+        assert r['dimension_coverage']['return']['items']['metric_formula']['verified'] is expected

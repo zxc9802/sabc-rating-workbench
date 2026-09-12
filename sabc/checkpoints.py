@@ -14,7 +14,7 @@ CHECKS = {
     'opportunity': {'options': '不做、延后或采用现成方案，分别有什么影响？', 'comparison': '与可行替代方案相比，为什么选择这个方案？', 'tradeoff': '会占用哪些现有业务或其他项目的资源？'},
 }
 RESOLVED = ('known', 'unknown', 'external', 'future')
-UNAVAILABLE = re.compile(r'不知道|不清楚|未知|未定|没定|未确认|待确认|尚未|还没|没有|没做|没问|未询价|待验证|待核|无法|不能提供|需要.*(?:核查|验证|试验)|预计|预估|估算|假设')
+UNAVAILABLE = re.compile(r'不知道|不清楚|未知|未定|没定|未确认|待确认|尚未|还没|没有|没做|没问|未询价|未(?:经|做|完成)?(?:书面|独立|正式)?(?:核验|核查|验证|询价|报价|确认|落实)|待验证|待核|无法|不能提供|需要.*(?:核查|验证|试验)|预计|预估|估算|假设')
 
 
 def complete(items, dimension):
@@ -58,7 +58,7 @@ def normalize(result, project, company, evidence, messages):
                 if status == 'known':
                     grounded = grounded and bool(re.search(r'(?:\d+(?:\.\d+)?|[零一二三四五六七八九十百千万两]+)\s*(?:万|千|元|块)|(?:损失|预算|投入)(?:为|是)?[零0]|无现金支出', quote))
             if key == 'metric_formula' and re.search(r'ROI|投产比', user, re.I):
-                grounded = grounded and bool(re.search(r'ROI|投产比|分子|分母', quote, re.I))
+                grounded = grounded and bool(re.search(r'ROI|ROAS|投入收益率|投产比|分子|分母', quote, re.I))
                 if status == 'known':
                     grounded = grounded and bool(re.search(r'除以|÷|/|分子|分母|销售额.*(?:除|成本|费用)|收入.*(?:除|成本|费用)', quote))
             verified = bool(grounded and status in RESOLVED)
