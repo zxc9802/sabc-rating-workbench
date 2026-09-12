@@ -74,9 +74,10 @@ def normalize(result, project, company, evidence, messages):
                 quote, source, status = prior_quote, prior['source'], prior['status']
                 grounded = True
             verified = bool(grounded and status in RESOLVED)
-            if not verified and status != 'ask':
+            if not verified:
                 rejected.append({'dimension': dimension, 'checkpoint': key, 'status': status,
                                  'source': source, 'quote_length': len(quote),
+                                 'returned': key in raw, 'returned_keys': list(raw),
                                  'source_match': bool(quote and quote in sources.get(source, '')),
                                  'user_match': bool(quote and quote in user),
                                  'unavailable_word': bool(UNAVAILABLE.search(quote))})
