@@ -126,3 +126,37 @@ def test_report_qa_uses_same_fallback_chain(monkeypatch):
     report={'result':{'grade':'B'},'snapshot':{}}
     assert report_qa.answer({'base_url':'https://provider.example/v1'},'synthetic-shared',report,[],'为什么')=='根据这份报告说明'
     assert seen==['glm-5.3-flash','glm-5.3-flash','gpt-5.6-luna','deepseek-flash']
+
+
+def test_primary_stream_repairs_json_once_before_fallback(monkeypatch):
+    monkeypatch.setenv('SABC_MIXTOKEN_API_KEY', 'synthetic-mixtoken')
+    times = iter([100, 100, 110])
+    monkeypatch.setattr(report_qa.time, 'monotonic', lambda: next(times))
+    calls = []
+    def complete(client, url, payload, headers, remaining):
+        calls.append((payload, remaining))
+        assert payload['stream'] is True
+        assert payload['model'] == 'deepseek-v4.1-flash'
+        if len(calls) == 1:
+            return '{"reply":"成本未知"'
+        assert any('格式补正' in message['content'] for message in payload['messages'])
+        return '{"reply":"成本未知，不能计算净利润。"}'
+    monkeypatch.setattr(report_qa, 'completion', complete)
+    # The router has its own clock; exercise this primary route without consuming
+    # the request deadline's clock through audit timing.
+    monkeypatch.setattr(report_qa, 'routed', lambda role, preferred, execute: execute(report_qa.mixtoken_route()))
+    assert report_qa.answer({}, '', {'result': {}, 'snapshot': {}}, [], '能算利润吗') == '成本未知，不能计算净利润。'
+    assert [remaining for _, remaining in calls] == [90, 80]
+
+
+def test_primary_stream_format_retry_stops_after_two_invalid_outputs(monkeypatch):
+    monkeypatch.setenv('SABC_MIXTOKEN_API_KEY', 'synthetic-mixtoken')
+    calls = []
+    def complete(*args):
+        calls.append(1)
+        return '{"reply":"不完整"'
+    monkeypatch.setattr(report_qa, 'completion', complete)
+    monkeypatch.setattr(report_qa, 'routed', lambda role, preferred, execute: execute(report_qa.mixtoken_route()))
+    with pytest.raises(ValueError, match='未完成'):
+        report_qa.answer({}, '', {'result': {}, 'snapshot': {}}, [], '问题')
+    assert len(calls) == 2
