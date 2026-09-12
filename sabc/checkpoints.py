@@ -29,6 +29,8 @@ def normalize(result, project, company, evidence, messages):
                'project': json.dumps({k: project[k] for k in PROJECT_FIELDS if k in project}, ensure_ascii=False),
                'evidence': '\n'.join(str(e.get('content', '')) for e in evidence)}
     dialogue = project.get('messages', []) + messages
+    latest_user = next((m.get('content', '') for m in reversed(messages) if m.get('role') == 'user'), '')
+    previous = project.get('lifecycle', {}).get('coverage', {})
     coverage = result.get('dimension_coverage') or {}
     pending = []
     for dimension, checks in CHECKS.items():
@@ -61,6 +63,15 @@ def normalize(result, project, company, evidence, messages):
                 grounded = grounded and bool(re.search(r'ROI|ROAS|投入收益率|投产比|分子|分母', quote, re.I))
                 if status == 'known':
                     grounded = grounded and bool(re.search(r'除以|÷|/|分子|分母|销售额.*(?:除|成本|费用)|收入.*(?:除|成本|费用)', quote))
+            prior = previous.get(dimension, {}).get('items', {}).get(key, {})
+            prior_quote = str(prior.get('quote', '')).strip()
+            # A model omission/paraphrase cannot erase a previously grounded answer.
+            # A quoted change in the latest user turn may reopen it for clarification.
+            if (not grounded and prior.get('verified') is True and prior.get('status') in RESOLVED
+                    and prior_quote and prior_quote in sources.get(prior.get('source'), '')
+                    and not (source == 'user' and len(quote) >= 2 and quote in latest_user)):
+                quote, source, status = prior_quote, prior['source'], prior['status']
+                grounded = True
             verified = bool(grounded and status in RESOLVED)
             items[key] = {'status': status if verified else 'ask', 'source': source,
                           'quote': quote if verified else '', 'verified': verified}
@@ -91,5 +102,6 @@ PROMPT = '''
 每个检查项独立判断：投入上限必须是用户明确承诺的总额，最大损失必须是可承受的损失金额，清货动作不能替代损失上限；ROI目标值和列举费用不能替代分子分母定义。报价未知不等于投入上限未知，效果待验证不等于成功标准未定；一个未知不能替代整维其他问题。引用必须真正支持当前检查项，不能用泛泛的项目意愿填充预算、资源等项。
 按项目类型理解问题：内部项目看产能/成本和内部需求，不强问销售收入；不适用的事项用known，引用能说明不适用的事实，不凭空宣称不适用。已有资料或用户一次回答涵盖多项可直接引用，不重复问。
 继承仍有效的历史items原文，但有新信息冲突时更新。全量返回检查项，短引用即可，避免长篇解释。每轮从尚未解决的检查项选择最多两个单一主题问题，优先现金约束、价值和明显风险；逐渐覆盖其他维度，不集中重复打磨某项。
+补充一项不能抹掉其他已处理项；此前明确未知也不重新索要。只有最新用户原话改变或否定此前依据，才将该项重开为ask，并在quote引用这句新的冲突原文；不能因为本轮没有再次提及而重开。明确更正的金额或公式直接使用新原文更新，不保留被替代的旧值。
 只有所有检查项均处理完且questions为空才询问是否生成报告；普通访谈不生成proposal或stage_review，不启动独立审查。
 '''

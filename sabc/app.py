@@ -249,11 +249,16 @@ class Chat(BaseModel):
 def chat(pid:str,body:Chat):
     token=model_router.audit.set(lambda event:store.save('model_runs',{'project_id':pid,**event}))
     notify = progress.get()
-    report_progress = progress.set(lambda _: notify('正在生成报告…')) if body.generate_report and notify else None
+    # Interview JSON is normalized after SSE completes; never expose a draft
+    # question that may be rejected or replaced by the collection gate.
+    display_progress = progress.set((lambda _: notify('正在生成报告…')) if body.generate_report else (lambda _: None)) if notify else None
     try:
-        return chat_turn(pid,body)
+        result = chat_turn(pid,body)
+        if notify and not body.generate_report:
+            notify(result['reply'])
+        return result
     finally:
-        if report_progress is not None: progress.reset(report_progress)
+        if display_progress is not None: progress.reset(display_progress)
         model_router.audit.reset(token)
 
 

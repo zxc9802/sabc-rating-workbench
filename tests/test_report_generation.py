@@ -110,3 +110,23 @@ def test_generation_rejects_inputs_changed_during_model_call(client,monkeypatch)
     monkeypatch.setattr(module,'analyze',change)
     assert client.post(url+'/chat',json={'message':'生成','generate_report':True}).status_code==422
     assert not client.get(url).json()['assessments']
+
+
+@pytest.mark.parametrize('report', [False, True])
+def test_chat_never_publishes_unvalidated_model_draft(monkeypatch, report):
+    import sabc.app as module
+    from sabc.streaming import progress
+    events = []
+    notify = events.append
+    token = progress.set(notify)
+    def turn(*args):
+        progress.get()('已经回答过的报价，还要再问一次？')
+        return {'reply': '报告已生成。' if report else '信息已整理完成，现在生成报告吗？'}
+    monkeypatch.setattr(module, 'chat_turn', turn)
+    try:
+        result = module.chat('test-project', module.Chat(message='补充', generate_report=report))
+        assert events == (['正在生成报告…'] if report else [result['reply']])
+        assert '报价' not in result['reply']
+        assert progress.get() is notify
+    finally:
+        progress.reset(token)

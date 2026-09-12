@@ -115,3 +115,27 @@ def test_all_grounded_checkpoints_close_without_more_model_questions_or_retrieva
     assert collection_ready({'confirmed': True, 'coverage': r['dimension_coverage']})
     assert r['questions'] == r['data_requests'] == r['reply_evidence_ids'] == []
     assert r['reply'] == '信息已整理完成，现在生成报告吗？'
+
+
+def test_supplement_preserves_grounded_unknown_without_reasking():
+    quote = '售价与单件成本完全未知'
+    prior = {'status': 'unknown', 'source': 'user', 'quote': quote, 'verified': True}
+    project = {'messages': [{'role': 'user', 'content': quote}],
+               'lifecycle': {'coverage': {'return': {'items': {'costs': prior}}}}}
+    r = normalize(result(), project, {}, [], [{'role': 'user', 'content': '首笔3000元包含在测款预算里'}])
+    assert r['dimension_coverage']['return']['items']['costs'] == prior
+
+
+def test_new_quoted_change_can_update_or_reopen_prior_cash_limit():
+    prior = {'status': 'known', 'source': 'user', 'quote': '总投入上限3万元', 'verified': True}
+    project = {'messages': [{'role': 'user', 'content': prior['quote']}],
+               'lifecycle': {'coverage': {'cash': {'items': {'investment_limit': prior}}}}}
+    for quote, status in [('总投入上限改为2万元', 'known'), ('总投入上限需要重新讨论', 'ask')]:
+        r = result()
+        r['dimension_coverage']['cash']['items'] = {
+            'investment_limit': {'status': status, 'source': 'user', 'quote': quote}}
+        normalize(r, project, {}, [], [{'role': 'user', 'content': quote}])
+        item = r['dimension_coverage']['cash']['items']['investment_limit']
+        assert item['status'] == status
+        assert item['verified'] is (status == 'known')
+        if status == 'known': assert item['quote'] == quote
