@@ -47,7 +47,7 @@ def completion(client, url, payload, headers, remaining):
     if url.endswith(':generateContent'):
         return gemini_completion(client, url, payload, headers, remaining)
     notify = progress.get()
-    if notify is None:
+    if notify is None and not payload.get('stream'):
         r = client.post(url, json=payload, headers=headers, timeout=remaining)
         r.raise_for_status()
         check_cancelled()
@@ -55,6 +55,7 @@ def completion(client, url, payload, headers, remaining):
         if choice.get('finish_reason') not in (None, 'stop'):
             raise ModelResponseError('模型未完成有效回答', 'response_incomplete', error_code='unfinished_output')
         return choice['message']['content']
+    notify = notify or (lambda _: None)
     notify('')
     content = ''
     finished = False

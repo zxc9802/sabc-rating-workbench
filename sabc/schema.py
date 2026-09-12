@@ -10,6 +10,7 @@ class Dimension(BaseModel):
     reason: str = ''
     basis: Literal['fact', 'assumption', 'unknown'] = 'unknown'
     evidence_ids: list[str] = Field(default_factory=list)
+    missing_evidence: str = ''
 
 
 class Assumption(BaseModel):
@@ -35,6 +36,7 @@ class Proposal(BaseModel):
     policy_caps: list[str] = Field(default_factory=list)
     vetoes: list[Veto] = Field(default_factory=list)
     s_conditions: dict[str, StrictBool] = Field(default_factory=dict)
+    decision_brief: dict[str, str] = Field(default_factory=dict)
 
 
 def validate_amounts(data, fields):

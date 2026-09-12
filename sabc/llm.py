@@ -124,6 +124,8 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
     if not report_requested:
         from sabc.checkpoints import PROMPT as CHECKPOINT_PROMPT
         system += CHECKPOINT_PROMPT
+    from sabc.standard import INTERVIEW, REPORT
+    system += REPORT if report_requested else INTERVIEW
     if report_requested:
         system += '\n本轮任务：用户已点击生成报告。根据已收集信息和已有证据生成完整proposal与stage_review（包括试点建议），不再提问或独立审查。questions为空，project_patch为空，dimension_coverage沿用已有覆盖状态，pilot_plan为null，reply只写“报告已生成。”。未知依据如实保留，不能编造。'
     else:
@@ -132,6 +134,8 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
              'messages':[{'role':'system','content':system},
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
              'response_format':{'type':'json_object'}}
+    if settings.get('stream'):
+        payload['stream'] = True
     payload['messages'][0]['content']+='\n面向用户的reply、评分理由及验证说明禁止出现内部证据ID、数据库编号、字段名或growth等枚举代码。引用资料使用可读标题与来源网址；项目类型使用中文名称。内部ID仅允许出现在结构化evidence_ids等关联字段中。'
     payload['messages'] += settings.get('format_retry', [])
     if settings.get('deepseek'):

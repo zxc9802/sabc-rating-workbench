@@ -1,8 +1,8 @@
 export type RecordData = Record<string, unknown>;
 export type Dimension = { key: string; name: string; weight: number };
-export type Score = { score: number | null; reason: string; basis: string; evidence_ids: string[] };
+export type Score = { missing_evidence?: string; score: number | null; reason: string; basis: string; evidence_ids: string[] };
 export type Assumption = { id: string; claim: string; evidence_ids: string[]; validation_method?: string; pass_threshold?: string; fail_threshold?: string; level?: string };
-export type Proposal = { dimensions: Record<string, Score>; assumptions: Assumption[]; pros: string[]; cons: string[]; policy_caps: string[]; vetoes: { reason: string; confirmed: boolean; evidence_ids: string[] }[]; s_conditions: Record<string, boolean> };
+export type Proposal = { decision_brief?: Record<string, string>; dimensions: Record<string, Score>; assumptions: Assumption[]; pros: string[]; cons: string[]; policy_caps: string[]; vetoes: { reason: string; confirmed: boolean; evidence_ids: string[] }[]; s_conditions: Record<string, boolean> };
 export type Message = { stage?: Stage; evidence_ids?: string[]; role: string; content: string; mode?: string; field?: string; time?: string };
 export type Stage = 'pre' | 'during' | 'post';
 export type Coverage = { status: 'known' | 'ask' | 'unknown' | 'external' | 'future'; reason: string; items?: Record<string, { status: string; source: string; quote: string; verified: boolean }> };

@@ -2,14 +2,14 @@
 import json
 import httpx
 from sabc.streaming import completion
-from sabc.model_router import routed, authorization, endpoint
+from sabc.model_router import routed, authorization, endpoint, mixtoken_route
 from sabc.model_output import ModelResponseError, parse_object, format_failure
 
 MODEL = 'glm-5.3-flash'
 
 
 def answer(settings, key, report, history, question):
-    if not settings.get('base_url') or not key:
+    if (not settings.get('base_url') or not key) and not mixtoken_route():
         raise ValueError('报告助手尚未配置模型连接，请联系管理员')
     snapshot = report['snapshot']
     project = snapshot.get('project', {})
@@ -36,6 +36,8 @@ def answer(settings, key, report, history, question):
     def execute(route):
         payload = {'model': route['model'], 'messages': messages + route.get('format_retry', []), 'temperature': 0.2,
                    'max_tokens': 3000, 'response_format': {'type': 'json_object'}}
+        if route.get('stream'):
+            payload['stream'] = True
         if route.get('deepseek'):
             payload.pop('temperature')
             payload.update(thinking={'type': 'enabled'}, reasoning_effort=route['effort'])

@@ -91,6 +91,7 @@ def assess(project, company, evidence, proposal, today=None):
             missing.append(label+'的低分需有已知负面事实，不能因缺资料扣分')
         result['dimensions'].append({'key':key,'name':label,'weight':weight,
             'score':score, 'weighted':round(score/5*weight,2),'reason':dim['reason'],
+            'missing_evidence':dim.get('missing_evidence',''),
             'basis':dim.get('basis','assumption'),'evidence_ids':dim.get('evidence_ids',[])})
     assumptions=proposal.get('assumptions',[])
     if not assumptions: missing.append('至少一个决定项目成立的关键假设')

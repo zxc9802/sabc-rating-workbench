@@ -98,10 +98,11 @@ def health():
 def public_settings():
     s=settings()
     primary=model_router.deepseek()
+    mixtoken=model_router.mixtoken_route()
     gemini=model_router.gemini_route({**s, 'key': bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY'))})
-    return {'managed':sso.enabled(),'primary_model':gemini['model'] if gemini else ('z-ai/glm-5.3-flash' if os.getenv('SABC_FAL_API_KEY','').strip() else s.get('model','')), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
-            'has_key':bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
-            'configured':bool(primary or (s.get('base_url') and s.get('model')))}
+    return {'managed':sso.enabled(),'primary_model':mixtoken['model'] if mixtoken else gemini['model'] if gemini else ('z-ai/glm-5.3-flash' if os.getenv('SABC_FAL_API_KEY','').strip() else s.get('model','')), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
+            'has_key':bool(mixtoken or s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
+            'configured':bool(mixtoken or primary or (s.get('base_url') and s.get('model')))}
 
 
 @app.get('/api/bootstrap')
@@ -307,7 +308,7 @@ def chat_turn(pid,body):
         store.save('projects',p)
     messages=p.get('messages',[])+[{'role':'user','content':body.message,'stage':lifecycle.state(p)['stage'],'time':utcnow()}]
     s=settings()
-    if model_router.deepseek() or (s.get('base_url') and s.get('model')):
+    if model_router.mixtoken_route() or model_router.deepseek() or (s.get('base_url') and s.get('model')):
         from sabc.dimension_sources import rule_plan
         from concurrent.futures import ThreadPoolExecutor
         from contextvars import copy_context
@@ -428,7 +429,11 @@ def report_history(pid:str,ident:str):
 def report_chat(pid, body, job_id):
     report=report_or_404(pid,body.assessment_id)
     config=settings()
-    reply=report_qa.answer(config,decrypt_key(config.get('encrypted_key','')),report,report_turns(pid,body.assessment_id),body.message.strip())
+    token=model_router.audit.set(lambda event:store.save('model_runs',{'project_id':pid,'assessment_id':body.assessment_id,**event}))
+    try:
+        reply=report_qa.answer(config,decrypt_key(config.get('encrypted_key','')),report,report_turns(pid,body.assessment_id),body.message.strip())
+    finally:
+        model_router.audit.reset(token)
     with jobs.lock:
         check_cancelled()
         return store.save('report_turns',{'id':job_id,'project_id':pid,'assessment_id':body.assessment_id,'question':body.message.strip(),'reply':reply})

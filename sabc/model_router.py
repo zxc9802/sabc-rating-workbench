@@ -10,6 +10,15 @@ from sabc.model_output import ModelResponseError
 audit = ContextVar('model_routing_audit', default=None)
 
 
+def mixtoken_route():
+    key = os.getenv('SABC_MIXTOKEN_API_KEY', '').strip()
+    if not key:
+        return None
+    return {'base_url': os.getenv('SABC_MIXTOKEN_BASE_URL', 'https://api.mixtoken.ai/v1').rstrip('/'),
+            'model': os.getenv('SABC_MIXTOKEN_MODEL', 'deepseek-v4.1-flash'), 'key': key,
+            'primary': True, 'deepseek': False, 'single_attempt': True, 'stream': True}
+
+
 def gemini_route(preferred):
     if urlparse(preferred.get('base_url', '')).hostname != 'api.openlux.ai' or not preferred.get('key'):
         return None
@@ -50,6 +59,9 @@ def routed(role, preferred, execute):
     gemini = gemini_route(preferred) if role in ('analysis', 'report_chat') else None
     if gemini:
         routes = [gemini] + [{**route, 'primary': False} for route in routes]
+    mixtoken = mixtoken_route() if role in ('analysis', 'report_chat') else None
+    if mixtoken:
+        routes = [mixtoken] + [{**route, 'primary': False} for route in routes]
     for index, config in enumerate(routes):
         check_cancelled()
         started = time.monotonic()
