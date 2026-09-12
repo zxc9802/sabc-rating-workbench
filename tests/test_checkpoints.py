@@ -139,3 +139,18 @@ def test_new_quoted_change_can_update_or_reopen_prior_cash_limit():
         assert item['status'] == status
         assert item['verified'] is (status == 'known')
         if status == 'known': assert item['quote'] == quote
+def test_explicit_unknown_costs_and_unavailable_outsourcing_do_not_loop():
+    r = normalize(result(), {}, {}, [], [{'role': 'user', 'content':
+        '持续成本的广告、佣金、物流和客服金额都未知。外包人员和代理均未落实，报价仍未知。'}])
+    assert r['dimension_coverage']['return']['items']['costs']['status'] == 'unknown'
+    assert r['dimension_coverage']['resources']['items']['dependencies']['status'] == 'unknown'
+    for dim, key in [('return', 'metric_formula'), ('resources', 'owner'), ('cash', 'investment_limit')]:
+        assert not r['dimension_coverage'][dim]['items'][key]['verified']
+
+
+def test_unknown_declaration_fallback_does_not_treat_questions_or_old_facts_as_answers():
+    from sabc.checkpoints import explicit_unavailable
+    for message in ['外包均未落实吗？', '外包此前均未落实，现在已落实', '外包并非均未落实',
+                    '外包费用未知，但人员已确认', '需要核查外包是否均未落实?']:
+        assert explicit_unavailable('dependencies', message) == ''
+    assert explicit_unavailable('costs', '持续成本未知吗？') == ''

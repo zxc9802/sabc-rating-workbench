@@ -22,6 +22,24 @@ def complete(items, dimension):
                and items[key].get('status') in RESOLVED for key in CHECKS[dimension])
 
 
+def explicit_unavailable(key, message):
+    # Narrow fallback for explicit answers the model repeatedly left as questions.
+    # Never infer other checkpoints (ROI, personnel, budgets) from these unknowns.
+    patterns = {
+        'costs': (r'持续成本|持续费用|单件成本|全部成本', r'未知|不知道|无法提供|没有报价'),
+        'dependencies': (r'外包|依赖|代理', r'均未落实|都未落实|全部未落实|均未确认|均未确定'),
+    }
+    if key not in patterns:
+        return ''
+    topic, unavailable = patterns[key]
+    for sentence in reversed(re.split(r'[。；\n]', message)):
+        if re.search(r'[？?]|并非|不是|不再|之前|此前|原来|曾经|已落实|已确认|已确定', sentence):
+            continue
+        if re.search(topic, sentence) and re.search(unavailable, sentence):
+            return sentence.strip()
+    return ''
+
+
 def normalize(result, project, company, evidence, messages):
     user = '\n'.join([str(project.get('description', ''))] +
                      [m.get('content', '') for m in project.get('messages', []) + messages if m.get('role') == 'user'])
@@ -66,6 +84,9 @@ def normalize(result, project, company, evidence, messages):
                     grounded = grounded and bool(re.search(r'除以|÷|/|分子|分母|销售额.*(?:除|成本|费用)|收入.*(?:除|成本|费用)', quote))
             prior = previous.get(dimension, {}).get('items', {}).get(key, {})
             prior_quote = str(prior.get('quote', '')).strip()
+            declared = explicit_unavailable(key, latest_user)
+            if status == 'ask' and declared:
+                quote, source, status, grounded = declared, 'user', 'unknown', True
             # A model omission/paraphrase cannot erase a previously grounded answer.
             # A quoted change in the latest user turn may reopen it for clarification.
             if (not grounded and prior.get('verified') is True and prior.get('status') in RESOLVED
