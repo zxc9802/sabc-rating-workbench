@@ -148,6 +148,27 @@ def test_explicit_unknown_costs_and_unavailable_outsourcing_do_not_loop():
         assert not r['dimension_coverage'][dim]['items'][key]['verified']
 
 
+def test_internal_time_formula_does_not_require_monetary_roi():
+    for quote, expected in [('旧流程全部工时减去新流程全部人员总工时', True),
+                            ('ROI目标2.5，预计节省3小时', False)]:
+        r = result()
+        r['dimension_coverage']['return']['items'] = {
+            'metric_formula': {'status': 'known', 'source': 'user', 'quote': quote}}
+        normalize(r, {}, {}, [], [{'role': 'user', 'content': quote + '。现金收益未知，不能算ROI。'}])
+        assert r['dimension_coverage']['return']['items']['metric_formula']['verified'] is expected
+
+
+def test_asking_again_with_old_quote_cannot_erase_resolved_failure_condition():
+    prior = {'status': 'known', 'source': 'user', 'quote': '重大金额错漏立即停用并回人工', 'verified': True}
+    project = {'messages': [{'role': 'user', 'content': prior['quote']}],
+               'lifecycle': {'coverage': {'risk': {'items': {'failure': prior}}}}}
+    r = result()
+    r['dimension_coverage']['risk']['items'] = {
+        'failure': {'status': 'ask', 'source': 'user', 'quote': prior['quote']}}
+    normalize(r, project, {}, [], [{'role': 'user', 'content': '补充工时公式，不改停止条件'}])
+    assert r['dimension_coverage']['risk']['items']['failure'] == prior
+
+
 def test_unknown_declaration_fallback_does_not_treat_questions_or_old_facts_as_answers():
     from sabc.checkpoints import explicit_unavailable
     for message in ['外包均未落实吗？', '外包此前均未落实，现在已落实', '外包并非均未落实',

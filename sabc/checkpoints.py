@@ -78,7 +78,8 @@ def normalize(result, project, company, evidence, messages):
                     grounded = grounded and source == 'user' and bool(UNAVAILABLE.search(quote))
                 if status == 'known':
                     grounded = grounded and bool(re.search(r'(?:\d+(?:\.\d+)?|[零一二三四五六七八九十百千万两]+)\s*(?:万|千|元|块)|(?:损失|预算|投入)(?:为|是)?[零0]|无现金支出', quote))
-            if key == 'metric_formula' and re.search(r'ROI|投产比', user, re.I):
+            time_formula = bool(re.search(r'(?:原|旧).*工时.*(?:减去|减|-|−).*(?:新).*工时', quote))
+            if key == 'metric_formula' and re.search(r'ROI|投产比', user, re.I) and not time_formula:
                 grounded = grounded and bool(re.search(r'ROI|ROAS|投入收益率|投产比|分子|分母', quote, re.I))
                 if status == 'known':
                     grounded = grounded and bool(re.search(r'除以|÷|/|分子|分母|销售额.*(?:除|成本|费用)|收入.*(?:除|成本|费用)', quote))
@@ -89,7 +90,7 @@ def normalize(result, project, company, evidence, messages):
                 quote, source, status, grounded = declared, 'user', 'unknown', True
             # A model omission/paraphrase cannot erase a previously grounded answer.
             # A quoted change in the latest user turn may reopen it for clarification.
-            if (not grounded and prior.get('verified') is True and prior.get('status') in RESOLVED
+            if ((not grounded or status not in RESOLVED) and prior.get('verified') is True and prior.get('status') in RESOLVED
                     and prior_quote and prior_quote in sources.get(prior.get('source'), '')
                     and not (source == 'user' and len(quote) >= 2 and quote in latest_user)):
                 quote, source, status = prior_quote, prior['source'], prior['status']
