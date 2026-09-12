@@ -19,6 +19,7 @@ def today():
 class Coverage(BaseModel):
     status: Literal['known', 'ask', 'unknown', 'external', 'future']
     reason: str = Field(min_length=1, max_length=1200)
+    items: dict = Field(default_factory=dict)
 
 
 class Metric(BaseModel):
@@ -100,10 +101,12 @@ def check_budget(plan, company):
 
 
 def collection_gaps(life):
+    from sabc.checkpoints import complete
     coverage = life.get('coverage', {})
     return [key for key in DIMENSIONS
             if coverage.get(key, {}).get('status') not in ('known', 'unknown', 'external', 'future')
-            or not str(coverage.get(key, {}).get('reason', '')).strip()]
+            or not str(coverage.get(key, {}).get('reason', '')).strip()
+            or not complete(coverage.get(key, {}).get('items', {}), key)]
 
 
 def collection_ready(life):

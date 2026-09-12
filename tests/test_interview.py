@@ -1,3 +1,4 @@
+from tests.report_fixtures import checkpoint_items
 from tests.test_app import client
 from tests.test_rating import case
 import pytest
@@ -68,7 +69,7 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     pid = client.post('/api/projects', json=p).json()['id']
     project = module.store.get('projects', pid)
     project['lifecycle'] = {**module.lifecycle.initial(), 'stage': 'pre', 'confirmed': True, 'coverage': {
-        key: {'status': 'external' if key == 'risk' else 'known', 'reason': '已梳理，监管适用留待外部核查'}
+        key: {'status': 'external' if key == 'risk' else 'known', 'reason': '已梳理，监管适用留待外部核查', 'items': checkpoint_items(key)}
         for key in module.DIMENSIONS}, 'reviews': []}
     module.store.save('projects', project)
     monkeypatch.setattr(module, 'settings', lambda: {'base_url': 'https://model.example', 'model': 'test'})
@@ -83,7 +84,7 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
             assessment_proposal['dimensions']['market'].update(score=None, basis='unknown')
         if not project['_report_requested']:
             if outcome == 'unknown':
-                coverage['market'] = {'status': 'unknown', 'reason': '用户明确无法提供需求信息'}
+                coverage['market'] = {'status': 'unknown', 'reason': '用户明确无法提供需求信息', 'items': checkpoint_items('market', 'unknown')}
             elif outcome == 'ask':
                 coverage['market'] = {'status': 'ask', 'reason': '尚可回答的目标客户问题'}
                 questions = ['目标客户是谁？']

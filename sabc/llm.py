@@ -121,6 +121,9 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
     system += PROMPT
     from sabc.dimension_sources import PROMPT as SOURCE_PROMPT
     system += SOURCE_PROMPT
+    if not report_requested:
+        from sabc.checkpoints import PROMPT as CHECKPOINT_PROMPT
+        system += CHECKPOINT_PROMPT
     if report_requested:
         system += '\n本轮任务：用户已点击生成报告。根据已收集信息和已有证据生成完整proposal与stage_review（包括试点建议），不再提问或独立审查。questions为空，project_patch为空，dimension_coverage沿用已有覆盖状态，pilot_plan为null，reply只写“报告已生成。”。未知依据如实保留，不能编造。'
     else:
@@ -166,6 +169,9 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                         assumptions=parsed['proposal']['assumptions']
                         if not assumptions or not all(all(a[k].strip() for k in ('validation_method','pass_threshold','fail_threshold')) for a in assumptions):
                             raise ValueError('模型评分建议缺少完整的关键假设及验证条件，请重试。')
+                    if project.get('lifecycle') and not report_requested:
+                        from sabc.checkpoints import normalize
+                        normalize(parsed, project, company, evidence, messages)
                     if project.get('lifecycle'):
                         absorb(deepcopy(project), parsed, company, evidence)
                     break

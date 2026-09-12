@@ -1,0 +1,82 @@
+from sabc.checkpoints import CHECKS, normalize
+from sabc.lifecycle import collection_ready
+
+
+def result():
+    return {'reply': '信息已整理完成，现在生成报告吗？', 'questions': [],
+            'dimension_coverage': {d: {'status': 'future', 'reason': '待验证'} for d in CHECKS}}
+
+
+def test_one_sentence_cannot_close_six_dimensions():
+    r = normalize(result(), {'description': '我想做东南亚项目'}, {}, [], [])
+    assert all(d['status'] == 'ask' for d in r['dimension_coverage'].values())
+    assert r['questions'] and not collection_ready({'confirmed': True, 'coverage': r['dimension_coverage']})
+    assert '生成报告' not in r['reply']
+
+
+def test_unknown_quote_does_not_close_cash_dimension():
+    r = result()
+    r['dimension_coverage']['cash']['items'] = {
+        'initial': {'status': 'unknown', 'source': 'user', 'quote': '备案费用不知道'}}
+    normalize(r, {}, {}, [], [{'role': 'user', 'content': '卖防晒到泰国，备案费用不知道'}])
+    cash = r['dimension_coverage']['cash']
+    assert cash['items']['initial']['verified']
+    assert cash['items']['max_loss']['status'] == 'ask' and cash['status'] == 'ask'
+
+
+def test_invented_quote_or_unknown_from_silence_is_rejected():
+    for quote in ('预算10000元', '我想做东南亚项目'):
+        r = result()
+        r['dimension_coverage']['cash']['items'] = {
+            'max_loss': {'status': 'unknown', 'source': 'user', 'quote': quote, 'verified': True}}
+        normalize(r, {'description': '我想做东南亚项目'}, {}, [], [])
+        assert not r['dimension_coverage']['cash']['items']['max_loss']['verified']
+
+
+def test_complete_grounded_items_allow_ready_without_extra_model_call():
+    r = result()
+    messages = []
+    for d, checks in CHECKS.items():
+        r['dimension_coverage'][d]['items'] = {}
+        for key, question in checks.items():
+            quote = question + '：用户明确不知道该项，无法提供。'
+            messages.append({'role': 'user', 'content': quote})
+            r['dimension_coverage'][d]['items'][key] = {'status': 'unknown', 'source': 'user', 'quote': quote}
+    normalize(r, {}, {}, [], messages)
+    assert not r['questions']
+    assert collection_ready({'confirmed': True, 'coverage': r['dimension_coverage']})
+    r['dimension_coverage']['cash']['items']['max_loss']['verified'] = False
+    assert not collection_ready({'confirmed': True, 'coverage': r['dimension_coverage']})
+
+
+def test_old_dimension_labels_are_not_completion():
+    assert not collection_ready({'confirmed': True, 'coverage': result()['dimension_coverage']})
+
+
+def test_thai_budget_estimate_and_clearance_are_not_limits_or_roi_formula():
+    r = result()
+    r['dimension_coverage']['cash']['items'] = {
+        'investment_limit': {'status': 'known', 'source': 'user', 'quote': '初始测款预算2万元，是拍的'},
+        'max_loss': {'status': 'known', 'source': 'user', 'quote': '30天未清完库存计损失'}}
+    r['dimension_coverage']['return']['items'] = {
+        'metric_formula': {'status': 'known', 'source': 'user', 'quote': '整体ROI目标2.5，含投流佣金物流'}}
+    normalize(r, {}, {}, [], [{'role': 'user', 'content': '初始测款预算2万元，是拍的。30天未清完库存计损失。整体ROI目标2.5，含投流佣金物流。'}])
+    assert not r['dimension_coverage']['cash']['items']['investment_limit']['verified']
+    assert not r['dimension_coverage']['cash']['items']['max_loss']['verified']
+    assert not r['dimension_coverage']['return']['items']['metric_formula']['verified']
+    assert r['questions']
+
+
+def test_explicit_short_unknown_after_question_is_not_reasked():
+    r = result()
+    r['dimension_coverage']['cash']['items'] = {'max_loss': {'status': 'unknown', 'source': 'user', 'quote': '不知道'}}
+    normalize(r, {}, {}, [], [{'role': 'assistant', 'content': '你最多能承受多少损失？'}, {'role': 'user', 'content': '不知道'}])
+    assert r['dimension_coverage']['cash']['items']['max_loss']['verified']
+    assert not r['dimension_coverage']['cash']['items']['investment_limit']['verified']
+
+
+def test_saved_project_facts_can_be_used_without_reasking():
+    r = result()
+    r['dimension_coverage']['market']['items'] = {'user': {'status': 'known', 'source': 'project', 'quote': '泰国通勤女性'}}
+    normalize(r, {'target_user': '泰国通勤女性'}, {}, [], [])
+    assert r['dimension_coverage']['market']['items']['user']['verified']

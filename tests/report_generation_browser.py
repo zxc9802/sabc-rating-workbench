@@ -1,4 +1,5 @@
 """Browser regression for report confirmation, progress, recovery and failure. Mock APIs only."""
+from tests.report_fixtures import checkpoint_items
 from copy import deepcopy
 from playwright.sync_api import sync_playwright, expect
 from sabc.rating import assess, DIMENSIONS, TYPES
@@ -17,7 +18,7 @@ with sync_playwright() as playwright:
         current=deepcopy(fixture)
         project=current['detail']['project']
         project.update(report_ready=False,analysis_complete=False)
-        project['lifecycle']={'stage':'pre','mode':'continuous','confirmed':True,'coverage':{d['key']:{'status':'known','reason':'已提供'} for d in current['bootstrap']['dimensions']}}
+        project['lifecycle']={'stage':'pre','mode':'continuous','confirmed':True,'coverage':{d['key']:{'status':'known','reason':'已提供','items':checkpoint_items(d['key'])} for d in current['bootstrap']['dimensions']}}
         project['messages']=[{'role':'user','content':'已有八维资料'},{'role':'assistant','content':'持证代理的费用能退多少？'}]
         project['interview']={'state':'gathering','questions':['持证代理的费用能退多少？']}
         current['detail']['assessments']=[]

@@ -6,31 +6,20 @@ const moduleValue = { exports: {} };
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/collection-progress.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: moduleValue.exports });
 const { collectionProgress } = moduleValue.exports;
 const keys = ['strategy', 'market', 'return', 'resources', 'replication', 'cash', 'risk', 'opportunity'];
-const life = { confirmed: true, stage: 'pre', coverage: Object.fromEntries(keys.map(k => [k, { status: 'known', reason: '当前判断依据' }])) };
+const counts = { strategy:3, market:3, return:4, resources:3, replication:3, cash:5, risk:3, opportunity:3 };
+const item = (status, count=3) => ({ status, reason: '依据', items: Object.fromEntries(Array.from({length:count}, (_,i)=>String(i)).map(k => [k, {status, quote:'用户依据', source:'user', verified: status !== 'ask'}])) });
+const life = {confirmed: true, coverage: Object.fromEntries(keys.map(k => [k,item('known',counts[k])]))};
 assert.equal(collectionProgress().percent, 0);
-assert.equal(collectionProgress(life).ready, true);
 assert.equal(collectionProgress(life).percent, 100);
-assert.equal(collectionProgress(life, ['费用能退多少？']).ready, false);
-assert.ok(collectionProgress(life, ['费用能退多少？']).percent < 100);
-for (const status of ['ask']) {
-  life.coverage.risk.status = status;
-  assert.equal(collectionProgress(life).ready, false);
-  assert.equal(collectionProgress(life).percent, 88);
-}
-life.coverage.risk.status = 'future';
 assert.equal(collectionProgress(life).ready, true);
-life.stage = 'post';
-assert.equal(collectionProgress(life).ready, true);
-for (const status of ['unknown', 'external']) {
-  life.coverage.risk.status = status;
-  assert.equal(collectionProgress(life).ready, true);
-  assert.equal(collectionProgress(life).percent, 100);
-}
-life.coverage.risk.status = 'known';
-life.confirmed = false;
-assert.equal(collectionProgress(life).percent, 99);
+assert.equal(collectionProgress(life, ['待问']).ready, false);
+life.coverage.cash = item('ask',5);
+assert.equal(collectionProgress(life).complete, 7);
+assert.equal(collectionProgress(life).percent, 81);
+life.coverage.cash.items[0] = {status:'unknown', verified:true};
+assert.equal(collectionProgress(life).complete, 7);
+assert.equal(collectionProgress(life).percent, 85);
+life.coverage.cash = {status:'future', reason:'待试点'};
 assert.equal(collectionProgress(life).ready, false);
-life.confirmed = true;
-life.coverage.risk.reason = '';
-assert.equal(collectionProgress(life).ready, false);
-console.log('collection progress cases passed');
+assert.equal(collectionProgress(life).complete, 7);
+console.log('checkpoint progress cases passed');

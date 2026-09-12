@@ -2,11 +2,16 @@ import type { Lifecycle } from './types';
 
 const DIMENSIONS = ['strategy', 'market', 'return', 'resources', 'replication', 'cash', 'risk', 'opportunity'] as const;
 
+const COUNTS: Record<string, number> = { strategy: 3, market: 3, return: 4, resources: 3, replication: 3, cash: 5, risk: 3, opportunity: 3 };
+
 export function collectionProgress(life?: Lifecycle, pendingQuestions: string[] = []) {
   const complete = DIMENSIONS.filter(key => {
     const item = life?.coverage[key];
-    return !!item?.reason.trim() && ['known', 'unknown', 'external', 'future'].includes(item.status);
+    return !!item?.reason.trim() && item.status !== 'ask' && Object.values(item.items || {}).length === COUNTS[key]
+      && Object.values(item.items || {}).every(check => check.verified && ['known', 'unknown', 'external', 'future'].includes(check.status));
   }).length;
   const ready = !!life?.confirmed && complete === DIMENSIONS.length && !pendingQuestions.length;
-  return { complete, ready, percent: ready ? 100 : Math.min(99, Math.round(complete / DIMENSIONS.length * 100)) };
+  const resolved = DIMENSIONS.reduce((count, key) => count + Object.values(life?.coverage[key]?.items || {})
+    .filter(check => check.verified && ['known', 'unknown', 'external', 'future'].includes(check.status)).length, 0);
+  return { complete, ready, percent: ready ? 100 : Math.min(99, Math.round(resolved / 27 * 100)) };
 }

@@ -14,7 +14,7 @@ def fingerprint(project, company, evidence):
         'answers':[m for m in project.get('messages', []) if m.get('role')=='user'],
         'lifecycle':{k:life.get(k) for k in ('stage','mode','coverage','plan','draft_plan')},
         'company':company, 'evidence':sorted(evidence,key=lambda e:e['id']),
-        'rule_version':RULE_VERSION,
+        'rule_version':RULE_VERSION, 'collection_version': 2,
         'expired_evidence':sorted(e['id'] for e in evidence if e.get('valid_until') and e['valid_until']<date.today().isoformat()),
     }
     return hashlib.sha256(json.dumps(inputs,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
