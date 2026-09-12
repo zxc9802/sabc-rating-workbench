@@ -171,6 +171,8 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                         raise ValueError('阶段分析必须覆盖八个维度')
                     if parsed['proposal'] is not None:
                         parsed['proposal']=validate_proposal(parsed['proposal'])
+                        from sabc.standard import ground_low_scores
+                        ground_low_scores(parsed['proposal'], project, company, evidence, messages)
                         assumptions=parsed['proposal']['assumptions']
                         if not assumptions or not all(all(a[k].strip() for k in ('validation_method','pass_threshold','fail_threshold')) for a in assumptions):
                             raise ValueError('模型评分建议缺少完整的关键假设及验证条件，请重试。')

@@ -623,6 +623,19 @@ def evaluate(pid:str,body:dict):
     if p.get('lifecycle'):
         result.update(stage=life['stage'], provisional=True,
                       status='待评级' if result['grade']=='NR' else '阶段暂定评级')
+    # A generated recommendation must not override the engine's final decision.
+    if result['grade'] in ('C', 'NR') and life.get('review'):
+        deferred = result['grade'] == 'NR'
+        negative_reasons = [d['reason'] for d in result['dimensions'] if d['score'] < 3]
+        explanation = result.get('deferral_reason') if deferred else (
+            '当前不立项：' + '；'.join(negative_reasons or result['triggered_rules'] or [result['action']]))
+        next_action = ('先补齐关键依据，再重新评估；当前不批准原方案投入。' if deferred else
+                       '先调整导致低分或否决的实际条件，再重新评估；不继续原方案新增投入。')
+        life['review'] = {**life['review'], 'conclusion': 'needs_info' if deferred else 'not_recommended',
+                          'summary': explanation, 'next_action': next_action}
+        p['lifecycle'] = life
+        if proposal.get('decision_brief'):
+            proposal['decision_brief']['allocation'] = next_action
     record=store.save('assessments',{'project_id':pid,'result':result,
         'snapshot':{'project':deepcopy(p),'company':c,'evidence':e,'proposal':proposal}})
     if result['grade']!='NR' and p.get('lifecycle') and life['stage']=='post':

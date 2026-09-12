@@ -12,6 +12,7 @@ INTERVIEW = '''
 REPORT = '''
 报告按V1.0标准说明为何值得占用有限资源。先在本次分析内检验最可能失败的前提、竞争优势、投资回报、主业资源冲突和被低估的成本，再形成分数与建议；不新增独立调用。cons至少3条最强且互不重复的具体反对理由，分别覆盖适用的竞争、投资与内部资源视角，标明事实/推断/待验证，并与相应维度理由、关键假设或限制一致；pros至少3条具体有依据的支持理由，不把同一优点换词凑数。
 每个dimensions条目增加missing_evidence字符串：写明该维判断缺少的具体依据，或说明现有依据的局限；未知不补造。reason须说明为何对应原始分，而非只复述项目。
+原始分低于3时，增加negative_fact字段，逐字引用用户原话、公司资料或已核验证据中的明确不利事实。仅有“其他方案可能更好”“缺少对比”“尚未验证”不构成不利事实，不能标fact扣低分；无法作方向判断就用null，不调高分数凑等级。引用须包含决定性事实，不截掉假设、可能或未确认等限定。
 proposal增加decision_brief对象，所有值为字符串：
 definition=项目一句话定义；goal_and_success=最终经营目标和成功标准；biggest_risk=最大的单一风险；key_unknown=最关键未知与最缺证据；maximum_loss=区分用户可承受损失上限和实际最坏损失估计，不能把预算等同损失；assets=成功后可沉淀和复制的资产；allocation=建议资源、最少人员、预算和周期，用户未确认的数值明确为建议；upgrade_a=达到A仍需要的本项目证据和条件；upgrade_s=重复成功证据及战略/回报/资源/复制/机会成本门槛；stop=降级、停止和止损条件。
 这些内容在暂缓评级时也保留已有判断；暂缓不能批准执行，allocation只给补证/调整任务。C或已知致命风险不能建议继续原高风险方案；只有实质条件改变后才可重新评估。未知金额写未知及取得依据的方法，不为填满字段杜撰。
@@ -19,3 +20,22 @@ definition=项目一句话定义；goal_and_success=最终经营目标和成功�
 用户明确纠正指标口径后，全篇（包括停止条件、支持理由和验证任务）统一用新口径：广告ROAS=扣退款取消后的实收销售额/广告费，不能再简称ROI；投资ROI=(收入-全部投入成本)/全部投入成本。ROAS达标不等于盈利。给出净贡献或净利润公式时，必须逐项包含用户已列出的适用成本，尤其不能遗漏商品/代工采购和包材；还要包含物流税费、平台支付、达人佣金、履约、退货损耗、广告和客服等对应层级成本，避免同一成本重复扣除。已扣退款的收入不再重复扣退款额，但退货物流及不可回收货损仍是成本。固定费与内部工时分开说明。金额未知只给完整计算口径，不给虚构结果。若成本边界无法确认，明确公式仍待补齐，不写一个漏项公式冒充净利润。
 引用任何用户预算、成本、现金或损失金额时，逐个与最新用户原文和结构化输入核对，不能将自己建议的数字改写成用户现有预算。已有金额若不完整，只说明缺少构成；需要试点预算建议时标明“建议、待确认”及推导，缺少成本依据时不凭空设一个数字。后续明确更正优先于旧值。
 '''
+
+
+def ground_low_scores(proposal, project, company, evidence, messages):
+    """A model's low business score needs a source-backed negative, not just its fact label."""
+    import json
+    import re
+    sources = [project.get('description', ''), json.dumps(company, ensure_ascii=False)]
+    sources += [m.get('content', '') for m in project.get('messages', []) + messages if m.get('role') == 'user']
+    sources += [e.get('content', '') for e in evidence if e.get('verification_status') == 'verified']
+    for dim in proposal.get('dimensions', {}).values():
+        score = dim.get('score')
+        if score is None or score >= 3:
+            continue
+        quote = dim.get('negative_fact', '').strip()
+        uncertain = re.search(r'可能|也许|未验证|尚未|未知|缺少|待确认|不一定|没证明', quote)
+        if len(quote) < 6 or uncertain or not any(quote in s for s in sources):
+            dim.update(score=None, basis='unknown', missing_evidence=(
+                '低分所需的明确不利事实尚无可对应原文的依据；不能仅因缺资料判为低分。'
+                + dim.get('missing_evidence', '')))
