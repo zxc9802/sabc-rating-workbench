@@ -70,7 +70,12 @@ def normalize(result, project, company, evidence, messages):
         entry['status'] = next((item['status'] for item in items.values() if item['status'] != 'known'), 'known') if complete(items, dimension) else 'ask'
         entry['reason'] = entry.get('reason') or '仍需补充项目依据'
     result['dimension_coverage'] = coverage
-    if pending and not result.get('questions'):
+    if not pending:
+        result['questions'] = []
+        result['reply'] = '信息已整理完成，现在生成报告吗？'
+        result['reply_evidence_ids'] = []
+        result['data_requests'] = []
+    elif not result.get('questions'):
         result['questions'] = pending[:2]
         result['reply'] = '\n\n'.join(pending[:2])
         result['needs_external_action'] = False

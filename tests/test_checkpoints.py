@@ -98,3 +98,20 @@ def test_corrected_roas_formula_survives_earlier_roi_wording():
             'metric_formula': {'status': 'known', 'source': 'user', 'quote': quote}}
         normalize(r, {}, {}, [], [{'role': 'user', 'content': '之前叫整体ROI不准确。' + quote}])
         assert r['dimension_coverage']['return']['items']['metric_formula']['verified'] is expected
+
+
+def test_all_grounded_checkpoints_close_without_more_model_questions_or_retrieval():
+    r = result()
+    r.update(reply='再细化样品和招募费用？', questions=['还需几个样品？'],
+             data_requests=[{'query': '重复查询费用'}], reply_evidence_ids=['e1'])
+    messages = []
+    for d, checks in CHECKS.items():
+        r['dimension_coverage'][d]['items'] = {}
+        for key, question in checks.items():
+            quote = question + '：这项我目前不知道。'
+            messages.append({'role': 'user', 'content': quote})
+            r['dimension_coverage'][d]['items'][key] = {'status': 'unknown', 'source': 'user', 'quote': quote}
+    normalize(r, {}, {}, [], messages)
+    assert collection_ready({'confirmed': True, 'coverage': r['dimension_coverage']})
+    assert r['questions'] == r['data_requests'] == r['reply_evidence_ids'] == []
+    assert r['reply'] == '信息已整理完成，现在生成报告吗？'
