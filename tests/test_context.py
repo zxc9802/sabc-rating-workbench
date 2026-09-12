@@ -20,3 +20,25 @@ def test_evidence_limits_explicit_and_old_version_excluded():
     assert c['context_limits']['evidence_omitted']==2
     assert all(len(e['content'])==6000 and e['context_truncated'] for e in c['evidence'])
     assert '14' not in [e['id'] for e in c['evidence']]
+
+
+def test_report_preserves_early_user_corrections_without_old_report_prose():
+    messages = [{'role': 'user', 'content': '更正：ROAS只除广告费，净贡献还要扣代工和包材。'}]
+    messages += [{'role': 'assistant', 'content': '旧口径草稿'}, {'role': 'user', 'content': '其他未知'}] * 20
+    project = {'_report_requested': True, '_previous_stage_report': {
+        'id': 'old', 'result': {'grade': 'B', 'dimensions': [{'key': 'return', 'score': 3, 'reason': '旧公式'}],
+                             'validation_plan': [{'method': '净贡献=收入-广告费'}]}}}
+    c = model_context(project, {}, [], messages)
+    assert c['conversation'][0] == messages[0]
+    assert all(m['role'] == 'user' for m in c['conversation'])
+    assert c['project']['previous_stage_report']['grade'] == 'B'
+    assert '旧公式' not in str(c) and '净贡献=收入-广告费' not in str(c)
+    assert '旧口径草稿' not in str(c)
+
+
+def test_report_user_history_is_bounded_and_latest_correction_kept():
+    messages = [{'role': 'user', 'content': '旧资料' * 10000}, {'role': 'user', 'content': '最新总上限3万，损失1.5万。'}]
+    c = model_context({'_report_requested': True}, {}, [], messages)
+    assert sum(len(m['content']) for m in c['conversation']) == 24000
+    assert c['conversation'][-1] == messages[-1]
+    assert c['context_limits']['conversation_chars_truncated']
