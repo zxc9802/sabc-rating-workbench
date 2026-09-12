@@ -87,7 +87,7 @@ def rule_plan(project, latest, evidence):
             repos = re.findall(r'https://github\.com/([\w.-]+/[\w.-]+)', text)
             if repos:
                 requests.append({'dimension': dim, 'source': 'github', 'query': repos[-1].removesuffix('.git'), 'reason': TOPICS[dim][1]})
-            else:
+            elif re.search(r'开源|软件许可|github', focus, re.I):
                 missing.append({'dimension': dim, 'reason': '请提供要核查的开源项目 GitHub 地址'})
             continue
         if not product or len(regions) != 1:

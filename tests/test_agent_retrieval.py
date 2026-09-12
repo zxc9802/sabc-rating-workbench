@@ -134,3 +134,10 @@ def test_rule_collection_is_parallel_and_precedes_only_answer(client, monkeypatc
     result = client.post(f'/api/projects/{pid}/chat', json={'message': '市场和合规'}).json()
     assert len(result['retrieval_results']) == 2
     assert all(r['status'] == 'saved' for r in result['retrieval_results'])
+def test_business_outsourcing_is_not_a_missing_github_dependency():
+    from sabc.dimension_sources import rule_plan
+    project = {'description': '泰国防晒OEM', 'lifecycle': {'coverage': {'resources': {'status': 'external'}}}}
+    plan = rule_plan(project, '外包依赖是泰语客服和合规代理，均未落实，报价未知', [])
+    assert not any(x['dimension'] == 'resources' for x in plan['missing_parameters'])
+    software = rule_plan(project, '需要核查开源依赖但仓库地址没提供', [])
+    assert any(x['dimension'] == 'resources' for x in software['missing_parameters'])
