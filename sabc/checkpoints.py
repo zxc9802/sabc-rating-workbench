@@ -33,6 +33,7 @@ def normalize(result, project, company, evidence, messages):
     previous = project.get('lifecycle', {}).get('coverage', {})
     coverage = result.get('dimension_coverage') or {}
     pending = []
+    rejected = []
     for dimension, checks in CHECKS.items():
         entry = coverage.setdefault(dimension, {})
         raw = entry.get('items') or {}
@@ -73,6 +74,12 @@ def normalize(result, project, company, evidence, messages):
                 quote, source, status = prior_quote, prior['source'], prior['status']
                 grounded = True
             verified = bool(grounded and status in RESOLVED)
+            if not verified and status != 'ask':
+                rejected.append({'dimension': dimension, 'checkpoint': key, 'status': status,
+                                 'source': source, 'quote_length': len(quote),
+                                 'source_match': bool(quote and quote in sources.get(source, '')),
+                                 'user_match': bool(quote and quote in user),
+                                 'unavailable_word': bool(UNAVAILABLE.search(quote))})
             items[key] = {'status': status if verified else 'ask', 'source': source,
                           'quote': quote if verified else '', 'verified': verified}
             if not verified:
@@ -81,6 +88,10 @@ def normalize(result, project, company, evidence, messages):
         entry['status'] = next((item['status'] for item in items.values() if item['status'] != 'known'), 'known') if complete(items, dimension) else 'ask'
         entry['reason'] = entry.get('reason') or '仍需补充项目依据'
     result['dimension_coverage'] = coverage
+    if rejected:
+        from sabc.model_router import audit
+        if audit.get():
+            audit.get()({'role': 'collection_validation', 'status': 'rejected', 'checks': rejected})
     if not pending:
         result['questions'] = []
         result['reply'] = '信息已整理完成，现在生成报告吗？'
