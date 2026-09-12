@@ -19,8 +19,21 @@ def test_explicit_negative_plan_arithmetic_can_support_low_score():
 
 
 def test_model_invented_negative_or_missing_quote_is_deferred_without_raising_score():
-    for quote in ['', '每月亏损5000元且无法调整']:
+    for quote in [None, '', '每月亏损5000元且无法调整']:
         proposal = {'dimensions': {'return': {
             'score': 1, 'basis': 'fact', 'reason': '负面', 'negative_fact': quote}}}
         ground_low_scores(proposal, {}, {}, [], [{'role': 'user', 'content': '还没测过真实利润'}])
         assert proposal['dimensions']['return']['score'] is None
+
+
+def test_model_diagnostics_locate_nested_field_without_logging_value():
+    import json
+    from pydantic import ValidationError
+    from sabc.schema import Proposal
+    from sabc.model_output import format_failure
+    try:
+        Proposal.model_validate({'dimensions': {'cash': {'negative_fact': {'private': 'do-not-log'}}}})
+    except ValidationError as error:
+        details = format_failure(error, '').details
+    assert details['error_fields'] == ['dimensions.cash.negative_fact']
+    assert 'do-not-log' not in json.dumps(details)

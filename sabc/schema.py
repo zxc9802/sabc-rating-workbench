@@ -11,7 +11,7 @@ class Dimension(BaseModel):
     basis: Literal['fact', 'assumption', 'unknown'] = 'unknown'
     evidence_ids: list[str] = Field(default_factory=list)
     missing_evidence: str = ''
-    negative_fact: str = ''
+    negative_fact: str | None = ''
 
 
 class Assumption(BaseModel):

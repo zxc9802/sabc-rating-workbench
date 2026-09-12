@@ -6,7 +6,12 @@ from sabc.rating import PROJECT_FIELDS
 CHECKS = {
     'strategy': {'purpose': '这个项目想改善什么经营结果？', 'fit': '它与公司当前优先事项有什么联系？', 'timing': '为什么现在做这个项目？'},
     'market': {'user': '具体服务谁、解决什么问题？', 'need': '需求的频次和影响有什么依据？', 'alternative': '目标用户现在怎样解决这个问题，你的方案有何不同？'},
-    'return': {'value': '收入或提效价值具体怎样兑现？', 'metric_formula': '收益或ROI指标的具体计算公式是什么，分子和分母包括什么？', 'costs': '需要扣除哪些持续成本，哪些金额仍未知？', 'success': '达到什么指标才算值得继续？'},
+    'return': {'value': '收入或提效价值具体怎样兑现？',
+               'validation_history': '这个项目已经做过测试、试点或实际运行吗？',
+               'validation_results': '已有测试是在什么时间、什么样本范围做的，实际效果和成本怎样，哪些结果仍不清楚？',
+               'validation_records': '这些测试结果有什么记录、由谁核对，能提供哪些材料或明确哪些无法提供？',
+               'validation_transfer': '有没有可参考的类似项目实绩？如果有，哪些条件与本项目相同或不同，有什么依据？',
+               'metric_formula': '收益或ROI指标的具体计算公式是什么，分子和分母包括什么？', 'costs': '需要扣除哪些持续成本，哪些金额仍未知？', 'success': '达到什么指标才算值得继续？'},
     'resources': {'owner': '谁负责执行、具备哪些能力？', 'capacity': '实际能投入多少人员时间，会影响现有业务吗？', 'dependencies': '还需哪些外包、资料或接入条件，落实情况如何？'},
     'replication': {'assets': '项目能留下哪些可复用的资产？', 'scope': '以后准备复用到什么场景？', 'extra': '扩大范围还需增加哪些投入？'},
     'cash': {'initial': '初期核查与执行分别准备投入多少钱？', 'ongoing': '持续现金支出怎样安排？', 'timing': '回款或节省兑现时间怎样安排？', 'investment_limit': '整个项目的总投入上限是多少？', 'max_loss': '最多能承受多少不可回收损失？'},
@@ -15,6 +20,52 @@ CHECKS = {
 }
 RESOLVED = ('known', 'unknown', 'external', 'future')
 UNAVAILABLE = re.compile(r'不知道|不清楚|未知|未定|没定|未确认|待确认|尚未|还没|没有|没做|没问|未询价|未(?:经|做|完成)?(?:书面|独立|正式)?(?:核验|核查|验证|询价|报价|确认|落实)|待验证|待核|无法|不能提供|需要.*(?:核查|验证|试验)|预计|预估|估算|假设')
+TEST_TOPIC = r'测试|试点|试运行|试验|实测|实际运行|真实订单|真实成交|付费客户'
+
+
+def no_test(quote):
+    if re.search(r'但是|不过|更正|其实|现在已经', quote):
+        return False
+    return bool(re.fullmatch(r'没做过[。！!]?|没有[。！!]?', quote) or re.search(
+        r'(?:^|[。；，,\n]|(?:本|这个|该)(?:项目|方案))\s*(?:目前|我们|我)?\s*'
+        r'(?:还没有|还没|没|尚未|从未|未|没有)(?:做过|做|进行过|进行|开展过|开展|开始)?'
+        r'(?:任何|实际|小规模)?(?:测试|试点|试运行|试验|实测)', quote))
+
+
+def validation_answer(key, quote, status, source, dialogue):
+    if source not in ('user', 'evidence'):
+        return False
+    if key == 'validation_history':
+        linked = any(m.get('role') == 'user' and m.get('content', '').strip() == quote
+                     and i > 0 and dialogue[i - 1].get('role') == 'assistant'
+                     and re.search(TEST_TOPIC, dialogue[i - 1].get('content', ''))
+                     for i, m in enumerate(dialogue))
+        if len(quote.rstrip('。！!')) <= 4:
+            return linked and quote.rstrip('。！!') in ('没做过', '没有', '做过', '有', '不知道', '不清楚')
+        return bool(re.search(TEST_TOPIC, quote) and (no_test(quote)
+                    or (status != 'known' and re.search(r'不知道|不清楚|未知|无法确认', quote)
+                        and re.search(r'是否|有没有|做没做|测没测|测试情况|试点情况|测试经历|做过.*[吗?？]', quote))
+                    or (not re.search(r'计划|目标|预计|希望|假设', quote)
+                        and re.search(r'(?:测试|试点|试运行|试验)(?:过|了)|已经|曾经|实际|实测|上周|上月|去年', quote))))
+    topics = {'validation_results': r'测试|试点|试验|实测|结果|效果|样本',
+              'validation_records': r'测试|记录|日志|报表|凭证|材料|核对|复核',
+              'validation_transfer': r'类似|同类|其他项目|别的项目|其他店铺|可迁移|成功案例'}
+    if quote.rstrip('。！!') in ('不知道', '不清楚', '无法提供', '没有'):
+        return any(m.get('role') == 'user' and m.get('content', '').strip() == quote
+                   and i > 0 and dialogue[i - 1].get('role') == 'assistant'
+                   and re.search(topics[key], dialogue[i - 1].get('content', ''))
+                   for i, m in enumerate(dialogue))
+    if status != 'known':
+        return bool(re.search(topics[key], quote))
+    if key == 'validation_results':
+        return bool(re.search(r'\d|[零一二三四五六七八九十百千万]+', quote)
+                    and re.search(r'结果|效果|收入|利润|成本|耗时|工时|小时|错误|漏检|误报|转化|成交|销量|售出', quote)
+                    and not re.search(r'目标|计划|预计|预估|希望|假设', quote))
+    if key == 'validation_records':
+        return bool(re.search(r'记录|日志|报表|账单|凭证|材料|附件|文件|核对|复核|抽查', quote))
+    return bool(re.search(topics[key], quote)
+                and (re.search(r'没有|不知道|不清楚|无法提供', quote)
+                     or (re.search(r'\d', quote) and re.search(r'相同|不同|差异|一致|不能照搬', quote))))
 
 
 def complete(items, dimension):
@@ -58,6 +109,10 @@ def normalize(result, project, company, evidence, messages):
         items = {}
         for key, question in checks.items():
             candidate = raw.get(key) or {}
+            history = items.get('validation_history', {})
+            skipped_test = key in ('validation_results', 'validation_records') and history.get('verified') and no_test(history['quote'])
+            if skipped_test:
+                candidate = {'status': 'future', 'source': history['source'], 'quote': history['quote']}
             quote = str(candidate.get('quote', '')).strip()
             source = candidate.get('source', 'user')
             status = candidate.get('status', 'ask')
@@ -65,6 +120,12 @@ def normalize(result, project, company, evidence, messages):
             # An unavailable fact must be acknowledged by the user, never inferred from silence.
             if status in ('unknown', 'external', 'future'):
                 grounded = grounded and source == 'user' and bool(UNAVAILABLE.search(quote))
+            if key.startswith('validation_') and not skipped_test:
+                grounded = (bool(quote and quote in sources.get(source, ''))
+                            and validation_answer(key, quote, status, source, dialogue)
+                            and (status == 'known' or (source == 'user' and bool(UNAVAILABLE.search(quote)))))
+                if key in ('validation_results', 'validation_records') and len(quote.rstrip('。！!')) > 4 and no_test(quote):
+                    grounded = False
             # verified means source text matched, not that a business claim is independently proven.
             scope = {'investment_limit': r'总投入|总预算|投入上限|预算上限|最多投入|最多花|总额|不超过',
                      'max_loss': r'损失|亏损|亏|赔'}.get(key)
@@ -84,6 +145,10 @@ def normalize(result, project, company, evidence, messages):
                 if status == 'known':
                     grounded = grounded and bool(re.search(r'除以|÷|/|分子|分母|销售额.*(?:除|成本|费用)|收入.*(?:除|成本|费用)', quote))
             prior = previous.get(dimension, {}).get('items', {}).get(key, {})
+            previous_history = previous.get(dimension, {}).get('items', {}).get('validation_history', {})
+            if (key in ('validation_results', 'validation_records') and not skipped_test
+                    and prior.get('quote') == previous_history.get('quote') and no_test(prior.get('quote', ''))):
+                prior = {}  # A new test needs its own results; old "not tested" cannot close it.
             prior_quote = str(prior.get('quote', '')).strip()
             declared = explicit_unavailable(key, latest_user)
             if status == 'ask' and declared:
@@ -106,7 +171,9 @@ def normalize(result, project, company, evidence, messages):
             items[key] = {'status': status if verified else 'ask', 'source': source,
                           'quote': quote if verified else '', 'verified': verified}
             if not verified:
-                pending.append(question)
+                # Ask whether a test exists before asking for its results or records.
+                if key not in ('validation_results', 'validation_records') or history.get('verified'):
+                    pending.append(question)
         entry['items'] = items
         entry['status'] = next((item['status'] for item in items.values() if item['status'] != 'known'), 'known') if complete(items, dimension) else 'ask'
         entry['reason'] = entry.get('reason') or '仍需补充项目依据'
@@ -133,6 +200,10 @@ PROMPT = '''
 ''' + json.dumps(CHECKS, ensure_ascii=False) + '''
 每项结构为{"status":"known/ask/unknown/external/future","source":"user/company/project/evidence","quote":"来源中的连续原文"}。
 已回答用known并引用具体依据；尚未问过或没有依据用ask、quote为空。unknown仅在用户明确无法回答该项时使用；external/future也须用户明确承认该项待核查/验证，引用其原话。不能凭缺少信息关闭问题。
+测试经历是必查项：validation_history先核实本项目是否已经测试、试点或实际运行。用户没提过不等于没做过；未来计划、目标值、没有日志或没有报价都不能替代测试经历的回答。已明确说明的直接引用，不重复问。
+如果已经测试过，validation_results要逐步问清测试时间、样本量和适用范围、对照基线与实际效果、全部适用成本及准确性指标；只说“做过”“效果不错”不够。按项目追问用户能回答的缺口，不一口气问成长表单。实际结果与目标分开引用；实测结果引用里不混入未来目标。某项记不清就明确记录该项未知，不能把其他已经知道的结果一起清空。
+validation_records确认记录是什么、来源和核对人、是否能提供；只有口述或记录遗失时保留自述及局限，不冒充已核验。没有上传文件不能推断没有测试；上传也不等于核验通过。用户明确本项目未测试时，validation_results和validation_records用future引用同一句未测试原话，不索要尚不存在的结果。
+validation_transfer另问是否有可参考的类似项目实绩；本项目未测试不代表没有类似经验。有案例则问清结果、记录来源、相同条件和不可直接迁移的差异；没有或无法提供就引用用户原话保留未知。不因一句“有成功案例”直接关闭该项或升级证据。
 items记录的是该项是否已交流处理，不是业务条件是否已实现。列明成本种类并说金额未知，return.costs必须为unknown，引用包括“未知”的该句；列明外包对象并说均未落实，resources.dependencies必须为unknown或external，不能继续ask要求其给报价、落实人员或决定样品方案。具体方案尚未决定也是明确未知；不以补全试点执行细节作为生成报告前提，报告可暂缓评级并列待核查任务。
 未知必须对应具体检查项：成本金额未知不能关闭价值兑现路径、收益公式、成功指标或总投入上限；只说外包费用未知，也不能推断负责人、内部工时或外包落实情况。问到的新事项若用户明确说尚未决定/无法提供，记录对应未知，不能换说法要求立即作决定。
 每个检查项独立判断：投入上限必须是用户明确承诺的总额，最大损失必须是可承受的损失金额，清货动作不能替代损失上限；ROI目标值和列举费用不能替代分子分母定义。报价未知不等于投入上限未知，效果待验证不等于成功标准未定；一个未知不能替代整维其他问题。引用必须真正支持当前检查项，不能用泛泛的项目意愿填充预算、资源等项。

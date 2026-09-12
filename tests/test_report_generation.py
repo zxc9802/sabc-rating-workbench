@@ -34,6 +34,22 @@ def test_one_analysis_then_explicit_generation(client,monkeypatch):
     assert len(client.get(url).json()['assessments'])==1
 
 
+def test_old_completion_cannot_generate_without_new_test_history_checks(client,monkeypatch):
+    from sabc.report_readiness import fingerprint
+    module,url,calls=prepare(client,monkeypatch)
+    project=module.store.get('projects',url.split('/')[-1])
+    items=project['lifecycle']['coverage']['return']['items']
+    for key in list(items):
+        if key.startswith('validation_'):
+            del items[key]
+    project['collection_completion']['input_fingerprint']=fingerprint(project,module.company(),[])
+    module.store.save('projects',project)
+    assert not client.get(url).json()['project']['report_ready']
+    result=client.post(url+'/chat',json={'message':'生成','generate_report':True}).json()
+    assert result['needs_collection'] and calls==['interview']
+    assert not client.get(url).json()['assessments']
+
+
 @pytest.mark.parametrize('change',['project','company','evidence'])
 def test_changed_inputs_require_updated_judgment(client,monkeypatch,change):
     module,url,calls=prepare(client,monkeypatch)

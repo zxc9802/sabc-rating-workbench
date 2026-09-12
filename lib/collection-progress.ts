@@ -2,7 +2,7 @@ import type { Lifecycle } from './types';
 
 const DIMENSIONS = ['strategy', 'market', 'return', 'resources', 'replication', 'cash', 'risk', 'opportunity'] as const;
 
-const COUNTS: Record<string, number> = { strategy: 3, market: 3, return: 4, resources: 3, replication: 3, cash: 5, risk: 3, opportunity: 3 };
+const COUNTS: Record<string, number> = { strategy: 3, market: 3, return: 8, resources: 3, replication: 3, cash: 5, risk: 3, opportunity: 3 };
 
 export function collectionProgress(life?: Lifecycle, pendingQuestions: string[] = []) {
   const complete = DIMENSIONS.filter(key => {
@@ -13,5 +13,6 @@ export function collectionProgress(life?: Lifecycle, pendingQuestions: string[] 
   const ready = !!life?.confirmed && complete === DIMENSIONS.length && !pendingQuestions.length;
   const resolved = DIMENSIONS.reduce((count, key) => count + Object.values(life?.coverage[key]?.items || {})
     .filter(check => check.verified && ['known', 'unknown', 'external', 'future'].includes(check.status)).length, 0);
-  return { complete, ready, percent: ready ? 100 : Math.min(99, Math.round(resolved / 27 * 100)) };
+  const total = Object.values(COUNTS).reduce((sum, count) => sum + count, 0);
+  return { complete, ready, percent: ready ? 100 : Math.min(99, Math.round(resolved / total * 100)) };
 }

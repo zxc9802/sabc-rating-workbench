@@ -43,7 +43,8 @@ def format_failure(error, content):
         errors = error.errors(include_input=False, include_context=False, include_url=False)
         failure = ModelResponseError('模型返回字段未通过校验。', 'response_schema',
                                      error_code='invalid_fields', error_count=len(errors),
-                                     error_types=sorted({item['type'] for item in errors}))
+                                     error_types=sorted({item['type'] for item in errors}),
+                                     error_fields=['.'.join(map(str, item['loc']))[:160] for item in errors[:8]])
     else:
         failure = ModelResponseError(str(error), 'response_validation', error_code='invalid_analysis')
     # Raw output is transient retry context only. Audit records use details, never this text.

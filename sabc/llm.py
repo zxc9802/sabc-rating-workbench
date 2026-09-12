@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Literal
 
 from sabc.rating import DIMENSIONS, PROJECT_FIELDS, known
-from sabc.schema import validate_amounts, validate_proposal
+from sabc.schema import Proposal, validate_amounts, validate_proposal
 from sabc.templates import TEMPLATES
 from sabc.context import model_context
 from sabc.lifecycle import collection_ready, Coverage, PilotPlan, StageReview, PROMPT, absorb
@@ -170,7 +170,7 @@ B封顶包括核心价值未真实验证、优势无可核验证据、全新关�
                     if project.get('lifecycle') and set(parsed['dimension_coverage']) != set(DIMENSIONS):
                         raise ValueError('阶段分析必须覆盖八个维度')
                     if parsed['proposal'] is not None:
-                        parsed['proposal']=validate_proposal(parsed['proposal'])
+                        parsed['proposal']=Proposal.model_validate(parsed['proposal']).model_dump()
                         from sabc.standard import ground_low_scores
                         ground_low_scores(parsed['proposal'], project, company, evidence, messages)
                         assumptions=parsed['proposal']['assumptions']

@@ -636,6 +636,10 @@ def evaluate(pid:str,body:dict):
         p['lifecycle'] = life
         if proposal.get('decision_brief'):
             proposal['decision_brief']['allocation'] = next_action
+    elif life.get('review') and life['review'].get('summary', '').startswith('暂缓评级：'):
+        life['review'] = {**life['review'],
+                          'summary': '仍需验证的依据：' + life['review']['summary'][5:]}
+        p['lifecycle'] = life
     record=store.save('assessments',{'project_id':pid,'result':result,
         'snapshot':{'project':deepcopy(p),'company':c,'evidence':e,'proposal':proposal}})
     if result['grade']!='NR' and p.get('lifecycle') and life['stage']=='post':
