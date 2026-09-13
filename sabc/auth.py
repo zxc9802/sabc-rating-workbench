@@ -5,6 +5,7 @@ import os
 import secrets
 import time
 from collections import deque
+from threading import Lock
 
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
@@ -13,7 +14,8 @@ from sabc import sso
 
 router=APIRouter(prefix='/api/auth')
 sessions={}
-attempts=deque()
+attempts={}
+attempt_lock=Lock()
 COOKIE='sabc_session'
 TTL=8*60*60
 
@@ -48,14 +50,22 @@ def session(request:Request):
 
 
 @router.post('/login')
-def login(body:Login):
+def login(body:Login, request:Request):
     if sso.enabled(): raise HTTPException(404,'请使用主站账号登录')
     if not enabled():
         raise HTTPException(503,'服务器尚未配置登录密码')
     now=time.time()
-    while attempts and attempts[0]<now-60: attempts.popleft()
-    if len(attempts)>=30: raise HTTPException(429,'登录尝试过多，请一分钟后重试')
-    attempts.append(now)
+    # The ASGI peer is resolved by the configured trusted proxy, never by a raw header here.
+    source=request.client.host if request.client else 'unknown'
+    with attempt_lock:
+        for address, bucket in list(attempts.items()):
+            while bucket and bucket[0]<now-60: bucket.popleft()
+            if not bucket: attempts.pop(address,None)
+        if source not in attempts and len(attempts)>=1024:
+            raise HTTPException(429,'登录服务繁忙，请稍后重试')
+        bucket=attempts.setdefault(source,deque())
+        if len(bucket)>=30: raise HTTPException(429,'登录尝试过多，请一分钟后重试')
+        bucket.append(now)
     if not hmac.compare_digest(body.password.encode(),os.environ['SABC_ACCESS_PASSWORD'].encode()):
         raise HTTPException(401,'密码不正确')
     for key,value in list(sessions.items()):

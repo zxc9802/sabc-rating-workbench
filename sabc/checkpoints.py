@@ -1,6 +1,8 @@
 """Per-dimension interview checkpoints, grounded in supplied source text."""
 import json
 import re
+from datetime import date
+from sabc.business_time import today
 from sabc.rating import PROJECT_FIELDS
 
 CHECKS = {
@@ -42,11 +44,18 @@ def validation_answer(key, quote, status, source, dialogue):
                      for i, m in enumerate(dialogue))
         if len(quote.rstrip('。！!')) <= 4:
             return linked and quote.rstrip('。！!') in ('没做过', '没有', '做过', '有', '不知道', '不清楚')
+        period = re.search(r'(?:测试|试点|试验)(?:是在|是|在|时间为)(\d{4})年(\d{1,2})月(\d{1,2})日', quote)
+        dated_sample = False
+        if period and re.search(r'(?:共|覆盖).*\d+\s*(?:条|单|笔|人|件|样本)', quote):
+            try:
+                dated_sample = date(*map(int, period.groups())) <= today()
+            except ValueError:
+                pass
         return bool(re.search(TEST_TOPIC, quote) and (no_test(quote)
                     or (status != 'known' and re.search(r'不知道|不清楚|未知|无法确认', quote)
                         and re.search(r'是否|有没有|做没做|测没测|测试情况|试点情况|测试经历|做过.*[吗?？]', quote))
-                    or (not re.search(r'计划|目标|预计|希望|假设', quote)
-                        and re.search(r'(?:测试|试点|试运行|试验)(?:过|了)|已经|曾经|实际|实测|上周|上月|去年', quote))))
+                    or (not re.search(r'计划|目标|预计|希望|假设|将要|准备|未来', quote)
+                        and (dated_sample or re.search(r'(?:测试|试点|试运行|试验)(?:过|了)|(?:做过|进行过|开展过|完成过)(?:(?:本|这个|该)(?:项目|方案))?的?(?:测试|试点|试运行|试验)|已经|曾经|实际|实测|上周|上月|去年', quote)))))
     topics = {'validation_results': r'测试|试点|试验|实测|结果|效果|样本',
               'validation_records': r'测试|记录|日志|报表|凭证|材料|核对|复核',
               'validation_transfer': r'类似|同类|其他项目|别的项目|其他店铺|可迁移|成功案例'}
@@ -79,12 +88,13 @@ def explicit_unavailable(key, message):
     patterns = {
         'costs': (r'持续成本|持续费用|单件成本|全部成本', r'未知|不知道|无法提供|没有报价'),
         'dependencies': (r'外包|依赖|代理', r'均未落实|都未落实|全部未落实|均未确认|均未确定'),
+        'extra': (r'(?:迁移|扩大|复制|扩店).*(?:成本|费用|投入|工时)', r'未知|不知道|无法提供|没有报价'),
     }
     if key not in patterns:
         return ''
     topic, unavailable = patterns[key]
     for sentence in reversed(re.split(r'[。；\n]', message)):
-        if re.search(r'[？?]|并非|不是|不再|之前|此前|原来|曾经|已落实|已确认|已确定', sentence):
+        if re.search(r'[？?]|并非|不是|不再|之前|此前|原来|曾经|过去|已落实|已确认|已确定', sentence):
             continue
         if re.search(topic, sentence) and re.search(unavailable, sentence):
             return sentence.strip()
@@ -92,12 +102,14 @@ def explicit_unavailable(key, message):
 
 
 def normalize(result, project, company, evidence, messages):
+    history = project.get('messages', [])
+    # Production supplies full history; older callers may supply only new turns.
+    dialogue = messages if messages[:len(history)] == history else history + messages
     user = '\n'.join([str(project.get('description', ''))] +
-                     [m.get('content', '') for m in project.get('messages', []) + messages if m.get('role') == 'user'])
+                     [m.get('content', '') for m in dialogue if m.get('role') == 'user'])
     sources = {'user': user, 'company': json.dumps(company, ensure_ascii=False),
                'project': json.dumps({k: project[k] for k in PROJECT_FIELDS if k in project}, ensure_ascii=False),
                'evidence': '\n'.join(str(e.get('content', '')) for e in evidence)}
-    dialogue = project.get('messages', []) + messages
     latest_user = next((m.get('content', '') for m in reversed(messages) if m.get('role') == 'user'), '')
     previous = project.get('lifecycle', {}).get('coverage', {})
     coverage = result.get('dimension_coverage') or {}
@@ -127,7 +139,7 @@ def normalize(result, project, company, evidence, messages):
                 if key in ('validation_results', 'validation_records') and len(quote.rstrip('。！!')) > 4 and no_test(quote):
                     grounded = False
             # verified means source text matched, not that a business claim is independently proven.
-            scope = {'investment_limit': r'总投入|总预算|投入上限|预算上限|最多投入|最多花|总额|不超过',
+            scope = {'investment_limit': r'总投入|总预算|投入上限|预算上限|总(?:项目)?现金(?:占用|投入)?上限|最多投入|最多花|总额|不超过',
                      'max_loss': r'损失|亏损|亏|赔'}.get(key)
             if scope:
                 linked = any(m.get('role') == 'user' and quote and quote in m.get('content', '')
@@ -151,7 +163,7 @@ def normalize(result, project, company, evidence, messages):
                 prior = {}  # A new test needs its own results; old "not tested" cannot close it.
             prior_quote = str(prior.get('quote', '')).strip()
             declared = explicit_unavailable(key, latest_user)
-            if status == 'ask' and declared:
+            if (status == 'ask' or not grounded) and declared:
                 quote, source, status, grounded = declared, 'user', 'unknown', True
             # A model omission/paraphrase cannot erase a previously grounded answer.
             # A quoted change in the latest user turn may reopen it for clarification.
@@ -178,6 +190,12 @@ def normalize(result, project, company, evidence, messages):
         entry['status'] = next((item['status'] for item in items.values() if item['status'] != 'known'), 'known') if complete(items, dimension) else 'ask'
         entry['reason'] = entry.get('reason') or '仍需补充项目依据'
     result['dimension_coverage'] = coverage
+    # The same grounded answer must reach the required project field as well as progress.
+    target = coverage.get('market', {}).get('items', {}).get('user', {})
+    facts = {**project, **project.get('pending_patch', {}), **result.get('project_patch', {})}
+    if (not facts.get('target_user') and target.get('verified') and target.get('status') == 'known'
+            and target.get('source') == 'user'):
+        result.setdefault('project_patch', {})['target_user'] = target['quote']
     if rejected:
         from sabc.model_router import audit
         if audit.get():
@@ -208,6 +226,10 @@ items记录的是该项是否已交流处理，不是业务条件是否已实现
 未知必须对应具体检查项：成本金额未知不能关闭价值兑现路径、收益公式、成功指标或总投入上限；只说外包费用未知，也不能推断负责人、内部工时或外包落实情况。问到的新事项若用户明确说尚未决定/无法提供，记录对应未知，不能换说法要求立即作决定。
 每个检查项独立判断：投入上限必须是用户明确承诺的总额，最大损失必须是可承受的损失金额，清货动作不能替代损失上限；ROI目标值和列举费用不能替代分子分母定义。报价未知不等于投入上限未知，效果待验证不等于成功标准未定；一个未知不能替代整维其他问题。引用必须真正支持当前检查项，不能用泛泛的项目意愿填充预算、资源等项。
 按项目类型理解问题：内部项目看产能/成本和内部需求，不强问销售收入；不适用的事项用known，引用能说明不适用的事实，不凭空宣称不适用。已有资料或用户一次回答涵盖多项可直接引用，不重复问。
+用户明确当前不扩店/不扩大范围，replication.scope用known引用当前范围边界；迁移额外成本或工时明确未知时extra用unknown，不要求选下一家店或编造扩张计划。没有扩大计划不等于已验证可复制，评级仍按现有证据判断。
+人员可调用排期是资源上限，不等于实际新增耗时。净节省只用新旧流程实际全员总工时比较，不能把可调用时间再当实际投入重复相减。已明确总工时覆盖复核、返工和维护时，不为完善执行细节强制追问每个人每项细分；只有具体资源冲突才继续问。
+当前流程和改进方向明确后，若validation_history仍未回答，优先问是否已做过测试，再讨论未来试点指标与执行细节；不等所有其他检查项问完才追回测试经历。
+先用最新用户回答更新检查项，再从更新后的缺口提问；上一轮已问且本轮已答的止损、替代方案等不能原样再问。若历史测试问题被用户漏答，且本轮也未回答，应优先追回该遗漏。
 继承仍有效的历史items原文，但有新信息冲突时更新。全量返回检查项，短引用即可，避免长篇解释。每轮从尚未解决的检查项选择最多两个单一主题问题，优先现金约束、价值和明显风险；逐渐覆盖其他维度，不集中重复打磨某项。
 补充一项不能抹掉其他已处理项；此前明确未知也不重新索要。只有最新用户原话改变或否定此前依据，才将该项重开为ask，并在quote引用这句新的冲突原文；不能因为本轮没有再次提及而重开。明确更正的金额或公式直接使用新原文更新，不保留被替代的旧值。
 只有所有检查项均处理完且questions为空才询问是否生成报告；普通访谈不生成proposal或stage_review，不启动独立审查。

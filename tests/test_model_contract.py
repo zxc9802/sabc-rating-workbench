@@ -56,7 +56,7 @@ def test_incomplete_assumptions_repaired_once(monkeypatch):
         content={'reply':'方向待验证','proposal':incomplete if len(calls)==1 else proposal}
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps(content)}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
-    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
+    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, case()[2], [])
     assert len(calls)==2
     assert r['proposal']['assumptions'][0]['validation_method']=='负责人核对真实订单'
     assert 0<calls[1]['timeout']<=calls[0]['timeout']<=90
@@ -77,7 +77,7 @@ def test_incomplete_assumptions_never_accepted_after_repair(monkeypatch,missing)
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps({'reply':'建议','proposal':proposal})}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
     with pytest.raises(ValueError,match='缺少完整的关键假设'):
-        analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
+        analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, case()[2], [])
     assert len(calls)==2
 
 
@@ -92,7 +92,7 @@ def test_complete_or_no_proposal_does_not_retry(monkeypatch,has_proposal):
         calls.append(1)
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps({'reply':'建议','proposal':proposal})}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
-    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
+    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, case()[2], [])
     assert len(calls)==1
     assert (r['proposal'] is not None)==has_proposal
 

@@ -59,6 +59,11 @@ export async function api<T>(path: string, method = 'GET', body?: unknown, onPro
     });
     if (response.status === 401 && !path.startsWith('/auth/')) window.dispatchEvent(new Event('sabc-session-expired'));
     if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '提交内容不完整，请检查输入。');
+    // A refreshed project contains completed work; a later identical message is a new turn.
+    // Until that refresh or a terminal poll succeeds, retain IDs for safe network retries.
+    if (method === 'GET' && /^\/projects\/[^/]+$/.test(path) && Array.isArray(data.completed_job_ids)) {
+      for (const key of Object.keys(localStorage)) if (key.startsWith('sabc-request-') && data.completed_job_ids.includes(localStorage.getItem(key))) localStorage.removeItem(key);
+    }
     return data as T;
   } catch (error) {
     if (controller.signal.aborted) throw new Error('连接超时。操作可能已保存，请重新打开项目核对结果；后台分析任务会继续保留，请勿重复创建项目。');

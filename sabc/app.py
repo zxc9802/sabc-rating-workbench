@@ -13,7 +13,8 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from sabc.catalog import catalog
-from sabc.key_storage import encrypt_key, decrypt_key
+from sabc.key_storage import encrypt_key, model_key, key_origin
+from sabc.request_limits import BodyLimitMiddleware
 from sabc.llm import analyze, guide
 from sabc import planner, report_qa, report_readiness
 from sabc import auth, lifecycle, model_router, sso
@@ -23,13 +24,14 @@ from sabc.jobs import jobs
 from sabc.streaming import check_cancelled, progress
 from sabc.rating import assess, DIMENSIONS, TYPES, RULE_VERSION, PROJECT_FIELDS
 from sabc.store import Store, utcnow
-from sabc.schema import validate_amounts, validate_proposal
+from sabc.schema import validate_amounts, validate_proposal, validate_project_type
 from sabc.sources import collect, SUPPORTED
 from sabc.local_sources import REGIONS, save_capture, use_capture
 
 ROOT=Path(__file__).resolve().parent.parent
 store=AccountStore(Path(os.getenv('SABC_DB',str(ROOT/'data'/'sabc.db'))))
 app=FastAPI(title='SABC 项目评级',docs_url=None,redoc_url=None,openapi_url=None)
+app.add_middleware(BodyLimitMiddleware)
 app.include_router(speech.router)
 app.include_router(auth.router)
 app.include_router(sso.router)
@@ -99,10 +101,13 @@ def public_settings():
     s=settings()
     primary=model_router.deepseek()
     mixtoken=model_router.mixtoken_route()
-    gemini=model_router.gemini_route({**s, 'key': bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY'))})
-    return {'managed':sso.enabled(),'primary_model':mixtoken['model'] if mixtoken else gemini['model'] if gemini else ('z-ai/glm-5.3-flash' if os.getenv('SABC_FAL_API_KEY','').strip() else s.get('model','')), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
-            'has_key':bool(mixtoken or s.get('encrypted_key') or os.getenv('SABC_API_KEY')),
+    gemini=model_router.gemini_route({**s, 'key': bool(not s.get('key_disabled') and (s.get('encrypted_key') or os.getenv('SABC_API_KEY')))})
+    result = {'managed':sso.enabled(),'primary_model':mixtoken['model'] if mixtoken else gemini['model'] if gemini else ('z-ai/glm-5.3-flash' if os.getenv('SABC_FAL_API_KEY','').strip() else s.get('model','')), 'planner_model':'八维程序规则', 'reasoning_effort':primary['effort'] if primary else None, 'fallback_model':primary['model'] if primary else '', 'base_url':s.get('base_url',''),'model':s.get('model',''),
+            'has_key':bool(mixtoken or primary or (not s.get('key_disabled') and (s.get('encrypted_key') or os.getenv('SABC_API_KEY')))),
             'configured':bool(mixtoken or primary or (s.get('base_url') and s.get('model')))}
+    if sso.enabled():
+        result.update(base_url='', model='', primary_model='项目分析模型', fallback_model='', reasoning_effort=None)
+    return result
 
 
 @app.get('/api/bootstrap')
@@ -132,6 +137,7 @@ def save_company(body:dict):
 
 @app.post('/api/projects')
 def create_project(body:dict):
+    validate_project_type(body)
     validate_amounts(body, ('budget_requested',))
     data={k:v for k,v in body.items() if k in set(PROJECT_FIELDS)|{'description','budget_requested'}}
     data['name']=str(data.get('name') or '未命名项目')[:100]
@@ -143,7 +149,11 @@ def create_project(body:dict):
         data=lifecycle.transition(data,'set_stage',body,company())
     saved=store.save('projects',data)
     if body.get('auto_start'):
-        start_interview(saved['id'])
+        try:
+            start_interview(saved['id'])
+        except HTTPException as error:
+            # Creation succeeded; a busy interview queue must not invite duplicate projects.
+            if error.status_code != 429: raise
         saved=project_or_404(saved['id'])
     return saved
 
@@ -165,12 +175,13 @@ def delete_projects(body:DeleteProjects):
 
 @app.get('/api/projects/{pid}')
 def get_project(pid:str):
+    completed = [j['id'] for j in store.list('jobs') if j.get('project_id') == pid and j['status'] != 'running']
     p=project_or_404(pid)
     evidence=evidence_for(pid)
     analysis_complete=report_readiness.ready(p,company(),evidence)
     report_ready=analysis_complete
     return {'project':{**p,'followup':lifecycle.followup(p),'analysis_complete':analysis_complete, 'report_ready':report_ready},'evidence':evidence,
-            'assessments':[r for r in store.list('assessments') if r['project_id']==pid],
+            'assessments':[r for r in store.list('assessments') if r['project_id']==pid], 'completed_job_ids':completed,
             'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running' and r.get('operation')!='report_chat'],
             'initial_job':jobs.read(store,p['initial_job_id']) if p.get('initial_job_id') else None}
 
@@ -192,6 +203,7 @@ def start_interview(pid:str,retry:bool=False):
 @app.patch('/api/projects/{pid}')
 def update_project(pid:str,body:dict):
     p=project_or_404(pid)
+    validate_project_type(body)
     allowed=set(PROJECT_FIELDS)|{'description','budget_requested','proposal'}
     patch={k:v for k,v in body.items() if k in allowed}
     validate_amounts(patch, ('budget_requested',))
@@ -236,7 +248,8 @@ def update_lifecycle(pid:str,body:LifecycleAction):
 @app.get('/api/projects/{pid}/model-runs')
 def model_runs(pid:str):
     project_or_404(pid)
-    return [r for r in store.list('model_runs') if r.get('project_id')==pid][:100]
+    runs = [r for r in store.list('model_runs') if r.get('project_id')==pid][:100]
+    return [{k:v for k,v in r.items() if k not in ('provider','model')} for r in runs] if sso.enabled() else runs
 
 
 class Chat(BaseModel):
@@ -246,6 +259,11 @@ class Chat(BaseModel):
 
 
 @app.post('/api/projects/{pid}/chat')
+def chat_request(pid:str,body:Chat):
+    project_or_404(pid)
+    return jobs.execute(store,pid,lambda:chat(pid,body))
+
+
 def chat(pid:str,body:Chat):
     token=model_router.audit.set(lambda event:store.save('model_runs',{'project_id':pid,**event}))
     notify = progress.get()
@@ -278,7 +296,7 @@ def chat_turn(pid,body):
         starting_inputs=report_readiness.fingerprint(p,c,e)
         s=settings()
         # Generate only after the explicit action. No retrieval or independent review.
-        result=analyze(s,decrypt_key(s.get('encrypted_key','')),
+        result=analyze(s,model_key(s),
                        {**p,'_report_requested':True,'_previous_stage_report':previous_report},
                        c,model_evidence_for(pid),p.get('messages',[]))
         if not result.get('proposal') or not result.get('stage_review') or result.get('questions'):
@@ -335,7 +353,7 @@ def chat_turn(pid,body):
         check_cancelled()
         context={'results':outcomes,'candidates':plan['candidates'],'missing_parameters':plan['missing_parameters']}
         starting_inputs=report_readiness.fingerprint(p,company(),evidence_for(pid))
-        result=analyze(s,decrypt_key(s.get('encrypted_key','')),{**p, '_report_requested': False, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
+        result=analyze(s,model_key(s),{**p, '_report_requested': False, '_previous_stage_report': previous_report},company(),model_evidence_for(pid),messages+[{'role':'tool','content':'程序已完成本轮规则取数。saved仅表示已保存而非已核验；failed表示未完成，不得虚构结果。缺少参数时先追问。仅依据现有证据回答，不再请求取数：'+json.dumps(context,ensure_ascii=False)}])
         result['proposal']=None
         result['stage_review']=None
         result['pilot_plan']=None
@@ -399,6 +417,11 @@ class SourceQuery(BaseModel):
 
 
 @app.post('/api/projects/{pid}/sources/{source}')
+def source_request(pid:str,source:str,body:SourceQuery):
+    project_or_404(pid)
+    return jobs.execute(store,pid,lambda:fetch_source(pid,source,body))
+
+
 def fetch_source(pid:str,source:str,body:SourceQuery):
     project_or_404(pid)
     try:
@@ -436,7 +459,7 @@ def report_chat(pid, body, job_id):
     config=settings()
     token=model_router.audit.set(lambda event:store.save('model_runs',{'project_id':pid,'assessment_id':body.assessment_id,**event}))
     try:
-        reply=report_qa.answer(config,decrypt_key(config.get('encrypted_key','')),report,report_turns(pid,body.assessment_id),body.message.strip())
+        reply=report_qa.answer(config,model_key(config),report,report_turns(pid,body.assessment_id),body.message.strip())
     finally:
         model_router.audit.reset(token)
     with jobs.lock:
@@ -576,11 +599,14 @@ def attachment(pid:str,file:UploadFile, label:str=Form('')):
     path=directory/ident
     path.write_bytes(content);path.chmod(0o600)
     def process():
-        result=extract(name,content,settings(),decrypt_key(settings().get('encrypted_key','')),parse_file)
-        return store.save('evidence',{'project_id':pid,'title':(label or name)[:200],
-            'source_locator':'对话附件：'+name,'attachment_id':ident,'source_type':'user',
-            'verification_status':'unverified','level':0,'retrieved_at':utcnow(),
-            'data_period':'待核对','scope':label[:500] or '本项目附件，适用范围待核对',**result})
+        config=settings()
+        result=extract(name,content,config,model_key(config),parse_file)
+        with jobs.lock:
+            check_cancelled()
+            return store.save('evidence',{'project_id':pid,'title':(label or name)[:200],
+                'source_locator':'对话附件：'+name,'attachment_id':ident,'source_type':'user',
+                'verification_status':'unverified','level':0,'retrieved_at':utcnow(),
+                'data_period':'待核对','scope':label[:500] or '本项目附件，适用范围待核对',**result})
     try:
         return jobs.submit(store,ident,pid,{'operation':'attachment','name':name},process)
     except Exception:
@@ -662,14 +688,15 @@ def save_settings(body:dict):
     from urllib.parse import urlparse
     base=str(body.get('base_url','')).strip().rstrip('/')
     if base and (urlparse(base).scheme not in ('https','http') or urlparse(base).username): raise ValueError('模型地址须为不含用户名密码的HTTP(S)地址')
+    if base and not urlparse(base).hostname: raise ValueError('请填写完整的模型服务地址')
+    if base and os.getenv('SABC_UI_ORIGIN','').startswith('https://') and urlparse(base).scheme != 'https':
+        raise ValueError('云端模型连接必须使用HTTPS地址')
     s=settings()
-    data={'id':'model','base_url':base,'model':str(body.get('model','')).strip(),'encrypted_key':s.get('encrypted_key','')}
-    if body.get('api_key'): data['encrypted_key']=encrypt_key(body['api_key'])
-    if body.get('clear_key'): data['encrypted_key']=''
+    has_key=not s.get('key_disabled') and bool(s.get('encrypted_key') or os.getenv('SABC_API_KEY'))
+    if key_origin(base) != key_origin(s.get('base_url','')) and has_key and not (body.get('api_key') or body.get('clear_key')):
+        raise ValueError('模型地址已改变，请为新服务配置对应密钥，或明确清除原密钥')
+    data={'id':'model','base_url':base,'model':str(body.get('model','')).strip(),'encrypted_key':s.get('encrypted_key',''), 'key_disabled':s.get('key_disabled',False)}
+    if body.get('api_key'): data.update(encrypted_key=encrypt_key(body['api_key']),key_disabled=False)
+    if body.get('clear_key'): data.update(encrypted_key='',key_disabled=True)
     store.save('settings',data)
     return public_settings()
-
-
-@app.get('/api/health')
-def health():
-    return {'status':'ok','rule_version':RULE_VERSION,'audit_ok':store.check_audit()}

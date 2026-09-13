@@ -77,7 +77,7 @@ def test_stream_json_error_is_distinct_and_never_saved_as_reply(monkeypatch):
             return completion(client, 'https://model.example', {}, {}, 1)
     try:
         with pytest.raises(ValueError):
-            routed('analysis', {'model': 'test'}, execute)
+            routed('analysis', {'model': 'test', 'base_url': 'https://model.example'}, execute)
     finally:
         progress.reset(ptoken); audit.reset(atoken)
     assert events[0]['error_stage'] == 'stream_json'

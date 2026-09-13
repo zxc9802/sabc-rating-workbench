@@ -1,5 +1,6 @@
 """Deterministic V2 rating. This module never calls a model or network."""
 from datetime import date
+from sabc.business_time import today as business_today
 import math
 
 RULE_VERSION = 'SABC-2.1.0'
@@ -56,7 +57,7 @@ def evidence_strength(item, today):
 
 
 def assess(project, company, evidence, proposal, today=None):
-    today=today or date.today()
+    today=today or business_today()
     missing=missing_fields(project,company)
     result={'rule_version':RULE_VERSION, 'grade':'NR', 'status':'待评级', 'base_score':None,
             'base_grade':None, 'evidence_level':'E0', 'confidence':'低', 'dimensions':[],

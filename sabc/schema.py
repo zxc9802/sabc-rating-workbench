@@ -3,6 +3,12 @@ import math
 from typing import Literal
 
 from pydantic import BaseModel, Field, StrictBool
+from sabc.rating import TYPES
+
+
+def validate_project_type(data):
+    if 'project_type' in data and (not isinstance(data['project_type'], str) or data['project_type'] not in TYPES):
+        raise ValueError('请选择有效的项目类型：商业增长、内部AI / 提效、战略能力 / 资产或重资产 / 扩张')
 
 
 class Dimension(BaseModel):

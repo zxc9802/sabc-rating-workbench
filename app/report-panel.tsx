@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type SetStateAction } from 'react';
 import { Download, FileCheck2, RefreshCw, ArrowUpRight, ChevronDown, Printer } from 'lucide-react';
 import { api, Detail, Dimension, Proposal, Score, Assumption, Assessment, Evidence, Lifecycle, gradeLabel } from '../lib/types';
 import { ReportAssistant } from './report-assistant';
@@ -53,7 +53,9 @@ function DecisionBrief({ brief }: { brief?: Record<string, string> }) {
 }
 
 export function ReportPanel({ detail, dimensions, busy, run, refresh, onGenerate }: { detail: Detail; dimensions: Dimension[]; busy: boolean; run: Run; refresh: () => Promise<void>; onGenerate: () => void }) {
-  const [proposal, setProposal] = useState<Proposal>(detail.project.proposal || initialProposal(dimensions));
+  const [proposal, setProposalState] = useState<Proposal>(detail.project.proposal || initialProposal(dimensions));
+  const draft = useRef({ projectId: detail.project.id, dirty: false });
+  function setProposal(value: SetStateAction<Proposal>) { draft.current.dirty = true; setProposalState(value); }
   const reports = detail.assessments;
   const [selected, setSelected] = useState<Assessment | null>(reports[0] || null);
   const [confirmed, setConfirmed] = useState(false);
@@ -61,11 +63,14 @@ export function ReportPanel({ detail, dimensions, busy, run, refresh, onGenerate
   useEffect(() => { setConfirmed(false); }, [proposal]);
   useEffect(() => { setEdit(false); }, [detail.project.id]);
   useEffect(() => { setSelected(detail.assessments[0] || null); }, [detail.assessments]);
-  useEffect(() => { setProposal(detail.project.proposal || initialProposal(dimensions)); }, [detail.project.proposal, dimensions]);
+  useEffect(() => {
+    if (draft.current.projectId !== detail.project.id) draft.current = { projectId: detail.project.id, dirty: false };
+    if (!draft.current.dirty) setProposalState(detail.project.proposal || initialProposal(dimensions));
+  }, [detail.project.id, detail.project.proposal, dimensions]);
   function setDimension(key: string, patch: Partial<Score>) { setConfirmed(false); setProposal(p => ({ ...p, dimensions: { ...p.dimensions, [key]: { ...p.dimensions[key], ...patch } } })); }
   function setAssumption(index: number, patch: Partial<Assumption>) { setConfirmed(false); setProposal(p => ({ ...p, assumptions: p.assumptions.map((a, i) => i === index ? { ...a, ...patch } : a) })); }
   async function evaluate(manual = false) {
-    await run(async () => { const record = await api<Assessment>('/projects/' + detail.project.id + '/assess', 'POST', manual ? { proposal, confirmed } : {}); setSelected(record); await refresh(); if (record.result.grade !== 'NR') setEdit(false); }, '本次评估已保存，历史结果不会被覆盖');
+    await run(async () => { const record = await api<Assessment>('/projects/' + detail.project.id + '/assess', 'POST', manual ? { proposal, confirmed } : {}); draft.current.dirty = false; setSelected(record); await refresh(); if (record.result.grade !== 'NR') setEdit(false); }, '本次评估已保存，历史结果不会被覆盖');
   }
   const r = selected?.result;
   const pendingFacts = Object.entries(detail.project.pending_patch || {}).some(([key, value]) => detail.project[key] !== value);

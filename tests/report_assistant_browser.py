@@ -1,3 +1,4 @@
+import os
 """Local browser regression with synthetic reports and mocked model jobs.
 Run against Next dev at 127.0.0.1:3000, with Playwright installed.
 """
@@ -35,7 +36,7 @@ with sync_playwright() as p:
         r.fulfill(json=data)
     page.route('**/api/**',route)
     page.add_init_script("sessionStorage.setItem('sabc-project','qa-project')")
-    page.goto('http://127.0.0.1:3000');page.wait_for_load_state('networkidle')
+    page.goto(os.getenv('SABC_TEST_UI_ORIGIN', 'http://127.0.0.1:3000'));page.wait_for_load_state('networkidle')
     page.get_by_role('tab',name='历史报告与建议').click()
     dock=page.get_by_role('complementary',name='报告问答助手')
     expect(dock).to_be_visible()

@@ -3,6 +3,7 @@ from contextvars import ContextVar
 import os
 import time
 from urllib.parse import urlparse
+import httpx
 
 from sabc.streaming import progress, check_cancelled
 from sabc.model_output import ModelResponseError
@@ -61,7 +62,11 @@ def routed(role, preferred, execute):
         routes = [gemini] + [{**route, 'primary': False} for route in routes]
     mixtoken = mixtoken_route() if role in ('analysis', 'report_chat') else None
     if mixtoken:
-        routes = [mixtoken] + [{**route, 'primary': False} for route in routes]
+        routes = [mixtoken] + [{**route, 'primary': False} for route in routes
+                              if route.get('base_url') and route.get('model')]
+    routes = [route for route in routes if route.get('base_url') and route.get('model')]
+    if not routes:
+        raise ValueError('模型连接尚未配置，请联系管理员')
     for index, config in enumerate(routes):
         check_cancelled()
         started = time.monotonic()
@@ -72,6 +77,8 @@ def routed(role, preferred, execute):
             check_cancelled()
         except Exception as error:
             event.update(status='failed', error_type=type(error).__name__)
+            if isinstance(error, httpx.HTTPStatusError):
+                event['http_status'] = error.response.status_code
             if isinstance(error, ModelResponseError):
                 event.update(error_stage=error.stage, error_details=error.details)
                 if error.retry_messages and index + 1 < len(routes):

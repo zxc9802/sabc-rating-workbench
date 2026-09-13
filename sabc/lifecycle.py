@@ -1,8 +1,8 @@
 """Three-stage project decisions, versioned pilot plans and in-app follow-ups."""
 from copy import deepcopy
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Literal
-from zoneinfo import ZoneInfo
+from sabc.business_time import today
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 
@@ -12,8 +12,11 @@ from sabc.store import utcnow
 STAGES = {'pre': '启动前', 'during': '试点中', 'post': '试点后'}
 
 
-def today():
-    return datetime.now(ZoneInfo('Asia/Shanghai')).date()
+def parse_date(value):
+    try:
+        return date.fromisoformat(value)
+    except (ValueError, TypeError):
+        raise ValueError('请填写有效日期，格式为 YYYY-MM-DD') from None
 
 
 class Coverage(BaseModel):
@@ -165,12 +168,12 @@ def transition(project, action, body, company):
             raise ValueError('修改已确认的阶段需要说明更正原因')
         life.update(stage=stage, confirmed=True, paused=False, coverage={}, review=None, draft_plan=None, next_review_on=None)
         if stage in ('during', 'post'):
-            started = date.fromisoformat(body.get('actual_start', ''))
+            started = parse_date(body.get('actual_start', ''))
             if started > on:
                 raise ValueError('实际开始日期不能在未来')
             life['actual_start'] = started.isoformat()
             if stage == 'post':
-                ended = date.fromisoformat(body.get('actual_end', ''))
+                ended = parse_date(body.get('actual_end', ''))
                 if not started <= ended <= on:
                     raise ValueError('实际结束日期须在开始日期之后且不晚于今天')
                 life['actual_end'] = ended.isoformat()
@@ -205,7 +208,7 @@ def transition(project, action, body, company):
         if (life.get('review') or {}).get('conclusion') not in ('trial', 'adjust'):
             raise ValueError('当前评价尚不支持启动，请先处理关键障碍')
         check_budget(life['plan'], company)
-        started = date.fromisoformat(body.get('date', ''))
+        started = parse_date(body.get('date', ''))
         if started > on:
             raise ValueError('实际开始日期不能在未来')
         life.update(stage='during', actual_start=started.isoformat(), paused=False, coverage={}, review=None)
@@ -214,14 +217,14 @@ def transition(project, action, body, company):
     elif action == 'complete':
         if life['stage'] != 'during':
             raise ValueError('只有已经开始的试点可以结束')
-        ended = date.fromisoformat(body.get('date', ''))
+        ended = parse_date(body.get('date', ''))
         if not date.fromisoformat(life['actual_start']) <= ended <= on:
             raise ValueError('实际结束日期须在开始日期之后且不晚于今天')
         if not reason:
             raise ValueError('请说明正常完成或提前停止的情况')
         life.update(stage='post', actual_end=ended.isoformat(), paused=False, coverage={}, review=None, next_review_on=on.isoformat())
     elif action == 'schedule':
-        scheduled = date.fromisoformat(body.get('date', ''))
+        scheduled = parse_date(body.get('date', ''))
         if scheduled < on or not reason:
             raise ValueError('请选择今天或以后的回访日期，并说明安排原因')
         life['next_review_on'] = scheduled.isoformat()

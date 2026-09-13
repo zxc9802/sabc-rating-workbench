@@ -22,8 +22,8 @@ def test_preferred_then_deepseek_and_reset_next_request(primary):
         return 'legacy answer'
     token=audit.set(events.append)
     try:
-        assert routed('analysis',{'model':'old-model'},execute)=='legacy answer'
-        assert routed('analysis',{'model':'old-model'},execute)=='legacy answer'
+        assert routed('analysis',{'model':'old-model','base_url':'https://provider.example/v1'},execute)=='legacy answer'
+        assert routed('analysis',{'model':'old-model','base_url':'https://provider.example/v1'},execute)=='legacy answer'
     finally:audit.reset(token)
     assert calls==['old-model','deepseek-flash']*2
     assert [e['attempt'] for e in events]==[1,1]*2
@@ -33,7 +33,7 @@ def test_preferred_then_deepseek_and_reset_next_request(primary):
 def test_primary_success_does_not_call_legacy(primary):
     calls=[]
     def execute(route): calls.append(route);return 'ok'
-    assert routed('planner',{'model':'old'},execute)=='ok'
+    assert routed('planner',{'model':'old','base_url':'https://provider.example/v1'},execute)=='ok'
     assert len(calls)==1 and calls[0]['model']=='old' and not calls[0]['deepseek']
 
 
@@ -61,14 +61,14 @@ def test_partial_primary_answer_is_cleared_before_fallback(primary):
         assert seen[-1]==''
         return 'complete'
     token=progress.set(seen.append)
-    try:assert routed('analysis',{'model':'old'},execute)=='complete'
+    try:assert routed('analysis',{'model':'old','base_url':'https://provider.example/v1'},execute)=='complete'
     finally:progress.reset(token)
 
 
 def test_all_models_fail_without_sticky_route(primary):
     calls=[]
     def fail(route): calls.append(route['model']);raise ValueError('failed')
-    with pytest.raises(ValueError):routed('analysis',{'model':'old'},fail)
+    with pytest.raises(ValueError):routed('analysis',{'model':'old','base_url':'https://provider.example/v1'},fail)
     assert calls==['old','deepseek-flash']
 
 
@@ -112,7 +112,7 @@ def test_cancel_does_not_retry_or_fallback(primary):
         calls.append(route['model'])
         raise JobCancelled()
     with pytest.raises(JobCancelled):
-        routed('review',{'model':'glm-5.3-flash'},execute)
+        routed('review',{'model':'glm-5.3-flash','base_url':'https://provider.example/v1'},execute)
     assert calls==['glm-5.3-flash']
 
 
@@ -131,3 +131,23 @@ def test_fal_primary_keeps_luna_on_original_provider(primary,monkeypatch):
         return 'ok'
     assert routed('review',{'model':'glm-5.3-flash','base_url':'https://original.example/v1','key':'synthetic-original'},execute)=='ok'
     assert [r['model'] for r in calls]==['z-ai/glm-5.3-flash']*2+['gpt-5.6-luna']
+
+
+def test_mixtoken_error_is_not_masked_by_unconfigured_fallback(monkeypatch):
+    monkeypatch.setenv('SABC_MIXTOKEN_API_KEY', 'synthetic-only')
+    for key in ('SABC_DEEPSEEK_API_KEY', 'SABC_FAL_API_KEY'):
+        monkeypatch.delenv(key, raising=False)
+    calls = []; events = []
+    response = httpx.Response(503, request=httpx.Request('POST', 'https://api.mixtoken.ai/v1/chat/completions'))
+    def execute(route):
+        calls.append(route['model'])
+        response.raise_for_status()
+    token = audit.set(events.append)
+    try:
+        with pytest.raises(httpx.HTTPStatusError):
+            routed('report_chat', {'model': 'glm-5.3-flash', 'base_url': '', 'key': ''}, execute)
+    finally:
+        audit.reset(token)
+    assert calls == ['deepseek-v4.1-flash']
+    assert events[0]['http_status'] == 503
+    assert 'synthetic-only' not in json.dumps(events)

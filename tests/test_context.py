@@ -22,6 +22,17 @@ def test_evidence_limits_explicit_and_old_version_excluded():
     assert '14' not in [e['id'] for e in c['evidence']]
 
 
+def test_previous_questions_remain_only_in_conversation():
+    question = '出现什么情况会停止？'
+    messages = [{'role': 'assistant', 'content': question}, {'role': 'user', 'content': '重大漏报即停止。'}]
+    project = {'interview': {'state': 'gathering', 'gaps': ['return'], 'questions': [question]}}
+    c = model_context(project, {}, [], messages)
+    assert str(c).count(question) == 1
+    assert c['conversation'][-1] == messages[-1]
+    assert c['project']['interview']['gaps'] == ['return']
+    assert project['interview']['questions'] == [question]
+
+
 def test_report_preserves_early_user_corrections_without_old_report_prose():
     messages = [{'role': 'user', 'content': '更正：ROAS只除广告费，净贡献还要扣代工和包材。'}]
     messages += [{'role': 'assistant', 'content': '旧口径草稿'}, {'role': 'user', 'content': '其他未知'}] * 20
@@ -31,7 +42,8 @@ def test_report_preserves_early_user_corrections_without_old_report_prose():
     c = model_context(project, {}, [], messages)
     assert c['conversation'][0] == messages[0]
     assert all(m['role'] == 'user' for m in c['conversation'])
-    assert c['project']['previous_stage_report']['grade'] == 'B'
+    assert c['project']['previous_stage_report']['id'] == 'old'
+    assert not {'grade', 'base_score', 'dimensions'} & c['project']['previous_stage_report'].keys()
     assert '旧公式' not in str(c) and '净贡献=收入-广告费' not in str(c)
     assert '旧口径草稿' not in str(c)
 
@@ -42,3 +54,17 @@ def test_report_user_history_is_bounded_and_latest_correction_kept():
     assert sum(len(m['content']) for m in c['conversation']) == 24000
     assert c['conversation'][-1] == messages[-1]
     assert c['context_limits']['conversation_chars_truncated']
+
+
+def test_report_does_not_treat_model_coverage_summary_as_new_evidence():
+    from copy import deepcopy
+    from sabc.lifecycle import initial
+    project = {'_report_requested': True, 'lifecycle': initial()}
+    project['lifecycle']['coverage']['risk'] = {'reason': '旧模型推断质量条件未知', 'status': 'unknown'}
+    before = deepcopy(project)
+    messages = [{'role': 'user', 'content': '重大金额漏报立即停止，不追加预算。'}]
+    c = model_context(project, {}, [{'id': 'proof', 'content': '已核验记录'}], messages)
+    assert 'lifecycle' not in c['project']
+    assert c['conversation'] == messages
+    assert c['evidence'][0]['content'] == '已核验记录'
+    assert project == before

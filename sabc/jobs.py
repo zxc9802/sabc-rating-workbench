@@ -4,8 +4,9 @@ from contextvars import copy_context
 import hashlib
 import time
 from sabc.streaming import progress, cancel_signal, check_cancelled, JobCancelled
+from sabc.tenancy import account_id
 import json
-from threading import Lock, Event
+from threading import Lock, Event, BoundedSemaphore
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -16,9 +17,36 @@ class Jobs:
         self.process_id=uuid4().hex
         self.lock=Lock()
         self.pool=ThreadPoolExecutor(max_workers=2)
+        self.slots=BoundedSemaphore(2)
         self.active=set()
         self.signals={}
         self.futures={}
+        self.projects={}
+
+    def check_capacity(self, store, pid, queue):
+        owner = str(store.path)
+        if len(self.active) >= 16 or sum(key[0] == owner for key in self.active) >= 4:
+            raise HTTPException(429, '待处理任务已满，请等待已有任务完成')
+        if len(self.active) >= 2 and not queue:
+            raise HTTPException(429, '正在处理其他任务，请稍后重试')
+        if any(key[0] == owner and project == pid for key, project in self.projects.items()):
+            raise HTTPException(409, '本项目已有任务正在处理，请等待结果后继续')
+
+    def execute(self, store, pid, action):
+        """Keep synchronous API responses, but share the background capacity guard."""
+        if hasattr(store, 'scoped'): store = store.scoped()
+        key = (str(store.path), uuid4().hex)
+        with self.lock:
+            self.check_capacity(store, pid, False)
+            self.active.add(key)
+            self.projects[key] = pid
+        try:
+            with self.slots:
+                return action()
+        finally:
+            with self.lock:
+                self.active.discard(key)
+                self.projects.pop(key, None)
 
     def read(self,store,ident):
         job=store.get('jobs',ident)
@@ -34,6 +62,7 @@ class Jobs:
         if key in self.signals: self.signals[key].set()
         if key in self.futures and self.futures[key].cancel():
             self.active.discard(key)
+            self.projects.pop(key,None)
             self.signals.pop(key,None)
             self.futures.pop(key,None)
         return store.save('jobs',{**job,'status':'cancelled','partial_reply':'','error':'已停止回答'})
@@ -51,17 +80,23 @@ class Jobs:
                 if existing['fingerprint']!=fingerprint or existing['project_id']!=pid:
                     raise HTTPException(409,'任务编号已用于不同请求')
                 return self.read(store,ident)
-            if len(self.active)>=2 and not queue: raise HTTPException(429,'正在处理其他任务，请稍后重试')
+            # SSO accounts may queue behind other users, within both capacity bounds.
+            self.check_capacity(store, pid, queue or account_id.get() is not None)
             if any(j['project_id']==pid and j['status']=='running' and j['process_id']==self.process_id for j in store.list('jobs')):
                 raise HTTPException(409,'本项目已有任务正在处理，请等待结果后继续')
             metadata={'assessment_id':request['payload']['assessment_id'],'question':request['payload']['message']} if request.get('operation')=='report_chat' else {'generate_report':True} if request.get('operation')=='chat' and request.get('payload',{}).get('generate_report') else {}
             job=store.save('jobs',{**metadata,'id':ident,'project_id':pid,'operation':request.get('operation'),'fingerprint':fingerprint,'process_id':self.process_id,'status':'running','phase':'queued'})
             self.active.add(key)
+            self.projects[key] = pid
             signal=Event();self.signals[key]=signal
             self.futures[key]=self.pool.submit(copy_context().run,self.run,store,job,action,signal)
             return job
 
     def run(self,store,job,action,signal):
+        with self.slots:
+            return self.run_active(store,job,action,signal)
+
+    def run_active(self,store,job,action,signal):
         last=[0.0, None]
         cancel_token=cancel_signal.set(signal)
         def save(update):
@@ -92,6 +127,7 @@ class Jobs:
             cancel_signal.reset(cancel_token)
             with self.lock:
                 self.active.discard((str(store.path),job['id']))
+                self.projects.pop((str(store.path),job['id']),None)
                 self.signals.pop((str(store.path),job['id']),None)
                 self.futures.pop((str(store.path),job['id']),None)
 

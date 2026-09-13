@@ -1,6 +1,7 @@
 """Browser regression for report confirmation, progress, recovery and failure. Mock APIs only."""
 from tests.report_fixtures import checkpoint_items
 from copy import deepcopy
+import os
 from playwright.sync_api import sync_playwright, expect
 from sabc.rating import assess, DIMENSIONS, TYPES
 from tests.test_rating import case
@@ -62,7 +63,7 @@ with sync_playwright() as playwright:
             r.fulfill(json=data)
         page.route('**/api/**',route)
         page.add_init_script("sessionStorage.setItem('sabc-project','qa-project')")
-        page.goto('http://127.0.0.1:3000');page.wait_for_load_state('networkidle')
+        page.goto(os.getenv('SABC_TEST_UI_ORIGIN', 'http://127.0.0.1:3000'));page.wait_for_load_state('networkidle')
         expect(page.get_by_role('button',name='生成报告',exact=True)).to_have_count(0)
         expect(page.get_by_role('button',name='继续核对',exact=True)).to_have_count(0)
         expect(page.get_by_text('持证代理的费用能退多少？',exact=True)).to_be_visible()
@@ -96,9 +97,9 @@ with sync_playwright() as playwright:
                 continue
             finish=False
             page.get_by_role('button',name='生成报告',exact=True).click()
-            expect(page.get_by_text('正在生成报告…',exact=True)).to_be_visible()
+            expect(page.locator('.thinking').filter(has_text='正在生成报告…')).to_be_visible()
             page.reload(wait_until='domcontentloaded')
-            expect(page.get_by_text('正在生成报告…',exact=True)).to_be_visible()
+            expect(page.locator('.thinking').filter(has_text='正在生成报告…')).to_be_visible()
             finish=True
             if outcome=='success':
                 expect(page.get_by_role('tab',name='历史报告与建议')).to_have_attribute('aria-selected','true')

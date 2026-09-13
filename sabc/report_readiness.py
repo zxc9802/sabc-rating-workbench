@@ -1,7 +1,7 @@
 """Bind completed information collection to the inputs accepted for generation."""
 import hashlib
 import json
-from datetime import date
+from sabc.business_time import today
 from sabc.rating import PROJECT_FIELDS, RULE_VERSION
 from sabc.lifecycle import collection_ready
 
@@ -15,7 +15,7 @@ def fingerprint(project, company, evidence):
         'lifecycle':{k:life.get(k) for k in ('stage','mode','coverage','plan','draft_plan')},
         'company':company, 'evidence':sorted(evidence,key=lambda e:e['id']),
         'rule_version':RULE_VERSION, 'collection_version': 2,
-        'expired_evidence':sorted(e['id'] for e in evidence if e.get('valid_until') and e['valid_until']<date.today().isoformat()),
+        'expired_evidence':sorted(e['id'] for e in evidence if e.get('valid_until') and e['valid_until']<today().isoformat()),
     }
     return hashlib.sha256(json.dumps(inputs,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
 

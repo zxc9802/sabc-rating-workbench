@@ -16,8 +16,14 @@ def seed(store, pid='p', rid='r'):
         'snapshot':{'project':{'description':'原报告项目'},'company':{},'proposal':{},'evidence':[]}})
 
 
-def test_model_uses_selected_snapshot_and_exact_model(monkeypatch):
-    report={'result':{'grade':'B'},'snapshot':{'project':{'description':'历史版本','messages':['不可重复传入']},'evidence':[]}}
+@pytest.mark.parametrize('continuous', [False, True])
+def test_model_uses_selected_snapshot_and_exact_model(monkeypatch, continuous):
+    report={'result':{'grade':'B','status':'正式评级','stage':'pre','provisional':True},'snapshot':{'project':{
+        'description':'历史版本','messages':['不可重复传入'],'project_type':'internal',
+        'budget_requested':2000,'lifecycle':{'stage':'pre'},'interview':{'progress':100},
+        'proposal':{'old_draft':True}},'evidence':[]}}
+    if continuous:
+        report['snapshot']['project']['lifecycle']['mode'] = 'continuous'
     seen={}
     def complete(client,url,payload,headers,remaining):
         seen.update(payload)
@@ -28,6 +34,10 @@ def test_model_uses_selected_snapshot_and_exact_model(monkeypatch):
     assert seen['model']=='glm-5.3-flash'
     assert '历史版本' in seen['messages'][1]['content']
     assert '不可重复传入' not in seen['messages'][1]['content']
+    context=json.loads(seen['messages'][1]['content'].split('\n',1)[1])
+    assert context['project']=={'description':'历史版本','project_type':'internal','budget_requested':2000}
+    assert context['result']=={'grade':'B','status':'当前评估' if continuous else '正式评级'}
+    assert report['result']=={'grade':'B','status':'正式评级','stage':'pre','provisional':True}
     assert seen['messages'][-3:]==[{'role':'user','content':'上一个问题'},{'role':'assistant','content':'上一个回答'},{'role':'user','content':'为什么B'}]
 
 

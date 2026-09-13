@@ -6,7 +6,8 @@ def model_context(project, company, evidence, messages):
     fields=set(PROJECT_FIELDS)|{'id','description','budget_requested','version'}
     clean={k:v for k,v in project.items() if k in fields}
     clean['pending_patch']=project.get('pending_patch',{})
-    clean['interview']=project.get('interview',{})
+    # Prior questions are already in conversation, not instructions for this turn.
+    clean['interview']={k:v for k,v in project.get('interview',{}).items() if k != 'questions'}
     from sabc.lifecycle import context
     clean['lifecycle']=context(project)
     report_requested = project.get('_report_requested', False)
@@ -16,11 +17,8 @@ def model_context(project, company, evidence, messages):
             result = previous.get('result', {})
             clean['previous_stage_report'] = {
                 'id': previous.get('id'), 'created_at': previous.get('created_at'),
-                'grade': result.get('grade'), 'base_score': result.get('base_score'),
                 'missing': result.get('missing', []),
-                'dimensions': [{k: d.get(k) for k in ('key', 'score', 'basis')}
-                               for d in result.get('dimensions', [])],
-                'note': '仅供比较的历史评级；不是事实依据。重新根据用户原话计算，不沿用旧报告的公式或验证任务。',
+                'note': '历史报告仍保留供用户比较；旧等级和分数不作为本次评分先验。根据本次用户事实、证据和评分锚点独立计算，不沿用旧报告的公式或验证任务。',
             }
         else:
             clean['previous_stage_report']=previous
@@ -30,8 +28,9 @@ def model_context(project, company, evidence, messages):
     if report_requested:
         # Report generation needs early corrections even after a long interview.
         # Assistant drafts and old conclusions must not outweigh the user's words.
-        clean['lifecycle'].pop('review', None)
-        clean['lifecycle'].pop('recent_reviews', None)
+        # Collection summaries and earlier report conclusions are model-derived,
+        # not additional user evidence for a fresh score.
+        clean.pop('lifecycle', None)
         recent = []
         remaining = 24000
         for message in reversed(messages):
