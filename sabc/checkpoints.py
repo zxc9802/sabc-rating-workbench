@@ -151,7 +151,10 @@ def normalize(result, project, company, evidence, messages):
                     grounded = grounded and source == 'user' and bool(UNAVAILABLE.search(quote))
                 if status == 'known':
                     grounded = grounded and bool(re.search(r'(?:\d+(?:\.\d+)?|[零一二三四五六七八九十百千万两]+)\s*(?:万|千|元|块)|(?:损失|预算|投入)(?:为|是)?[零0]|无现金支出', quote))
-            time_formula = bool(re.search(r'(?:原|旧).*工时.*(?:减去|减|-|−).*(?:新).*工时', quote))
+            time_formula = bool(re.search(
+                r'(?:原|旧|基线|改造前|上线前)[^。；\n]*?(?:工时|耗时|小时|分钟)'
+                r'[^。；\n]*?(?:减去|减|-|−)[^。；\n]*?(?:新|试点|实际|上线后|改造后)'
+                r'[^。；\n]*?(?:工时|耗时|小时|分钟)', quote))
             if key == 'metric_formula' and re.search(r'ROI|投产比', user, re.I) and not time_formula:
                 grounded = grounded and bool(re.search(r'ROI|ROAS|投入收益率|投产比|分子|分母', quote, re.I))
                 if status == 'known':

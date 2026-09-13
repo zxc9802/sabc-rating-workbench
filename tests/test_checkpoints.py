@@ -158,6 +158,25 @@ def test_internal_time_formula_does_not_require_monetary_roi():
         assert r['dimension_coverage']['return']['items']['metric_formula']['verified'] is expected
 
 
+def test_natural_time_formula_after_roi_disclaimer():
+    for quote, expected in [
+        ('原全员8小时减试点全员实际工时，目标净释放5小时', True),
+        ('每周净释放=原8小时减试点后总人工3小时=5小时', True),
+        ('基线耗时480分钟减去上线后全部人员耗时180分钟', True),
+        ('原成本5000元减新成本3000元，预计省3小时', False),
+        ('原8小时，希望今后节省5小时', False),
+        ('原工时减去新费用500元', False),
+    ]:
+        r = result()
+        r['dimension_coverage']['return']['items'] = {
+            'metric_formula': {'status': 'known', 'source': 'user', 'quote': quote}}
+        normalize(r, {}, {}, [], [
+            {'role': 'user', 'content': '尚未试点，不能认定已经实现ROI。'},
+            {'role': 'user', 'content': quote},
+        ])
+        assert r['dimension_coverage']['return']['items']['metric_formula']['verified'] is expected
+
+
 def test_asking_again_with_old_quote_cannot_erase_resolved_failure_condition():
     prior = {'status': 'known', 'source': 'user', 'quote': '重大金额错漏立即停用并回人工', 'verified': True}
     project = {'messages': [{'role': 'user', 'content': prior['quote']}],
