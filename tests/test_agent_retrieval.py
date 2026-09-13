@@ -3,6 +3,22 @@ import sabc.app as module
 from sabc.dimension_sources import plan_requests
 
 
+def test_internal_process_does_not_research_incidental_product(monkeypatch):
+    from sabc.dimension_sources import rule_plan
+    monkeypatch.setenv('ANYSEARCH_API_KEY', 'test')
+    project = {'project_type': 'internal', 'description': '日本店铺内部订单对账，AI仅处理匿名数据',
+               'messages': [{'role': 'assistant', 'content': '与日本防晒项目的优先级如何？'}]}
+    plan = rule_plan(project, '日本防晒项目尚未启动。本项目只处理匿名数据，合规仍待确认。', [])
+    assert plan['data_requests']
+    assert all('防晒' not in r['query'] for r in plan['data_requests'])
+    assert not any(r['dimension'] == 'market' for r in plan['data_requests'])
+    assert any('数据' in r['query'] for r in plan['data_requests'])
+    china = rule_plan({**project, 'description': '中国内部对账'}, '中国内部数据安全合规', [])
+    assert any(r['source'] == 'law' and r['query'] == '数据安全' for r in china['data_requests'])
+    repo = rule_plan(project, '核查开源依赖 https://github.com/pandas-dev/pandas', [])
+    assert any(r['source'] == 'github' for r in repo['data_requests'])
+
+
 def test_dimension_routing_collects_then_analyzes_and_reuses(client,monkeypatch):
     monkeypatch.setattr(module,'settings',lambda:{'base_url':'https://model.example','model':'test'})
     calls=[]

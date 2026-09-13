@@ -65,6 +65,10 @@ PRODUCTS = r'防晒(?:霜|乳)?|化妆品|护肤品|食品|医疗器械|保健�
 
 
 def rule_plan(project, latest, evidence):
+    internal = project.get('project_type') == 'internal'
+    topics = {**TOPICS,
+              'market': ('软件市场|软件竞品|行业市场', '软件市场 替代工具'),
+              'risk': ('合规|法规|法律|隐私|个人信息|数据安全|留存', '数据处理 合规 官方')} if internal else TOPICS
     history = [str(project.get('description', ''))]
     history += [m.get('content', '') for m in project.get('messages', []) if m.get('role') == 'user']
     history.append(latest)
@@ -75,12 +79,14 @@ def rule_plan(project, latest, evidence):
     # Explicit public product labels support categories outside the common vocabulary.
     labels = re.findall(r'(?:产品|品类|行业)[：:]\s*([\w\u4e00-\u9fff -]{2,24})(?=[，。；\n]|$)', text)
     product = labels[-1] if labels else products[-1] if products else ''
+    if internal:
+        product = '内部业务软件'
     assistant = next((m.get('content', '') for m in reversed(project.get('messages', [])) if m.get('role') == 'assistant'), '')
     focus = latest + '\n' + assistant
     if not project.get('messages'):
         focus += '\n' + str(project.get('description', ''))
     coverage = (project.get('lifecycle') or {}).get('coverage', {})
-    dims = [d for d, (pattern, _) in TOPICS.items() if re.search(pattern, focus, re.I) or coverage.get(d, {}).get('status') == 'external']
+    dims = [d for d, (pattern, _) in topics.items() if re.search(pattern, focus, re.I) or coverage.get(d, {}).get('status') == 'external']
     requests, missing = [], []
     for dim in dims:
         if dim in ('resources', 'replication'):
@@ -95,8 +101,8 @@ def rule_plan(project, latest, evidence):
             continue
         region = regions[0]
         source = 'law' if dim == 'risk' and region == '中国' else 'web'
-        query = product if source == 'law' else f'{region} {product} {TOPICS[dim][1]}'
-        requests.append({'dimension': dim, 'source': source, 'query': query, 'reason': TOPICS[dim][1]})
+        query = ('数据安全' if internal else product) if source == 'law' else f'{region} {product} {topics[dim][1]}'
+        requests.append({'dimension': dim, 'source': source, 'query': query, 'reason': topics[dim][1]})
     # Validate all candidates before applying the per-turn cap so cached items do not starve gaps.
     candidates, selected = [], []
     for request in requests:
