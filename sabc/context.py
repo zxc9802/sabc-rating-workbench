@@ -5,7 +5,7 @@ from sabc.rating import PROJECT_FIELDS
 def model_context(project, company, evidence, messages):
     fields=set(PROJECT_FIELDS)|{'id','description','budget_requested','version'}
     clean={k:v for k,v in project.items() if k in fields}
-    clean['pending_patch']=project.get('pending_patch',{})
+    clean['pending_patch']=dict(project.get('pending_patch',{}))
     # Prior questions are already in conversation, not instructions for this turn.
     clean['interview']={k:v for k,v in project.get('interview',{}).items() if k != 'questions'}
     from sabc.lifecycle import context
@@ -43,6 +43,13 @@ def model_context(project, company, evidence, messages):
             recent.append({'role': 'user', 'content': content[-remaining:]})
             remaining -= len(recent[-1]['content'])
         recent.reverse()
+        # With complete user history available, a model risk summary adds no
+        # source evidence and can reintroduce gaps the user already corrected.
+        # Preserve directly edited/legacy fields and summaries when history is truncated.
+        if not truncated and len(recent) == sum(m.get('role') == 'user' for m in messages) and recent:
+            if project.get('risks_source') == 'model' or 'risks' in clean['pending_patch']:
+                clean.pop('risks', None)
+            clean['pending_patch'].pop('risks', None)
     superseded={e.get('supersedes') for e in evidence if e.get('supersedes')}
     usable=[e for e in evidence if e.get('id') not in superseded]
     selected=[]

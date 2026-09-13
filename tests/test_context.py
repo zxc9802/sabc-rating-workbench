@@ -68,3 +68,21 @@ def test_report_does_not_treat_model_coverage_summary_as_new_evidence():
     assert c['conversation'] == messages
     assert c['evidence'][0]['content'] == '已核验记录'
     assert project == before
+
+
+def test_report_uses_complete_user_history_instead_of_model_risk_summary():
+    from copy import deepcopy
+    project = {'_report_requested': True, 'risks': '维护现金尚未明确', 'risks_source': 'model',
+               'pending_patch': {'risks': '维护现金仍未知', 'budget_requested': 5000}}
+    before = deepcopy(project)
+    messages = [{'role': 'user', 'content': '现金订阅固定500元，维护由内部技术承担，不另付现金。'}]
+    c = model_context(project, {}, [], messages)
+    assert 'risks' not in c['project'] and 'risks' not in c['project']['pending_patch']
+    assert c['conversation'] == messages
+    assert c['project']['pending_patch']['budget_requested'] == 5000
+    assert project == before
+    for origin in ('user', 'unknown'):
+        manual = {**project, 'risks_source': origin, 'pending_patch': {}}
+        assert model_context(manual, {}, [], messages)['project']['risks'] == project['risks']
+    long = [{'role': 'user', 'content': '早期风险' * 10000}] + messages
+    assert model_context(project, {}, [], long)['project']['risks'] == project['risks']

@@ -208,7 +208,8 @@ def update_project(pid:str,body:dict):
     patch={k:v for k,v in body.items() if k in allowed}
     validate_amounts(patch, ('budget_requested',))
     if patch.get('proposal') is not None: patch['proposal']=validate_proposal(patch['proposal'])
-    return store.save('projects',{**p,**patch,'pending_patch':{},'version':p['version']+1})
+    return store.save('projects',{**p,**patch,'pending_patch':{},'version':p['version']+1,
+                                 'risks_source':'user' if 'risks' in patch else p.get('risks_source', 'unknown')})
 
 
 
@@ -310,7 +311,9 @@ def chat_turn(pid,body):
             # Company confirmation and evidence verification remain independent.
             if p.get('pending_patch'):
                 allowed=(set(PROJECT_FIELDS)-{'name'})|{'budget_requested'}
+                model_risks = 'risks' in p['pending_patch']
                 p=update_project(pid,{k:v for k,v in p['pending_patch'].items() if k in allowed})
+                if model_risks: p['risks_source']='model'
             p['proposal']=validate_proposal(result['proposal'])
             # Reporting cannot rewrite the facts or reopen collection.
             lifecycle.absorb(p,{'proposal':p['proposal'],'stage_review':result['stage_review']},c,e)

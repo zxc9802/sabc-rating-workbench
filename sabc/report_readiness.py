@@ -17,6 +17,8 @@ def fingerprint(project, company, evidence):
         'rule_version':RULE_VERSION, 'collection_version': 2,
         'expired_evidence':sorted(e['id'] for e in evidence if e.get('valid_until') and e['valid_until']<today().isoformat()),
     }
+    if 'risks_source' in project:
+        inputs['project']['risks_source'] = project['risks_source']
     return hashlib.sha256(json.dumps(inputs,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
 
 

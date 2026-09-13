@@ -74,6 +74,11 @@ def test_generate_uses_collected_facts_without_another_confirmation(client,monke
     assert detail['project']['risks']=='新风险' and detail['project']['pending_patch']=={}
     assert detail['assessments'][0]['snapshot']['project']['risks']=='新风险'
     assert calls==['interview','report']
+    assert detail['project']['risks_source'] == 'model'
+    client.patch(url, json={'risks': '用户补充的实际风险'})
+    edited = client.get(url).json()['project']
+    assert edited['risks_source'] == 'user'
+    assert edited['risks'] == '用户补充的实际风险'
 
 
 def test_pending_question_wins_over_complete_coverage(client,monkeypatch):
