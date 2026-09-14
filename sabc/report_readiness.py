@@ -14,7 +14,7 @@ def fingerprint(project, company, evidence):
         'answers':[m for m in project.get('messages', []) if m.get('role')=='user'],
         'lifecycle':{k:life.get(k) for k in ('stage','mode','coverage','plan','draft_plan')},
         'company':company, 'evidence':sorted(evidence,key=lambda e:e['id']),
-        'rule_version':RULE_VERSION, 'collection_version': 2,
+        'rule_version':RULE_VERSION, 'collection_version': 4, 'framing':project.get('framing'),
         'expired_evidence':sorted(e['id'] for e in evidence if e.get('valid_until') and e['valid_until']<today().isoformat()),
     }
     if 'risks_source' in project:
@@ -23,9 +23,8 @@ def fingerprint(project, company, evidence):
 
 
 def ready(project, company, evidence):
-    # Legacy completion stamps remain usable, but their drafts are never reused.
-    saved=(project.get('collection_completion') or project.get('report_preparation')
-           or project.get('assessment_review') or {})
+    saved=project.get('collection_completion') or {}
     return bool(not project.get('interview', {}).get('questions')
                 and collection_ready(project.get('lifecycle', {}))
+                and saved.get('collection_version')==4
                 and saved.get('input_fingerprint')==fingerprint(project,company,evidence))

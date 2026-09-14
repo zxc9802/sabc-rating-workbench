@@ -225,3 +225,11 @@ textarea { resize: vertical; line-height: 1.8; }
 @media (max-width: 900px) { .report-assistant { left: 178px; } }
 @media (max-width: 650px) { .report-assistant { left: 0; padding-inline: 14px; }.report-assistant header small { max-width: 220px; }.report-assistant form { gap: 8px; }.report-assistant textarea { font-size: 16px; } }
 @media print { .report-assistant { display: none !important; }.report-area { padding-bottom: 0 !important; } }
+
+/* The interview and report review share one workspace, with explicit phases. */
+.assessment-stages { display: flex; flex: 1; gap: 24px; list-style: none; margin: 0; padding: 0; }
+.assessment-stages li { display: grid; gap: 5px; color: #747975; }
+.assessment-stages li[aria-current="step"] { color: #245b42; }
+.assessment-stages strong { font-size: 14px; }
+.assessment-stages span { font-size: 12px; }
+@media (max-width: 600px) { .assessment-stages { flex-direction: column; gap: 12px; } }

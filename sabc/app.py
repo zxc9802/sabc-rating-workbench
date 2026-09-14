@@ -16,7 +16,7 @@ from sabc.catalog import catalog
 from sabc.key_storage import encrypt_key, model_key, key_origin
 from sabc.request_limits import BodyLimitMiddleware
 from sabc.llm import analyze, guide
-from sabc import planner, report_qa, report_readiness
+from sabc import planner, report_qa, report_readiness, advisory, framing
 from sabc import auth, lifecycle, model_router, sso
 from sabc.tenancy import AccountStore, account_id
 from sabc import speech
@@ -141,7 +141,7 @@ def create_project(body:dict):
     validate_amounts(body, ('budget_requested',))
     data={k:v for k,v in body.items() if k in set(PROJECT_FIELDS)|{'description','budget_requested'}}
     data['name']=str(data.get('name') or '未命名项目')[:100]
-    data['project_type']=data.get('project_type','growth')
+    data['project_type']=data.get('project_type')
     data['version']=1
     data['messages']=[]
     data['lifecycle']={**lifecycle.initial(), 'mode': 'continuous'}
@@ -180,7 +180,7 @@ def get_project(pid:str):
     evidence=evidence_for(pid)
     analysis_complete=report_readiness.ready(p,company(),evidence)
     report_ready=analysis_complete
-    return {'project':{**p,'followup':lifecycle.followup(p),'analysis_complete':analysis_complete, 'report_ready':report_ready},'evidence':evidence,
+    return {'project':{**p,'followup':lifecycle.followup(p),'analysis_complete':analysis_complete, 'report_ready':report_ready, 'report_pipeline':pipeline_status(p,company(),evidence)},'evidence':evidence,
             'assessments':[r for r in store.list('assessments') if r['project_id']==pid], 'completed_job_ids':completed,
             'active_jobs':[jobs.read(store,r['id']) for r in store.list('jobs') if r['project_id']==pid and r['status']=='running' and r.get('operation')!='report_chat'],
             'initial_job':jobs.read(store,p['initial_job_id']) if p.get('initial_job_id') else None}
@@ -289,40 +289,14 @@ def chat_turn(pid,body):
     if previous:
         previous_report = {'id': previous['id'], 'created_at': previous['created_at'], 'result': previous['result'],
                            'lifecycle': lifecycle.context(previous['snapshot']['project'])}
-    if body.generate_report:
-        if progress.get(): progress.get()('正在生成报告…')
-        c=company();e=evidence_for(pid)
+    c=company(); e=evidence_for(pid)
+    workflow=current_workflow(p,c,e)
+    same_answer = next((m.get('content') for m in reversed(p.get('messages', [])) if m.get('role')=='user'), None)==body.message
+    resumable = workflow and workflow.get('input_fingerprint')==report_readiness.fingerprint(p,c,e)
+    if body.generate_report or (resumable and same_answer):
         if not report_readiness.ready(p,c,e):
-            return {'mode':'model','needs_collection':True,'reply':'信息尚未整理完整，或资料发生变化，请先继续补充。'}
-        starting_inputs=report_readiness.fingerprint(p,c,e)
-        s=settings()
-        # Generate only after the explicit action. No retrieval or independent review.
-        result=analyze(s,model_key(s),
-                       {**p,'_report_requested':True,'_previous_stage_report':previous_report},
-                       c,model_evidence_for(pid),p.get('messages',[]))
-        if not result.get('proposal') or not result.get('stage_review') or result.get('questions'):
-            raise ValueError('报告内容未完整生成，请重试生成报告。')
-        with jobs.lock:
-            check_cancelled()
-            p=project_or_404(pid)
-            if report_readiness.fingerprint(p,company(),evidence_for(pid))!=starting_inputs:
-                raise ValueError('生成期间资料发生变化，请根据最新资料重新整理后再生成报告。')
-            # The explicit report choice accepts this interview's extracted project facts.
-            # Company confirmation and evidence verification remain independent.
-            if p.get('pending_patch'):
-                allowed=(set(PROJECT_FIELDS)-{'name'})|{'budget_requested'}
-                model_risks = 'risks' in p['pending_patch']
-                p=update_project(pid,{k:v for k,v in p['pending_patch'].items() if k in allowed})
-                if model_risks: p['risks_source']='model'
-            p['proposal']=validate_proposal(result['proposal'])
-            # Reporting cannot rewrite the facts or reopen collection.
-            lifecycle.absorb(p,{'proposal':p['proposal'],'stage_review':result['stage_review']},c,e)
-            p.pop('report_preparation',None)
-            p.pop('assessment_review',None)
-            p['collection_completion']={'input_fingerprint':report_readiness.fingerprint(p,c,e)}
-            store.save('projects',p)
-            record=evaluate(pid,{'confirmed':True})
-            return {'mode':'model','report_id':record['id'],'reply':'报告已生成。'}
+            return {'mode':'model','needs_collection':True,'reply':'资料发生变化，请先继续问答，更新本次判断。'}
+        return generate_final_report(p,c,e,previous_report)
     p['lifecycle'] = {**lifecycle.state(p), 'mode': 'continuous', 'confirmed': True}
     p.pop('assessment_review', None)
     p.pop('report_preparation', None)
@@ -332,7 +306,10 @@ def chat_turn(pid,body):
     with jobs.lock:
         check_cancelled()
         store.save('projects',p)
-    messages=p.get('messages',[])+[{'role':'user','content':body.message,'stage':lifecycle.state(p)['stage'],'time':utcnow()}]
+    messages=list(p.get('messages',[]))
+    # A failed internal call has already saved the user's answer. Retry that turn.
+    if not messages or messages[-1].get('role') != 'user' or messages[-1].get('content') != body.message:
+        messages.append({'role':'user','content':body.message,'stage':lifecycle.state(p)['stage'],'time':utcnow()})
     s=settings()
     if model_router.mixtoken_route() or model_router.deepseek() or (s.get('base_url') and s.get('model')):
         from sabc.dimension_sources import rule_plan
@@ -366,6 +343,7 @@ def chat_turn(pid,body):
         # Keep earlier unconfirmed facts until the user accepts them; later explicit
         # corrections replace the same field, not the whole pending fact set.
         p['pending_patch']={**p.get('pending_patch',{}),**result.get('project_patch',{})}
+        framing.apply(p, result.get('framing'), messages)
     else:
         result=guide(p,body.message,body.field)
         p.update(result['project_patch'])
@@ -384,20 +362,113 @@ def chat_turn(pid,body):
         gaps = lifecycle.collection_gaps(life)
         state='gathering' if result.get('questions') else 'ready' if lifecycle.collection_ready(life) else 'paused'
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
-                        'note':'信息已整理完成，可选择生成报告或继续补充' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
+                        'note':'第一阶段问答已完成' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
     if result['mode']=='model' and not result.get('questions') and lifecycle.collection_ready(p.get('lifecycle', {})):
-        result['reply']='信息已整理完成，现在生成报告吗？'
-        p['messages'][-1]['content']=result['reply']
-        p['collection_completion']={'input_fingerprint':report_readiness.fingerprint(p,company(),evidence_for(pid))}
+        # Commit the interview before drafting. The draft lives in a private record.
+        p['messages'] = messages + [{'role':'assistant','content':'第一阶段问答已完成，正在整理报告。',
+                                    'mode':'model','stage':lifecycle.state(p)['stage'],'evidence_ids':[],'time':utcnow()}]
+        p['interview'].update(state='ready', questions=[], note='第一阶段问答已完成')
+        c=company(); e=evidence_for(pid)
+        p['collection_completion']={'input_fingerprint':report_readiness.fingerprint(p,c,e), 'collection_version':4}
+        p['version']+=1
+        with jobs.lock:
+            check_cancelled()
+            if report_readiness.fingerprint(project_or_404(pid), c, e) != starting_inputs:
+                raise ValueError('分析期间项目资料发生变化，请根据最新资料继续。')
+            store.save('projects', p)
+        return generate_final_report(p,c,e,previous_report)
     p['version']+=1
     with jobs.lock:
         check_cancelled()
         if result['mode']=='model':
             current=project_or_404(pid)
             if report_readiness.fingerprint(current,company(),evidence_for(pid))!=starting_inputs:
-                raise ValueError('核对期间项目资料发生变化，请根据最新资料重新核对。')
+                raise ValueError('分析期间项目资料发生变化，请根据最新资料继续。')
         store.save('projects',p)
     return result
+
+
+def current_workflow(project, c, e):
+    workflow=store.get('report_workflows',project['id'])
+    if not workflow:
+        return None
+    current_inputs=report_readiness.fingerprint(project,c,e)
+    if workflow.get('input_fingerprint')==current_inputs:
+        return workflow
+    # Recover a crash after final project persistence but before workflow completion.
+    if workflow.get('final_id') and workflow['final_id']==project.get('last_assessment_id'):
+        record=store.get('assessments',workflow['final_id'])
+        if record and report_readiness.fingerprint(record['snapshot']['project'],record['snapshot']['company'],record['snapshot']['evidence'])==current_inputs:
+            return {**workflow,'step':'complete','report_id':record['id'],'input_fingerprint':current_inputs}
+    return None
+
+
+def pipeline_status(project, c, e):
+    workflow=current_workflow(project,c,e)
+    # This is the entire public contract; candidate and review notes stay private.
+    return {'step':workflow['step'], 'report_id':workflow.get('report_id')} if workflow else None
+
+
+def generate_final_report(p,c,e,previous_report):
+    pid=p['id']
+    starting_inputs=report_readiness.fingerprint(p,c,e)
+    workflow=current_workflow(p,c,e)
+    if not workflow:
+        workflow={'id':pid,'project_id':pid,'input_fingerprint':starting_inputs,'step':'preparing'}
+    if workflow.get('report_id'):
+        return {'mode':'model','report_id':workflow['report_id'],'reply':'最终报告已生成。'}
+
+    def checkpoint(candidate=None, notes=None):
+        nonlocal workflow
+        with jobs.lock:
+            check_cancelled()
+            if report_readiness.fingerprint(project_or_404(pid),company(),evidence_for(pid))!=starting_inputs:
+                raise ValueError('处理期间资料发生变化，请根据最新资料继续问答。')
+            if candidate is not None:
+                workflow.update(candidate=candidate, notes=notes or [], step='revising' if notes else 'reviewing')
+            workflow=store.save('report_workflows',workflow)
+
+    checkpoint()
+    s=settings()
+    if not workflow.get('candidate'):
+        result=analyze(s,model_key(s),{**p,'_report_requested':True,'_previous_stage_report':previous_report},
+                       c,model_evidence_for(pid),p.get('messages',[]))
+        check_cancelled()
+        if not result.get('proposal') or not result.get('stage_review') or result.get('questions'):
+            raise ValueError('报告整理未完成，请继续处理；已收集的资料仍然保留。')
+        accepted=deepcopy(p)
+        patch=accepted.pop('pending_patch',{})
+        accepted.update(patch)
+        accepted['pending_patch']={}
+        if 'risks' in patch: accepted['risks_source']='model'
+        accepted['version']+=bool(patch)
+        accepted['proposal']=validate_proposal(result['proposal'])
+        lifecycle.absorb(accepted,{'proposal':accepted['proposal'],'stage_review':result['stage_review']},c,e)
+        checkpoint(build_assessment(accepted,c,e,accepted['proposal']))
+    candidate=advisory.review_report(s,model_key(s),workflow['candidate'],build_assessment,
+                                     notes=workflow.get('notes'),checkpoint=checkpoint)
+    # Save a stable report ID before publishing. A retry cannot create a duplicate
+    # even if the process stops between saving the report and updating the project.
+    checkpoint(candidate, candidate['snapshot']['quality_review']['rounds'])
+    with jobs.lock:
+        check_cancelled()
+        if report_readiness.fingerprint(project_or_404(pid),company(),evidence_for(pid))!=starting_inputs:
+            raise ValueError('处理期间资料发生变化，请根据最新资料继续问答。')
+        final_project=candidate['snapshot']['project']
+        final_project['messages'].append({'role':'assistant','content':'第二阶段审查已完成，最终报告已生成。',
+                                         'mode':'model','stage':lifecycle.state(final_project)['stage'],'evidence_ids':[],'time':utcnow()})
+        final_project['collection_completion']={'input_fingerprint':report_readiness.fingerprint(final_project,c,e),'collection_version':4}
+        candidate['id']=workflow.setdefault('final_id',uuid4().hex)
+        store.save('report_workflows',workflow)
+        record=store.get('assessments',candidate['id'])
+        if record:
+            saved=record['snapshot']['project']
+            store.save('projects',{**saved,'last_grade':record['result']['grade'],'last_assessment_id':record['id']})
+        else:
+            record=persist_assessment(candidate)
+        store.save('report_workflows',{**workflow,'step':'complete','report_id':record['id'],
+                   'input_fingerprint':report_readiness.fingerprint(record['snapshot']['project'],c,e)})
+    return {'mode':'model','report_id':record['id'],'reply':'最终报告已生成。'}
 
 
 class Evidence(BaseModel):
@@ -498,7 +569,12 @@ def start_job(pid:str,body:SlowOperation):
 
 @app.get('/api/jobs/{ident}')
 def get_job(ident:str):
-    return jobs.read(store,ident)
+    job=jobs.read(store,ident)
+    if job.get('operation')=='chat':
+        p=project_or_404(job['project_id'])
+        job={**job,'collection':{'lifecycle':p.get('lifecycle'), 'report_ready':report_readiness.ready(p,company(),evidence_for(p['id'])),
+                                  'report_pipeline':pipeline_status(p,company(),evidence_for(p['id']))}}
+    return job
 
 
 @app.post('/api/jobs/{ident}/cancel')
@@ -636,10 +712,15 @@ def evaluate(pid:str,body:dict):
         raise ValueError('模型整理了待核对的项目事实，请先到项目资料核对并保存，再生成评级')
     proposal=body.get('proposal') or p.get('proposal') or {}
     if proposal and body.get('confirmed') is not True: raise ValueError('请先核对并确认评分建议')
-    proposal=validate_proposal(proposal)
-    if p.get('assessment_review', {}).get('revised_proposal') != proposal:
-        p.pop('assessment_review', None)
-    c=company(); e=evidence_for(pid)
+    return persist_assessment(build_assessment(p, company(), evidence_for(pid), validate_proposal(proposal)))
+
+
+def build_assessment(project, c, e, proposal):
+    p=deepcopy(project)
+    proposal=deepcopy(proposal)
+    p['proposal']=proposal
+    p.pop('assessment_review', None)
+    life=lifecycle.state(p)
     result=assess(p,c,e,proposal)
     if result['grade'] == 'NR':
         missing = '、'.join(result['missing']) or '足以支持八维判断的关键依据'
@@ -652,14 +733,23 @@ def evaluate(pid:str,body:dict):
     if p.get('lifecycle'):
         result.update(stage=life['stage'], provisional=True,
                       status='待评级' if result['grade']=='NR' else '阶段暂定评级')
+    result.update(business_stage=p.get('framing', {}).get('business_stage', 'unknown'),
+                  assessment_purpose=p.get('framing', {}).get('purpose', 'unknown'))
     # A generated recommendation must not override the engine's final decision.
     if result['grade'] in ('C', 'NR') and life.get('review'):
         deferred = result['grade'] == 'NR'
         negative_reasons = [d['reason'] for d in result['dimensions'] if d['score'] < 3]
         explanation = result.get('deferral_reason') if deferred else (
             '当前不立项：' + '；'.join(negative_reasons or result['triggered_rules'] or [result['action']]))
-        next_action = ('先补齐关键依据，再重新评估；当前不批准原方案投入。' if deferred else
-                       '先调整导致低分或否决的实际条件，再重新评估；不继续原方案新增投入。')
+        purpose=p.get('framing', {}).get('purpose')
+        if purpose == 'research':
+            next_action=('补齐影响判断的公开或经授权资料，再重新评估；现有材料不足以支持新增投入的判断。' if deferred else
+                         '核查导致低分或否决的实际条件及其改善情况，再重新评估。')
+            if not deferred:
+                explanation='当前条件不支持该方案：' + '；'.join(negative_reasons or result['triggered_rules'] or [result['action']])
+        else:
+            next_action=('先补齐影响本次判断的关键依据，再重新评估；依据不足时不建议新增投入。' if deferred else
+                         '先调整导致低分或否决的实际条件，再重新评估；不继续原方案新增投入。')
         life['review'] = {**life['review'], 'conclusion': 'needs_info' if deferred else 'not_recommended',
                           'summary': explanation, 'next_action': next_action}
         p['lifecycle'] = life
@@ -669,11 +759,21 @@ def evaluate(pid:str,body:dict):
         life['review'] = {**life['review'],
                           'summary': '仍需验证的依据：' + life['review']['summary'][5:]}
         p['lifecycle'] = life
-    record=store.save('assessments',{'project_id':pid,'result':result,
-        'snapshot':{'project':deepcopy(p),'company':c,'evidence':e,'proposal':proposal}})
-    if result['grade']!='NR' and p.get('lifecycle') and life['stage']=='post':
+    # The latest entry belongs to this candidate; older saved report snapshots stay immutable.
+    if life.get('review') and life.get('reviews') and life['reviews'][-1].get('time') == life['review'].get('time'):
+        life['reviews'][-1] = deepcopy(life['review'])
+        p['lifecycle'] = life
+    return {'project_id':p['id'],'result':result,
+            'snapshot':{'project':p,'company':deepcopy(c),'evidence':deepcopy(e),'proposal':proposal}}
+
+
+def persist_assessment(candidate):
+    record=store.save('assessments',candidate)
+    p=deepcopy(candidate['snapshot']['project'])
+    result=candidate['result']
+    if result['grade']!='NR' and p.get('lifecycle', {}).get('stage')=='post':
         p['lifecycle']['next_review_on']=None
-    store.save('projects',{**p,'proposal':proposal,'last_grade':result['grade'],'last_assessment_id':record['id']})
+    store.save('projects',{**p,'proposal':candidate['snapshot']['proposal'],'last_grade':result['grade'],'last_assessment_id':record['id']})
     return record
 
 

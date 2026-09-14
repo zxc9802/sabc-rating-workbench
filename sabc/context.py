@@ -3,7 +3,7 @@ from sabc.rating import PROJECT_FIELDS
 
 
 def model_context(project, company, evidence, messages):
-    fields=set(PROJECT_FIELDS)|{'id','description','budget_requested','version'}
+    fields=set(PROJECT_FIELDS)|{'id','description','budget_requested','version','framing'}
     clean={k:v for k,v in project.items() if k in fields}
     clean['pending_patch']=dict(project.get('pending_patch',{}))
     # Prior questions are already in conversation, not instructions for this turn.

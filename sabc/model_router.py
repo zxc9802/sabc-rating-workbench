@@ -57,10 +57,10 @@ def routed(role, preferred, execute):
         routes = [primary]
     if fallback:
         routes.append(fallback)
-    gemini = gemini_route(preferred) if role in ('analysis', 'report_chat') else None
+    gemini = gemini_route(preferred) if role in ('analysis', 'review', 'report_chat') else None
     if gemini:
         routes = [gemini] + [{**route, 'primary': False} for route in routes]
-    mixtoken = mixtoken_route() if role in ('analysis', 'report_chat') else None
+    mixtoken = mixtoken_route() if role in ('analysis', 'review', 'report_chat') else None
     if mixtoken:
         routes = [mixtoken] + [{**route, 'primary': False} for route in routes
                               if route.get('base_url') and route.get('model')]

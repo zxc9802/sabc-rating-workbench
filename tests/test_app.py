@@ -9,6 +9,12 @@ from tests.test_rating import case
 def client(tmp_path, monkeypatch):
     import sabc.app as module
     monkeypatch.setattr(module, 'store', Store(tmp_path/'test.db'))
+    # API tests mock model I/O; adversarial review cases override this response.
+    from sabc import advisory
+    monkeypatch.setattr(advisory, '_request', lambda *args: {
+        'checks': {key: 'pass' for key in advisory.PERSPECTIVES}, 'findings': [],
+        'project_patch': {}, 'coverage_reasons': {}, 'framing': None,
+        'questions': [], 'proposal': None, 'stage_review': None})
     return TestClient(app)
 
 

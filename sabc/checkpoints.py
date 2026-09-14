@@ -203,6 +203,17 @@ def normalize(result, project, company, evidence, messages):
         from sabc.model_router import audit
         if audit.get():
             audit.get()({'role': 'collection_validation', 'status': 'rejected', 'checks': rejected})
+    targets = result.get('question_targets', [])
+    if targets and len(targets) == len(result.get('questions', [])):
+        kept = []
+        for question, target in zip(result['questions'], targets):
+            dimension, _, key = target.partition('.')
+            if coverage.get(dimension, {}).get('items', {}).get(key, {}).get('status') == 'ask':
+                kept.append(question)
+        if kept != result['questions']:
+            result['questions'] = kept or pending[:2]
+            result['reply'] = '\n\n'.join(result['questions'])
+            result['reply_evidence_ids'] = []
     if not pending:
         result['questions'] = []
         result['reply'] = '信息已整理完成，现在生成报告吗？'
@@ -236,4 +247,5 @@ items记录的是该项是否已交流处理，不是业务条件是否已实现
 继承仍有效的历史items原文，但有新信息冲突时更新。全量返回检查项，短引用即可，避免长篇解释。每轮从尚未解决的检查项选择最多两个单一主题问题，优先现金约束、价值和明显风险；逐渐覆盖其他维度，不集中重复打磨某项。
 补充一项不能抹掉其他已处理项；此前明确未知也不重新索要。只有最新用户原话改变或否定此前依据，才将该项重开为ask，并在quote引用这句新的冲突原文；不能因为本轮没有再次提及而重开。明确更正的金额或公式直接使用新原文更新，不保留被替代的旧值。
 只有所有检查项均处理完且questions为空才询问是否生成报告；普通访谈不生成proposal或stage_review，不启动独立审查。
+有questions时同时给出等长question_targets，每项为对应检查项的dimension.checkpoint，如cash.max_loss；程序会移除已处理事项的重复追问。每个问题只对应一个尚未解决的主题。
 '''

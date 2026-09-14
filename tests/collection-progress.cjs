@@ -10,8 +10,11 @@ const counts = { strategy:3, market:3, return:8, resources:3, replication:3, cas
 const item = (status, count=3) => ({ status, reason: '依据', items: Object.fromEntries(Array.from({length:count}, (_,i)=>String(i)).map(k => [k, {status, quote:'用户依据', source:'user', verified: status !== 'ask'}])) });
 const life = {confirmed: true, coverage: Object.fromEntries(keys.map(k => [k,item('known',counts[k])]))};
 assert.equal(collectionProgress().percent, 0);
-assert.equal(collectionProgress(life).percent, 100);
-assert.equal(collectionProgress(life).ready, true);
+assert.equal(collectionProgress(life).percent, 99);
+assert.equal(collectionProgress(life, [], true).percent, 100);
+assert.equal(collectionProgress(life).ready, false);
+assert.equal(collectionProgress(life, [], true).ready, true);
+assert.equal(collectionProgress(life, ['待问'], true).ready, false);
 assert.equal(collectionProgress(life, ['待问']).ready, false);
 life.coverage.return = item('known',4);
 assert.equal(collectionProgress(life).ready, false);

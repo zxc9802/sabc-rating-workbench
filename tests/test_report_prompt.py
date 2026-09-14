@@ -12,7 +12,7 @@ def test_report_prompt_preserves_rules_without_interview_task(monkeypatch):
         llm._analyze({'base_url': 'https://example.com/v1', 'model': 'test'}, 'test',
                      {'_report_requested': True}, {}, [], [])
     prompt = seen['system']
-    assert '本轮用户已经点击生成报告' in prompt
+    assert '本轮为后端整理报告草稿' in prompt
     assert '逐维使用正式标准的评分锚点' in prompt
     assert 'B封顶包括' in prompt and '低分校验' in prompt
     assert '没有具体、可描述的潜在否决事实时vetoes必须为空数组' in prompt

@@ -37,12 +37,12 @@ def test_deepseek_only_skips_empty_route(monkeypatch):
                            {'snapshot': {}, 'result': {}}, [], '解释报告') == '通过备用连接回答'
 
 
-@pytest.mark.parametrize('value', ['中文错误类型', '', None, [], {}])
+@pytest.mark.parametrize('value', ['中文错误类型', '', [], {}])
 def test_project_type_rejected_at_write_boundary(client, value):
     assert client.post('/api/projects', json={'name': 'test', 'project_type': value}).status_code == 422
     pid = client.post('/api/projects', json={'name': 'test'}).json()['id']
     assert client.patch('/api/projects/' + pid, json={'project_type': value}).status_code == 422
-    assert client.get('/api/projects/' + pid).json()['project']['project_type'] == 'growth'
+    assert client.get('/api/projects/' + pid).json()['project']['project_type'] is None
 
 
 def test_bad_date_has_actionable_message(client):

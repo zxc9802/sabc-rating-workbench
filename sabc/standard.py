@@ -50,6 +50,8 @@ def validate_rubric_reasons(proposal, project):
         invalid |= bool(key == 'risk' and re.search(r'低到无需管理|必须零风险|必须绝无风险', reason))
         invalid |= bool(key == 'market' and project.get('project_type') == 'internal'
                         and re.search(r'非外部大市场|没有外部客户.*(?:故|因此|未达)', reason))
+        invalid |= bool(key == 'market' and project.get('project_type') == 'growth'
+                        and re.search(r'内需型内部|(?:不适用|无需评估)外部市场规模', reason))
         if invalid:
             raise ValueError(f'{key}评分理由使用了正式标准没有的额外门槛：{reason}。'
                              '重新按该维原有锚点判断；可以保留原分但必须有本次范围内的真实依据，不得自动调高或迎合目标等级。')

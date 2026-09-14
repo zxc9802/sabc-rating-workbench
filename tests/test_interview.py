@@ -61,7 +61,7 @@ def test_no_followup_keeps_incomplete_interview_paused(client,monkeypatch):
 
 
 @pytest.mark.parametrize('outcome', ['rated', 'unknown', 'ask', 'pending'])
-def test_collection_completion_waits_for_explicit_report_action(client, monkeypatch, outcome):
+def test_collection_completion_automatically_generates_reviewed_report(client, monkeypatch, outcome):
     from copy import deepcopy
     import sabc.app as module
     p, company, _, proposal = case()
@@ -98,8 +98,8 @@ def test_collection_completion_waits_for_explicit_report_action(client, monkeypa
     ordinary = client.post(url + '/chat', json={'message': '资料补充完了'})
     assert ordinary.status_code == 200
     detail = client.get(url).json()
-    assert detail['assessments'] == []
-    assert not ordinary.json().get('report_id')
+    assert bool(detail['assessments']) == (outcome != 'ask')
+    assert bool(ordinary.json().get('report_id')) == (outcome != 'ask')
     assert detail['project']['report_ready'] == (outcome != 'ask')
     requested = client.post(url + '/chat', json={'message': '生成报告', 'generate_report': True})
     assert requested.status_code == 200
