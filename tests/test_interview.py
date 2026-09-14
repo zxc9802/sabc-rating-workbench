@@ -113,7 +113,8 @@ def test_collection_completion_automatically_generates_reviewed_report(client, m
         assert reports[0]['id'] == requested.json()['report_id']
         assert reports[0]['result']['grade'] == ('NR' if outcome == 'unknown' else 'B')
         if outcome == 'unknown':
-            assert '用户明确无法提供需求信息' in reports[0]['result']['deferral_reason']
+            # This fixture has no matched source quote; do not promote its model reason to evidence.
+            assert '市场空间 / 需求价值：相关依据尚待补充或核查' in reports[0]['result']['deferral_reason']
     project = module.store.get('projects', pid)
     project['lifecycle']['coverage']['risk']['status'] = 'ask'
     module.store.save('projects', project)

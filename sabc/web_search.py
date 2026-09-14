@@ -34,7 +34,7 @@ def search(store, project_id, query):
                 continue
             seen.add(url)
             selected.append({'title': str(row.get('title', ''))[:300], 'url': url,
-                             'snippet': snippet[:1800]})
+                             'snippet': snippet})
         if not selected:
             raise ValueError('网络搜索未返回可用结果，请调整查询')
     except (httpx.HTTPError, ValueError, TypeError, AttributeError) as error:

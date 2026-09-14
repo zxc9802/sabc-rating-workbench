@@ -1,4 +1,5 @@
 import httpx
+import json
 import pytest
 from sabc.sources import collect
 from sabc.store import Store
@@ -29,3 +30,12 @@ def test_failed_search_never_creates_evidence(tmp_path, monkeypatch, status, pay
     with pytest.raises(ValueError):collect(s,'p','web','test')
     assert not s.list('evidence')
     assert len(s.list('source_runs'))==1
+
+
+def test_search_preserves_complete_returned_summary(tmp_path, monkeypatch):
+    monkeypatch.setenv('ANYSEARCH_API_KEY', 'secret-test')
+    summary = '需要完整显示的网页摘要。' * 250 + '最后一句也必须保留。'
+    monkeypatch.setattr(httpx.Client, 'post', lambda *a, **k: httpx.Response(200, json={
+        'code': 0, 'data': {'results': [{'title': '网页资料', 'url': 'https://example.com/article', 'snippet': summary}]}}))
+    saved = collect(Store(tmp_path / 'x.db'), 'p', 'web', '完整摘要')
+    assert json.loads(saved['content'])['results'][0]['snippet'] == summary

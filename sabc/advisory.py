@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sabc import framing
 from sabc.framing import Framing
 from sabc.checkpoints import CHECKS, UNAVAILABLE
+from sabc.fact_boundaries import qualification, unsupported_absence
 from sabc.lifecycle import StageReview
 from sabc.model_output import parse_object, format_failure
 from sabc.model_router import routed, endpoint, authorization
@@ -19,7 +20,7 @@ from sabc.standard import REPORT, ground_low_scores, validate_rubric_reasons
 from sabc.streaming import progress, check_cancelled
 from sabc.streaming import completion
 
-VERSION = 2
+VERSION = 3
 PERSPECTIVES = {'facts', 'business', 'risk', 'consistency'}
 REFERENCE_PROMPT = '\n输入中仅含{"$ref":"/路径"}的对象表示本JSON内对应位置的完整原值，用于去重，并非信息缺失。路径以/分隔，数字指数组下标；需要时继续解析引用。来源ID、对话角色和顺序仍各自有效，内容相同不表示独立证据。输出仍须填写实际原文和完整修订内容，不能返回$ref对象。'
 
@@ -76,20 +77,36 @@ rule_issues是程序已经发现的评分口径错误。若非空，须给出有
 第二次调用会带previous_findings；逐项确认这些问题已解决后再检查当前内容。已有修订等价表达原意就通过，不要求逐字按你的偏好表述；发现新的实质错误仍不能放行。
 完全通过的精确格式：{"checks":{"facts":"pass","business":"pass","risk":"pass","consistency":"pass"},"findings":[],"project_patch":{},"coverage_reasons":{},"framing":null,"questions":[],"proposal":null,"stage_review":null}。
 逐句比对八维reason和各items.quote，不能因为检查项已verified就认为摘要正确；verified仅表示引用匹配。source_limit_flags列出程序发现的限定丢失，必须改为与原文一致的有限判断，不能直接标pass。若framing缺失且原文能明确判断，应补充有原文依据的分类并作为修订再次检查。
+items中的knowledge/subject只是程序派生的原话限定：not_obtained未取得资料、unknown不清楚、reported_absent用户明确否定，不能互换，也不表示已经独立核验。研究者个人的投入或损失上限不能替代运营方数据。
+source_limit_flags也会指向proposal及review；须修正对应完整proposal或stage_review。NR摘要由程序根据原话和缺口状态生成，无需另写摘要；其他报告内容仍须保留来源限定。result中的重复表述会随proposal修订由程序重算。
 '''
 
 
-def source_limit_flags(coverage):
+def source_limit_flags(coverage, candidate=None):
     flags = []
+    all_limits, all_quotes = [], []
     for dimension, item in coverage.items():
         quotes = [v.get('quote', '') for v in item.get('items', {}).values()
-                  if v.get('status') in ('unknown', 'external', 'future')]
-        limitations = [q for q in quotes if re.search(r'未取得|未检索到|尚未找到|现有(?:资料|材料|信息).*?(?:没有|不含)|未知|无法(?:确认|判断|提供)', q)]
-        absolute = any(re.search(r'(?:案例|对照|数据|需求|收入|团队|能力).*不存在', sentence)
-                       and not re.search(r'并非|不能|无法|不足以|不代表|不等于', sentence)
-                       for sentence in re.split(r'[。；\n]', item.get('reason', '')))
-        if limitations and absolute:
-            flags.append({'dimension': dimension, 'claim': item['reason'], 'source_limits': limitations})
+                  if v.get('source', 'user') == 'user']
+        limitations = [q for q in quotes if qualification(q, 'known')['knowledge'] in ('not_obtained', 'unknown')]
+        all_limits.extend(limitations)
+        all_quotes.extend(quotes)
+        for claim, quote in unsupported_absence(item.get('reason', ''), limitations, quotes):
+            flags.append({'dimension': dimension, 'target': 'coverage.' + dimension + '.reason',
+                          'claim': claim, 'source_limits': [quote]})
+    def walk(value, path):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                yield from walk(child, path + '.' + key)
+        elif isinstance(value, list):
+            for i, child in enumerate(value):
+                yield from walk(child, path + '.' + str(i))
+        elif isinstance(value, str):
+            for claim, quote in unsupported_absence(value, all_limits, all_quotes):
+                yield {'target': path, 'claim': claim, 'source_limits': [quote]}
+    # Result text is derived from the proposal; validate its editable source once.
+    if candidate:
+        flags.extend(walk({k: candidate[k] for k in ('proposal', 'review') if k in candidate}, 'candidate'))
     return flags
 
 
@@ -126,7 +143,7 @@ def packet(mode, project, company, evidence, candidate):
     return {'mode': mode, 'sources': sources, 'conversation': dialogue,
             'project': current,
             'evidence': [{k: v for k, v in e.items() if k not in ('content', 'images', 'frames')} for e in evidence],
-            'candidate': candidate, 'source_limit_flags': source_limit_flags(life.get('coverage', {})),
+            'candidate': candidate, 'source_limit_flags': source_limit_flags(life.get('coverage', {}), candidate),
             'rule_issues': rule_issues}
 
 
@@ -225,8 +242,18 @@ def validate(value, context):
                 prior['status'] = status
         for dim, reason in result['coverage_reasons'].items():
             coverage[dim]['reason'] = reason
-        if source_limit_flags(coverage):
-            raise ValueError('仍把资料未知或未取得写成客观不存在，须按对应原文修正覆盖理由')
+        candidate = deepcopy(context.get('candidate'))
+        if isinstance(candidate, dict):
+            for key, field in (('proposal', 'proposal'), ('stage_review', 'review')):
+                if result.get(key):
+                    candidate[field] = deepcopy(result[key])
+            if candidate.get('review'):
+                candidate['review']['coverage'] = coverage
+            # The displayed NR summary is rebuilt from original source limitations.
+            if candidate.get('result', {}).get('grade') == 'NR' and candidate.get('review'):
+                candidate['review']['summary'] = candidate['result'].get('deferral_reason', '')
+        if source_limit_flags(coverage, candidate):
+            raise ValueError('仍把资料未知或未取得写成客观不存在，须按对应原文修正覆盖理由或报告内容')
     if context['mode'] == 'report' and result['questions']:
         raise ValueError('报告审查不能重开访谈，证据缺口须在报告保留')
     if context['mode'] == 'report':
@@ -322,6 +349,7 @@ def apply_corrections(project, result):
         entry = project['lifecycle']['coverage'][dim]
         for key, status in changes.items():
             entry['items'][key]['status'] = status
+            entry['items'][key].update(qualification(entry['items'][key]['quote'], status))
         entry['status'] = next((v['status'] for v in entry['items'].values() if v['status'] != 'known'), 'known')
     if result.get('stage_review'):
         project['lifecycle']['review'].update(StageReview.model_validate(result['stage_review']).model_dump())

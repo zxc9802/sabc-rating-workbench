@@ -4,6 +4,7 @@ import re
 from datetime import date
 from sabc.business_time import today
 from sabc.rating import PROJECT_FIELDS
+from sabc.fact_boundaries import qualification, complete_quote
 
 CHECKS = {
     'strategy': {'purpose': '这个项目想改善什么经营结果？', 'fit': '它与公司当前优先事项有什么联系？', 'timing': '为什么现在做这个项目？'},
@@ -21,6 +22,7 @@ CHECKS = {
     'opportunity': {'options': '不做、延后或采用现成方案，分别有什么影响？', 'comparison': '与可行替代方案相比，为什么选择这个方案？', 'tradeoff': '会占用哪些现有业务或其他项目的资源？'},
 }
 RESOLVED = ('known', 'unknown', 'external', 'future')
+SHORT_UNKNOWN = re.compile(r'(?:我)?(?:不知道|不清楚|无法提供|不能提供|没有拿到)[。！!]?\s*')
 UNAVAILABLE = re.compile(r'不知道|不清楚|未知|未定|没定|未确认|待确认|尚未|还没|没有|没做|没问|未询价|未(?:经|做|完成)?(?:书面|独立|正式)?(?:核验|核查|验证|询价|报价|确认|落实)|待验证|待核|无法|不能提供|需要.*(?:核查|验证|试验)|预计|预估|估算|假设')
 TEST_TOPIC = r'测试|试点|试运行|试验|实测|实际运行|真实订单|真实成交|付费客户'
 
@@ -31,7 +33,7 @@ def no_test(quote):
     return bool(re.fullmatch(r'没做过[。！!]?|没有[。！!]?', quote) or re.search(
         r'(?:^|[。；，,\n]|(?:本|这个|该)(?:项目|方案))\s*(?:目前|我们|我)?\s*'
         r'(?:还没有|还没|没|尚未|从未|未|没有)(?:做过|做|进行过|进行|开展过|开展|开始)?'
-        r'(?:任何|实际|小规模)?(?:测试|试点|试运行|试验|实测)', quote))
+        r'(?:任何|实际|小规模)?(?:测试|试点|试运行|试验|实测)(?:过)?(?=[。；，,！!]|$)', quote))
 
 
 def validation_answer(key, quote, status, source, dialogue):
@@ -89,6 +91,8 @@ def explicit_unavailable(key, message):
         'costs': (r'持续成本|持续费用|单件成本|全部成本', r'未知|不知道|无法提供|没有报价'),
         'dependencies': (r'外包|依赖|代理', r'均未落实|都未落实|全部未落实|均未确认|均未确定'),
         'extra': (r'(?:迁移|扩大|复制|扩店).*(?:成本|费用|投入|工时)', r'未知|不知道|无法提供|没有报价'),
+        'investment_limit': (r'总投入|总预算|投入上限|预算上限', r'未知|不知道|不清楚|无法(?:提供|取得)'),
+        'max_loss': (r'损失|亏损|亏|赔', r'未知|不知道|不清楚|无法(?:提供|取得)'),
     }
     if key not in patterns:
         return ''
@@ -97,20 +101,66 @@ def explicit_unavailable(key, message):
         if re.search(r'[？?]|并非|不是|不再|之前|此前|原来|曾经|过去|已落实|已确认|已确定', sentence):
             continue
         if re.search(topic, sentence) and re.search(unavailable, sentence):
+            if key in ('investment_limit', 'max_loss') and re.search(r'\d+\s*(?:万|千|元|块)', sentence):
+                continue
             return sentence.strip()
     return ''
 
 
+def last_question(messages):
+    index = next((i for i in range(len(messages) - 1, -1, -1) if messages[i].get('role') == 'user'), -1)
+    return messages[index - 1] if index > 0 and messages[index - 1].get('role') == 'assistant' else {}
+
+
+def changed_answer(key, quote, prior):
+    if quote == prior.get('quote') or not re.search(r'更正|纠正|改为|改成|不再|变化|改变|重新|有冲突|不一致|说错|不准确|现在(?:已|要|用于)', quote):
+        return False
+    topic = {'purpose': r'目的|用途|报告|研究|归档|发布|投资|采购',
+             'fit': r'战略|优先|主业|公司', 'timing': r'时间|现在|回款|兑现|延后|提前',
+             'user': r'用户|客户|商家|人群', 'need': r'需求|频次|影响',
+             'alternative': r'替代|原来|现有|软件|外包|美工',
+             'value': r'收入|价值|提效|收费|订阅|兑现',
+             'validation_history': TEST_TOPIC, 'validation_results': r'实测|测试|试点|结果|效果',
+             'validation_records': r'记录|材料|核对|核验', 'validation_transfer': r'类似|同类|迁移|案例',
+             'metric_formula': r'公式|分子|分母|ROI|工时|收益', 'costs': r'成本|费用', 'success': r'成功|达标|指标|阈值',
+             'owner': r'负责|执行|维护|技术|人员', 'capacity': r'人员|人手|工时|时间|排期',
+             'dependencies': r'依赖|外包|接入|资料|权限', 'assets': r'资产|数据|模板|模型|SOP',
+             'scope': r'范围|扩|复制|场景', 'extra': r'迁移|扩|复制|新增',
+             'initial': r'首期|初期|预算|投入', 'ongoing': r'持续|每月|订阅|现金支出',
+             'investment_limit': r'总投入|总预算|投入上限|预算上限',
+             'max_loss': r'损失|亏损|亏|赔', 'failure': r'失败|停止|止损|超标|不达标',
+             'control': r'退出|停止|损失|权限|回退', 'compliance': r'合规|授权|版权|法规|准入',
+             'options': r'不做|延后|替代|现成', 'comparison': r'对比|比较|替代|选择|方案',
+             'tradeoff': r'主业|资源|占用|优先|其他项目'}.get(key)
+    return bool(topic and re.search(topic, quote))
+
+
+def question_subject(project, target):
+    return 'operator' if project.get('framing', {}).get('purpose') == 'research' and target in ('cash.investment_limit', 'cash.max_loss') else 'project'
+
+
+def question_reply(reply, old_questions, questions):
+    # Keep document explanations, but only show questions that survived the gate.
+    for question in old_questions:
+        if question.strip():
+            reply = reply.replace(question, '')
+    statements = [s.strip() for s in re.findall(r'[^。！？?！\n]+[。！？?！]?', reply)
+                  if s.strip() and not re.search(r'[？?]|^(?:请问|请补充|另外[，,]?$)', s.strip())]
+    return '\n\n'.join(statements + questions)
+
+
 def normalize(result, project, company, evidence, messages):
+    project = {**project, 'framing': result.get('framing') or project.get('framing') or {}}
     history = project.get('messages', [])
     # Production supplies full history; older callers may supply only new turns.
     dialogue = messages if messages[:len(history)] == history else history + messages
-    user = '\n'.join([str(project.get('description', ''))] +
-                     [m.get('content', '') for m in dialogue if m.get('role') == 'user'])
+    user_sources = [str(project.get('description', ''))] + [m.get('content', '') for m in dialogue if m.get('role') == 'user']
+    user = '\n'.join(user_sources)
     sources = {'user': user, 'company': json.dumps(company, ensure_ascii=False),
                'project': json.dumps({k: project[k] for k in PROJECT_FIELDS if k in project}, ensure_ascii=False),
                'evidence': '\n'.join(str(e.get('content', '')) for e in evidence)}
     latest_user = next((m.get('content', '') for m in reversed(messages) if m.get('role') == 'user'), '')
+    asked = last_question(dialogue).get('question_targets', [])
     previous = project.get('lifecycle', {}).get('coverage', {})
     coverage = result.get('dimension_coverage') or {}
     pending = []
@@ -120,6 +170,7 @@ def normalize(result, project, company, evidence, messages):
         raw = entry.get('items') or {}
         items = {}
         for key, question in checks.items():
+            target = dimension + '.' + key
             candidate = raw.get(key) or {}
             history = items.get('validation_history', {})
             skipped_test = key in ('validation_results', 'validation_records') and history.get('verified') and no_test(history['quote'])
@@ -128,6 +179,8 @@ def normalize(result, project, company, evidence, messages):
             quote = str(candidate.get('quote', '')).strip()
             source = candidate.get('source', 'user')
             status = candidate.get('status', 'ask')
+            if source == 'user' and question_subject(project, target) == 'operator':
+                quote = complete_quote(quote, user_sources)
             grounded = len(quote) >= (2 if status in ('unknown', 'external', 'future') else 4) and quote in sources.get(source, '')
             # An unavailable fact must be acknowledged by the user, never inferred from silence.
             if status in ('unknown', 'external', 'future'):
@@ -165,14 +218,27 @@ def normalize(result, project, company, evidence, messages):
                     and prior.get('quote') == previous_history.get('quote') and no_test(prior.get('quote', ''))):
                 prior = {}  # A new test needs its own results; old "not tested" cannot close it.
             prior_quote = str(prior.get('quote', '')).strip()
+            if prior.get('source') == 'user' and question_subject(project, target) == 'operator':
+                prior_quote = complete_quote(prior_quote, user_sources)
             declared = explicit_unavailable(key, latest_user)
-            if (status == 'ask' or not grounded) and declared:
+            if asked == [target] and SHORT_UNKNOWN.fullmatch(latest_user):
+                declared = latest_user.strip()
+            if (status == 'ask' or not grounded or question_subject(project, target) == 'operator') and declared:
                 quote, source, status, grounded = declared, 'user', 'unknown', True
+            if (source == 'user' and quote == latest_user.strip() and SHORT_UNKNOWN.fullmatch(quote)
+                    and 'question_targets' in last_question(dialogue)):
+                grounded = grounded and asked == [target]
+            meaning = qualification(quote, status)
+            if source == 'user' and question_subject(project, target) == 'operator' and meaning['subject'] in ('researcher', 'mixed'):
+                grounded = False
+            if key.startswith('validation_') and source == 'user' and meaning['knowledge'] in ('not_obtained', 'unknown') and grounded:
+                status = 'unknown'
             # A model omission/paraphrase cannot erase a previously grounded answer.
             # A quoted change in the latest user turn may reopen it for clarification.
             if ((not grounded or status not in RESOLVED) and prior.get('verified') is True and prior.get('status') in RESOLVED
                     and prior_quote and prior_quote in sources.get(prior.get('source'), '')
-                    and not (source == 'user' and len(quote) >= 2 and quote in latest_user)):
+                    and not (question_subject(project, target) == 'operator' and qualification(prior_quote, prior['status'])['subject'] in ('researcher', 'mixed'))
+                    and not (source == 'user' and len(quote) >= 2 and quote in latest_user and changed_answer(key, quote, prior))):
                 quote, source, status = prior_quote, prior['source'], prior['status']
                 grounded = True
             verified = bool(grounded and status in RESOLVED)
@@ -185,10 +251,12 @@ def normalize(result, project, company, evidence, messages):
                                  'unavailable_word': bool(UNAVAILABLE.search(quote))})
             items[key] = {'status': status if verified else 'ask', 'source': source,
                           'quote': quote if verified else '', 'verified': verified}
+            if verified:
+                items[key].update(qualification(quote, status))
             if not verified:
                 # Ask whether a test exists before asking for its results or records.
                 if key not in ('validation_results', 'validation_records') or history.get('verified'):
-                    pending.append(question)
+                    pending.append((target, ('运营方' if question_subject(project, target) == 'operator' else '') + question))
         entry['items'] = items
         entry['status'] = next((item['status'] for item in items.values() if item['status'] != 'known'), 'known') if complete(items, dimension) else 'ask'
         entry['reason'] = entry.get('reason') or '仍需补充项目依据'
@@ -203,26 +271,24 @@ def normalize(result, project, company, evidence, messages):
         from sabc.model_router import audit
         if audit.get():
             audit.get()({'role': 'collection_validation', 'status': 'rejected', 'checks': rejected})
-    targets = result.get('question_targets', [])
-    if targets and len(targets) == len(result.get('questions', [])):
-        kept = []
-        for question, target in zip(result['questions'], targets):
-            dimension, _, key = target.partition('.')
-            if coverage.get(dimension, {}).get('items', {}).get(key, {}).get('status') == 'ask':
-                kept.append(question)
-        if kept != result['questions']:
-            result['questions'] = kept or pending[:2]
-            result['reply'] = '\n\n'.join(result['questions'])
-            result['reply_evidence_ids'] = []
+    targets, original = result.get('question_targets', []), result.get('questions', [])
+    allowed = dict(pending)
+    selected = {}
+    if len(targets) == len(original):
+        for target, question in zip(targets, original):
+            if target in allowed and question.strip() and target not in selected:
+                selected[target] = question
+    selected = selected or dict(pending[:2])
+    result['question_targets'] = list(selected)
+    result['questions'] = list(selected.values())
+    if result['questions']:
+        result['reply'] = question_reply(result.get('reply', ''), original, result['questions'])
     if not pending:
         result['questions'] = []
+        result['question_targets'] = []
         result['reply'] = '信息已整理完成，现在生成报告吗？'
         result['reply_evidence_ids'] = []
         result['data_requests'] = []
-    elif not result.get('questions'):
-        result['questions'] = pending[:2]
-        result['reply'] = '\n\n'.join(pending[:2])
-        result['needs_external_action'] = False
     return result
 
 
@@ -248,4 +314,7 @@ items记录的是该项是否已交流处理，不是业务条件是否已实现
 补充一项不能抹掉其他已处理项；此前明确未知也不重新索要。只有最新用户原话改变或否定此前依据，才将该项重开为ask，并在quote引用这句新的冲突原文；不能因为本轮没有再次提及而重开。明确更正的金额或公式直接使用新原文更新，不保留被替代的旧值。
 只有所有检查项均处理完且questions为空才询问是否生成报告；普通访谈不生成proposal或stage_review，不启动独立审查。
 有questions时同时给出等长question_targets，每项为对应检查项的dimension.checkpoint，如cash.max_loss；程序会移除已处理事项的重复追问。每个问题只对应一个尚未解决的主题。
+上一轮assistant的question_targets说明当时问的是哪些事项；“不知道”等短答只在指向明确时绑定，问了两项只回答一项不能关闭另一项。reply只展示本轮questions中的问题，不在正文夹带额外追问。
+研究者本人投入和被研究产品的运营投入分别记录。purpose=research时，cash.investment_limit/max_loss针对运营方；个人研究预算或零现金损失不能充当运营方额度，无法得知就记录对应未知。
+quote保留完整主语、否定和范围：“我未取得实测记录”不等于“运营方未做过实测”，“不知道授权情况”不等于“没有授权”。历史items中的knowledge/subject是程序派生的来源限定，不是额外证据；输出不必填写这些字段。
 '''

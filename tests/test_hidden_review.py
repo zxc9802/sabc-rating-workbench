@@ -102,7 +102,7 @@ def test_review_restores_unknown_status_without_changing_source_or_verification(
     candidate=module.build_assessment(p,c,e,draft_reply()['proposal'])
     updated=advisory.review_report({}, '', candidate, module.build_assessment)['snapshot']['project']
     corrected = updated['lifecycle']['coverage']['return']['items']['validation_transfer']
-    assert corrected == {**item, 'status': 'unknown'}
+    assert corrected == {**item, 'status': 'unknown', 'knowledge': 'not_obtained', 'subject': 'project'}
     assert calls[1]['project']['lifecycle']['coverage']['return']['status'] == 'unknown'
     assert item['status'] == 'known'
 

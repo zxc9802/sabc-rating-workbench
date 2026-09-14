@@ -123,7 +123,8 @@ def test_supplement_preserves_grounded_unknown_without_reasking():
     project = {'messages': [{'role': 'user', 'content': quote}],
                'lifecycle': {'coverage': {'return': {'items': {'costs': prior}}}}}
     r = normalize(result(), project, {}, [], [{'role': 'user', 'content': '首笔3000元包含在测款预算里'}])
-    assert r['dimension_coverage']['return']['items']['costs'] == prior
+    item = r['dimension_coverage']['return']['items']['costs']
+    assert {k: item[k] for k in prior} == prior
 
 
 def test_new_quoted_change_can_update_or_reopen_prior_cash_limit():
@@ -185,7 +186,8 @@ def test_asking_again_with_old_quote_cannot_erase_resolved_failure_condition():
     r['dimension_coverage']['risk']['items'] = {
         'failure': {'status': 'ask', 'source': 'user', 'quote': prior['quote']}}
     normalize(r, project, {}, [], [{'role': 'user', 'content': '补充工时公式，不改停止条件'}])
-    assert r['dimension_coverage']['risk']['items']['failure'] == prior
+    item = r['dimension_coverage']['risk']['items']['failure']
+    assert {k: item[k] for k in prior} == prior
 
 
 def test_unknown_declaration_fallback_does_not_treat_questions_or_old_facts_as_answers():

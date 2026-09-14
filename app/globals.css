@@ -159,6 +159,32 @@ textarea { resize: vertical; line-height: 1.8; }
 @media (max-width: 700px) { .chat-markdown { font-size: 12px; } }
 .chat-references { margin-top: 12px; font-size: 12px; color: var(--muted); }
 .chat-references summary { cursor: pointer; }
+.evidence-list { border: 0; min-width: 0; }
+.evidence-list .evidence-content { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.evidence-entry { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 16px; padding: 24px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+.evidence-number { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: #edf2ff; color: #365bd8; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.evidence-body { min-width: 0; }
+.evidence-entry-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 2px 0 12px; }
+.evidence-entry-heading h3 { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; }
+.evidence-entry-heading > span { flex-shrink: 0; color: var(--muted); font-size: 11px; }
+.evidence-summary { font-size: 14px; line-height: 1.9; }
+.evidence-summary p { white-space: pre-wrap; margin: 0 0 .8em; }
+.evidence-summary > :last-child { margin-bottom: 0; }
+.evidence-content .evidence-summary pre { max-height: none; overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; }
+.evidence-summary table { table-layout: fixed; }
+.evidence-summary th, .evidence-summary td { min-width: 0; overflow-wrap: anywhere; }
+.evidence-source { display: flex; flex-direction: column; gap: 4px; margin-top: 18px; padding-top: 12px; border-top: 1px solid #edf0f5; }
+.evidence-source > span { color: var(--muted); font-size: 11px; }
+.evidence-source a, .evidence-source p { margin: 0; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.evidence-source a { color: #365bd8; text-decoration: underline; text-underline-offset: 3px; }
+.evidence-limitation { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.8; overflow-wrap: anywhere; }
+@media (max-width: 650px) {
+  .evidence-entry { grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 16px 12px; }
+  .evidence-number { width: 26px; height: 26px; font-size: 12px; }
+  .evidence-entry-heading { flex-direction: column; gap: 4px; margin-top: 0; }
+  .evidence-entry-heading h3 { font-size: 14px; }
+  .evidence-summary { font-size: 13px; }
+}
 .chat-references > div { display: flex; gap: 10px; align-items: baseline; margin-top: 8px; }
 .message .chat-references p { font-size: 12px; margin-top: 8px; }
 

@@ -17,6 +17,7 @@ from sabc.key_storage import encrypt_key, model_key, key_origin
 from sabc.request_limits import BodyLimitMiddleware
 from sabc.llm import analyze, guide
 from sabc import planner, report_qa, report_readiness, advisory, framing
+from sabc.fact_boundaries import gap_details
 from sabc import auth, lifecycle, model_router, sso
 from sabc.tenancy import AccountStore, account_id
 from sabc import speech
@@ -354,7 +355,8 @@ def chat_turn(pid,body):
         result['reply']+='\n\n'+'\n\n'.join(followups)
     valid_refs={e['id'] for e in model_evidence_for(pid)}
     refs=[eid for eid in result.get('reply_evidence_ids',[]) if eid in valid_refs]
-    p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'stage':lifecycle.state(p)['stage'],'evidence_ids':refs,'time':utcnow()}]
+    p['messages']=messages+[{'role':'assistant','content':result['reply'],'mode':result['mode'],'field':result.get('field'),'stage':lifecycle.state(p)['stage'],'evidence_ids':refs,'time':utcnow(),
+                            'question_targets':result.get('question_targets', [])}]
     if result['mode']=='model': p['proposal']=result.get('proposal')
     if result['mode']=='model':
         lifecycle.absorb(p,result,company(),model_evidence_for(pid))
@@ -362,6 +364,7 @@ def chat_turn(pid,body):
         gaps = lifecycle.collection_gaps(life)
         state='gathering' if result.get('questions') else 'ready' if lifecycle.collection_ready(life) else 'paused'
         p['interview']={'state':state,'gaps':gaps,'questions':[] if state!='gathering' else result.get('questions',[]),
+                        'question_targets':[] if state!='gathering' else result.get('question_targets',[]),
                         'note':'第一阶段问答已完成' if state=='ready' else '可继续补充资料或讨论下一步验证办法' if state=='paused' else '补充影响决策的关键事实'}
     if result['mode']=='model' and not result.get('questions') and lifecycle.collection_ready(p.get('lifecycle', {})):
         # Commit the interview before drafting. The draft lives in a private record.
@@ -724,12 +727,10 @@ def build_assessment(project, c, e, proposal):
     result=assess(p,c,e,proposal)
     if result['grade'] == 'NR':
         missing = '、'.join(result['missing']) or '足以支持八维判断的关键依据'
-        labels = {'unknown': '当前无法补足', 'external': '需外部核查', 'future': '需实际验证'}
-        details = [labels[v['status']] + '：' + v['reason'] for v in life.get('coverage', {}).values()
-                   if v.get('status') in labels and str(v.get('reason', '')).strip()]
-        result['deferral_reason'] = ('暂缓评级：尚未形成可靠判断的关键依据包括' + missing + '；'
-                                    + ('；'.join(details) + '。' if details else '')
-                                    + '这些缺口会影响投入与验证是否可行的判断，当前无法给出可靠等级。')
+        details = gap_details(p)
+        result['deferral_reason'] = ('暂缓评级：尚未形成可靠判断的关键依据包括' + missing + '。'
+                                    + ('\n' + '\n'.join(details) if details else '')
+                                    + '\n现有依据不足以给出可靠等级；资料未取得不代表相关事实不存在。')
     if p.get('lifecycle'):
         result.update(stage=life['stage'], provisional=True,
                       status='待评级' if result['grade']=='NR' else '阶段暂定评级')
