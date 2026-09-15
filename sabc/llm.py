@@ -159,6 +159,12 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
         payload['stream'] = True
     payload['messages'][0]['content']+='\n面向用户的reply、评分理由及验证说明禁止出现内部证据ID、数据库编号、字段名或growth等枚举代码。引用资料使用可读标题与来源网址；项目类型使用中文名称。内部ID仅允许出现在结构化evidence_ids等关联字段中。'
     payload['messages'][0]['content'] += FRAMING_PROMPT if not report_requested else '\n沿用输入framing中的项目类型、真实经营阶段与本次评估目的；framing返回null，不把工作台历史阶段当真实经营阶段。'
+    if report_requested:
+        payload['messages'][0]['content'] += ('\n本轮为报告整理，输出完整JSON对象，严格遵循以下JSON Schema。'
+            'proposal与stage_review必须为对象，questions、question_targets、data_requests为空数组。'
+            'assessment_scope.source_id逐字复制输入conversation.source_id，或使用description，不用消息序号自行推算；'
+            'quote逐字复制该来源连续原文。\n' +
+            json.dumps(ModelReply.model_json_schema(),ensure_ascii=False,separators=(',',':')))
     payload['messages'] += settings.get('format_retry', [])
     if settings.get('deepseek'):
         payload.update(thinking={'type':'enabled'}, reasoning_effort=settings['effort'])
