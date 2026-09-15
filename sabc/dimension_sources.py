@@ -1,6 +1,7 @@
 """Pre-answer retrieval from dimension cues and explicit public entities."""
 import os
 import re
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from sabc.sources import request_spec
 
@@ -79,6 +80,15 @@ def rule_plan(project, latest, evidence):
     # Explicit public product labels support categories outside the common vocabulary.
     labels = re.findall(r'(?:产品|品类|行业)[：:]\s*([\w\u4e00-\u9fff -]{2,24})(?=[，。；\n]|$)', text)
     product = labels[-1] if labels else products[-1] if products else ''
+    scope_text = latest if re.search(REGIONS + r'|全球|多国', latest) else text
+    global_scope = bool(re.search(r'(?<!不是)(?<!非)全球|多国', scope_text))
+    urls = re.findall(r'https://[^\s，。；）)]+', text)
+    public_host = next((urlparse(url).hostname for url in urls
+                        if urlparse(url).hostname and '.' in urlparse(url).hostname
+                        and not re.fullmatch(r'[\d.]+', urlparse(url).hostname)
+                        and not urlparse(url).hostname.endswith(('.local', '.localhost'))), '')
+    if not product and project.get('framing', {}).get('purpose') == 'research' and public_host:
+        product = 'site:' + public_host
     if internal:
         product = '内部业务软件'
     assistant = next((m.get('content', '') for m in reversed(project.get('messages', [])) if m.get('role') == 'assistant'), '')
@@ -96,10 +106,13 @@ def rule_plan(project, latest, evidence):
             elif re.search(r'开源|软件许可|github', focus, re.I):
                 missing.append({'dimension': dim, 'reason': '请提供要核查的开源项目 GitHub 地址'})
             continue
-        if not product or len(regions) != 1:
+        if dim == 'risk' and (global_scope or len(regions) != 1):
+            missing.append({'dimension': dim, 'reason': '法规适用性需明确司法辖区；全球研究可继续使用已有资料，具体法规结论保留待核查'})
+            continue
+        if not product or (not global_scope and len(regions) != 1):
             missing.append({'dimension': dim, 'reason': '请明确本轮核查的产品/品类及一个目标国家地区；多地区需先指定本轮范围'})
             continue
-        region = regions[0]
+        region = '全球' if global_scope else regions[0]
         source = 'law' if dim == 'risk' and region == '中国' else 'web'
         query = ('数据安全' if internal else product) if source == 'law' else f'{region} {product} {topics[dim][1]}'
         requests.append({'dimension': dim, 'source': source, 'query': query, 'reason': topics[dim][1]})

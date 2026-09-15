@@ -4,6 +4,7 @@ import pytest
 from sabc.llm import analyze
 from sabc.schema import validate_proposal
 from tests.test_rating import case
+from tests.report_fixtures import grounded_proposal, REPORT_DESCRIPTION
 
 
 def model_response(monkeypatch,content):
@@ -14,12 +15,12 @@ def model_response(monkeypatch,content):
 
 def test_model_cannot_return_final_grade_as_authority(monkeypatch):
     model_response(monkeypatch,{'reply':'直接S','project_patch':{},'proposal':None,'grade':'S'})
-    with pytest.raises(ValueError): analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
+    with pytest.raises(ValueError): analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, [], [])
 
 
 def test_model_cannot_patch_company_or_verification(monkeypatch):
     model_response(monkeypatch,{'reply':'建议','project_patch':{'company':{'budget':999999},'verification_status':'verified','target_user':'已说明用户'},'proposal':None})
-    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
+    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, [], [])
     assert r['project_patch']=={'target_user':'已说明用户'}
 
 
@@ -40,12 +41,12 @@ def test_boolean_score_rejected_before_coercion():
 
 def test_model_malformed_proposal_is_rejected(monkeypatch):
     model_response(monkeypatch,{'reply':'建议','project_patch':{},'proposal':{'dimensions':[]}})
-    with pytest.raises(ValueError): analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
+    with pytest.raises(ValueError): analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, [], [])
 
 
 def test_incomplete_assumptions_repaired_once(monkeypatch):
     from copy import deepcopy
-    proposal=case()[3]
+    proposal=grounded_proposal()
     incomplete=deepcopy(proposal)
     incomplete['assumptions']=[]
     for a in proposal['assumptions']:
@@ -56,7 +57,7 @@ def test_incomplete_assumptions_repaired_once(monkeypatch):
         content={'reply':'方向待验证','proposal':incomplete if len(calls)==1 else proposal}
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps(content)}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
-    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, case()[2], [])
+    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, case()[2], [])
     assert len(calls)==2
     assert r['proposal']['assumptions'][0]['validation_method']=='负责人核对真实订单'
     assert 0<calls[1]['timeout']<=calls[0]['timeout']<=90
@@ -66,7 +67,7 @@ def test_incomplete_assumptions_repaired_once(monkeypatch):
 
 @pytest.mark.parametrize('missing',['empty','validation_method','pass_threshold','fail_threshold'])
 def test_incomplete_assumptions_never_accepted_after_repair(monkeypatch,missing):
-    proposal=case()[3]
+    proposal=grounded_proposal()
     for a in proposal['assumptions']:
         a.update(validation_method='核对订单',pass_threshold='待确认口径',fail_threshold='口径未确认暂停')
     if missing=='empty': proposal['assumptions']=[]
@@ -77,13 +78,13 @@ def test_incomplete_assumptions_never_accepted_after_repair(monkeypatch,missing)
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps({'reply':'建议','proposal':proposal})}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
     with pytest.raises(ValueError,match='缺少完整的关键假设'):
-        analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, case()[2], [])
+        analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, case()[2], [])
     assert len(calls)==2
 
 
 @pytest.mark.parametrize('has_proposal',[True,False])
 def test_complete_or_no_proposal_does_not_retry(monkeypatch,has_proposal):
-    proposal=case()[3] if has_proposal else None
+    proposal=grounded_proposal() if has_proposal else None
     if proposal:
         for a in proposal['assumptions']:
             a.update(validation_method='核对记录',pass_threshold='待确认口径',fail_threshold='未确认暂停')
@@ -92,7 +93,7 @@ def test_complete_or_no_proposal_does_not_retry(monkeypatch,has_proposal):
         calls.append(1)
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps({'reply':'建议','proposal':proposal})}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
-    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, case()[2], [])
+    r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, case()[2], [])
     assert len(calls)==1
     assert (r['proposal'] is not None)==has_proposal
 
@@ -109,7 +110,7 @@ def test_structural_error_is_repaired_without_accepting_invalid_proposal(monkeyp
         content=invalid if len(calls)==1 else {'reply':'还需核实需求。','proposal':None}
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps(content)}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
-    result=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True}, {}, [], [])
+    result=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, [], [])
     assert result['proposal'] is None
     assert result['reply']=='还需核实需求。'
     assert len(calls)==2 and 0<calls[1]<=calls[0]<=90

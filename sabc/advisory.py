@@ -8,6 +8,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 from sabc import framing
+from sabc import report_grounding
 from sabc.framing import Framing
 from sabc.checkpoints import CHECKS, UNAVAILABLE
 from sabc.fact_boundaries import qualification, unsupported_absence
@@ -20,7 +21,7 @@ from sabc.standard import REPORT, ground_low_scores, validate_rubric_reasons
 from sabc.streaming import progress, check_cancelled
 from sabc.streaming import completion
 
-VERSION = 3
+VERSION = 4
 PERSPECTIVES = {'facts', 'business', 'risk', 'consistency'}
 REFERENCE_PROMPT = '\n输入中仅含{"$ref":"/路径"}的对象表示本JSON内对应位置的完整原值，用于去重，并非信息缺失。路径以/分隔，数字指数组下标；需要时继续解析引用。来源ID、对话角色和顺序仍各自有效，内容相同不表示独立证据。输出仍须填写实际原文和完整修订内容，不能返回$ref对象。'
 
@@ -125,7 +126,7 @@ def packet(mode, project, company, evidence, candidate):
     for item in evidence:
         sources['evidence-' + item['id']] = item.get('content', '')
     current = {k: deepcopy(v) for k, v in {**project, **project.get('pending_patch', {})}.items()
-               if k in set(PROJECT_FIELDS) | {'description', 'budget_requested', 'framing'}}
+               if k in set(PROJECT_FIELDS) | {'description', 'budget_requested', 'framing', 'data_period', 'decision_facts', 'report_revision'}}
     life = project.get('lifecycle', {})
     current['lifecycle'] = {k: deepcopy(v) for k, v in life.items()
                             if k in ('stage', 'confirmed', 'mode', 'coverage')}
@@ -138,6 +139,7 @@ def packet(mode, project, company, evidence, candidate):
                      'review': current['lifecycle']['review']}
         try:
             validate_rubric_reasons(candidate['proposal'], current)
+            report_grounding.validate(candidate['proposal'], project, company, evidence)
         except ValueError as error:
             rule_issues.append(str(error))
     return {'mode': mode, 'sources': sources, 'conversation': dialogue,
@@ -261,6 +263,10 @@ def validate(value, context):
         if result['framing'] and result['framing'].get('project_type'):
             effective['project_type'] = result['framing']['project_type']
         validate_report_proposal(result['proposal'] or context['candidate']['proposal'], effective, context['evidence'])
+        report_grounding.validate(result['proposal'] or context['candidate']['proposal'],
+            {**effective, 'messages': context['conversation']}, json.loads(context['sources']['company']),
+            [{**item, 'content': context['sources'].get('evidence-' + item['id'], '')} for item in context['evidence']],
+            required=context['candidate']['proposal'].get('grounding_version') == report_grounding.VERSION)
     for item in result['questions']:
         dim, key = item['dimension'], item['checkpoint']
         prior = context['project']['lifecycle']['coverage'].get(dim, {}).get('items', {}).get(key, {})
@@ -301,7 +307,7 @@ def _request(settings, key, context):
         request_context = compacted
     deadline = time.monotonic() + 90
     def execute(route):
-        task_prompt = PROMPT + (REFERENCE_PROMPT if use_references else '')
+        task_prompt = PROMPT + (report_grounding.PROMPT if context.get('mode') == 'report' else '') + (REFERENCE_PROMPT if use_references else '')
         if context.get('previous_findings'):
             task_prompt += ('\n本次是修订后的验证：逐项检查previous_findings是否已由previous_changes修复，'
                             '并核对修改是否引入新的事实或计算矛盾。不要重新开展一轮开放式质疑，'

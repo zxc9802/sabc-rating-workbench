@@ -43,12 +43,15 @@ def test_report_keeps_confirmed_collection_instead_of_model_rewrite(monkeypatch)
     coverage = {k: {'status': 'known', 'reason': '用户已提供判断依据', 'items': {}} for k in llm.DIMENSIONS}
     life = {**initial(), 'mode': 'continuous', 'coverage': coverage}
     project = {'_report_requested': True, 'lifecycle': life}
+    from tests.report_fixtures import grounded_proposal, REPORT_DESCRIPTION
+    project['description'] = REPORT_DESCRIPTION
     before = deepcopy(project)
     proposal = {
         'dimensions': {k: {'score': 4, 'reason': '已有本项目验证记录', 'basis': 'fact'} for k in llm.DIMENSIONS},
         'assumptions': [{'id': 'a', 'claim': '效果持续', 'validation_method': '按月核对',
                          'pass_threshold': '保持当前效果', 'fail_threshold': '不再保持效果'}],
         'pros': ['需求', '资源', '现金'], 'cons': ['效果变化', '费用变化', '人员变化']}
+    proposal = grounded_proposal(proposal, REPORT_DESCRIPTION, 'description')
     monkeypatch.setattr(llm, 'completion', lambda *args: json.dumps({
         'reply': '报告已生成。', 'proposal': proposal,
         'dimension_coverage': {k: 'ask' for k in llm.DIMENSIONS},

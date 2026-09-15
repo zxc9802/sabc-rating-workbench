@@ -3,14 +3,15 @@ from sabc.rating import PROJECT_FIELDS
 
 
 def model_context(project, company, evidence, messages):
-    fields=set(PROJECT_FIELDS)|{'id','description','budget_requested','version','framing'}
+    fields=set(PROJECT_FIELDS)|{'id','description','budget_requested','version','framing','data_period','decision_facts','report_revision'}
     clean={k:v for k,v in project.items() if k in fields}
     clean['pending_patch']=dict(project.get('pending_patch',{}))
     # Prior questions are already in conversation, not instructions for this turn.
     clean['interview']={k:v for k,v in project.get('interview',{}).items() if k != 'questions'}
-    from sabc.lifecycle import context
-    clean['lifecycle']=context(project)
     report_requested = project.get('_report_requested', False)
+    if not report_requested:
+        from sabc.lifecycle import context
+        clean['lifecycle']=context(project)
     previous = project.get('_previous_stage_report')
     if previous:
         if report_requested:
@@ -33,14 +34,14 @@ def model_context(project, company, evidence, messages):
         clean.pop('lifecycle', None)
         recent = []
         remaining = 24000
-        for message in reversed(messages):
+        for index, message in reversed(list(enumerate(messages))):
             if message.get('role') != 'user':
                 continue
             content = str(message.get('content', ''))
             if remaining <= 0:
                 break
             truncated |= len(content) > remaining
-            recent.append({'role': 'user', 'content': content[-remaining:]})
+            recent.append({'role': 'user', 'content': content[-remaining:], 'source_id': f'turn-{index}'})
             remaining -= len(recent[-1]['content'])
         recent.reverse()
         # With complete user history available, a model risk summary adds no

@@ -121,7 +121,7 @@ function Workbench({ logout }: { logout: ReactNode }) {
     setStreamReply(value && closing.some(line => line.startsWith(value) || value.startsWith(line.replace(/[。？]$/, ''))) ? '' : reply);
   }
   useEffect(() => { if (tab === 'report') window.scrollTo({ top: 0 }); }, [tab]);
-  async function sendMessage(content = message, generateReport = false) {
+  async function sendMessage(content = message, generateReport = false, revision?: { revision_of: string; revision_turn_id: string }) {
     if (!content.trim() || !detail || voiceBusy || attachmentBusy || running.current) return;
     setTab('chat');
     const sent = content.trim();
@@ -130,7 +130,7 @@ function Workbench({ logout }: { logout: ReactNode }) {
       setGeneratingReport(generateReport); setPendingMessage(generateReport || (last?.role === 'user' && last.content === sent) ? '' : sent); setMessage(''); setStreamReply(''); setCurrentJob(null);
       let reconciled = false;
       try {
-        const response = await api<ChatResult>('/projects/' + detail.project.id + '/chat', 'POST', { message: sent, generate_report: generateReport, field: last?.role === 'assistant' ? last.field : undefined }, receiveProgress, receiveJob);
+        const response = await api<ChatResult>('/projects/' + detail.project.id + '/chat', 'POST', { message: sent, generate_report: generateReport, field: last?.role === 'assistant' ? last.field : undefined, ...revision }, receiveProgress, receiveJob);
         await finishChat(detail.project.id, response);
         reconciled = true;
       } catch (error) {
@@ -218,7 +218,7 @@ function Workbench({ logout }: { logout: ReactNode }) {
           <aside className="context-panel"><h2>这次评估的依据</h2><div className="context-block"><span>公司现状</span><strong>{text(data.company.name) || '尚未建立公司资料'}</strong><button className="text-button" onClick={() => setPage('company')}>{companyReady ? '查看公司基线' : '补充公司资料'}<ChevronRight size={14} /></button></div><div className="context-block"><span>项目关键信息</span><strong>{completed} / 7 项已整理</strong><div className="fact-progress" aria-label={`7项信息中已整理${completed}项`}>{projectFields.map(k => <i key={k} className={text(detail.project.pending_patch?.[k] ?? detail.project[k]) ? 'complete' : ''} />)}</div><button className="text-button" onClick={() => setTab('facts')}>检查项目资料<ChevronRight size={14} /></button></div><div className="context-block"><span>证据资料</span><strong>{detail.evidence.length} 条已保存</strong><button className="text-button" onClick={() => setTab('evidence')}>添加或核验资料<ChevronRight size={14} /></button></div><div className="context-tip"><CircleHelp size={17} /><p>不确定的信息可以直说。关键依据不足时，先补资料，不急着给等级。</p></div>{detail.project.pending_patch && Object.keys(detail.project.pending_patch).length > 0 && <button className="secondary" onClick={() => setTab('facts')}>核对模型整理的事实</button>}<button className="primary full" onClick={() => setTab('report')}>查看历史报告<ArrowUpRight size={16} /></button></aside></div> :
           tab === 'facts' ? <ProjectForm project={detail.project} types={data.types} busy={busy} save={saveProjectFacts} /> :
           tab === 'evidence' ? <EvidencePanel projectId={detail.project.id} evidence={detail.evidence} busy={busy} run={run} refresh={refreshProject} /> :
-          <>{<ReportPanel detail={detail} dimensions={data.dimensions} busy={busy} run={run} refresh={refreshProject} onGenerate={() => { if (pipelinePending) confirmScoring(); else sendMessage('请结合已有资料和历史报告，继续问答并重新评估。'); }} />}</>}
+          <>{<ReportPanel detail={detail} dimensions={data.dimensions} busy={busy} run={run} refresh={refreshProject} onRevise={(reportId, turnId) => { void sendMessage("请根据已保存的报告问题核对原始依据，修订并生成新版本。", true, { revision_of: reportId, revision_turn_id: turnId }); }} onGenerate={() => { if (pipelinePending) confirmScoring(); else sendMessage('请结合已有资料和历史报告，继续问答并重新评估。'); }} />}</>}
         </main>}
       <footer className="page-footer"><span>SABC 项目评级</span><span>依据当前信息提供决策参考 · 实际准确性需历史案例验证</span></footer>
     </div>

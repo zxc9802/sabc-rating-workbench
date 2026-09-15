@@ -10,7 +10,7 @@ def fingerprint(project, company, evidence):
     effective={**project, **project.get('pending_patch', {})}
     life=project.get('lifecycle', {})
     inputs={
-        'project':{k:effective.get(k) for k in set(PROJECT_FIELDS)|{'description','budget_requested'}},
+        'project':{k:effective.get(k) for k in set(PROJECT_FIELDS)|{'description','budget_requested','data_period','decision_facts','report_revision'}},
         'answers':[m for m in project.get('messages', []) if m.get('role')=='user'],
         'lifecycle':{k:life.get(k) for k in ('stage','mode','coverage','plan','draft_plan')},
         'company':company, 'evidence':sorted(evidence,key=lambda e:e['id']),

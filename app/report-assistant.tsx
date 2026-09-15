@@ -8,7 +8,7 @@ type Turn = { id: string; question: string; reply: string };
 type ReportJob = Job & { question?: string };
 type History = { turns: Turn[]; active_job: ReportJob | null };
 
-export function ReportAssistant({ projectId, report, disabled }: { projectId: string; report: Assessment; disabled: boolean }) {
+export function ReportAssistant({ projectId, report, disabled, onRevise }: { projectId: string; report: Assessment; disabled: boolean; onRevise?: (reportId: string, turnId: string) => void }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [job, setJob] = useState<ReportJob | null>(null);
   const [question, setQuestion] = useState('');
@@ -90,7 +90,7 @@ export function ReportAssistant({ projectId, report, disabled }: { projectId: st
       </header>
       {expanded && <div id="report-qa-history" className="report-qa-history">
         {!turns.length && !job && <p className="source-location">可以问我评分依据、风险判断，或试点建议该怎么执行。</p>}
-        {turns.map(turn => <div className="report-qa-turn" key={turn.id}><p><strong>你：</strong>{turn.question}</p><ChatMarkdown evidence={report.snapshot.evidence}>{turn.reply}</ChatMarkdown></div>)}
+        {turns.map(turn => <div className="report-qa-turn" key={turn.id}><p><strong>你：</strong>{turn.question}</p><ChatMarkdown evidence={report.snapshot.evidence}>{turn.reply}</ChatMarkdown>{onRevise && <button type="button" className="secondary" disabled={disabled || !!job || sending} onClick={() => onRevise(report.id, turn.id)}>根据此问题修订并生成新版本</button>}</div>)}
         {job && <div className="report-qa-turn"><p><strong>你：</strong>{job.question}</p>{job.partial_reply ? <ChatMarkdown streaming evidence={report.snapshot.evidence}>{job.partial_reply}</ChatMarkdown> : <p role="status">正在结合这份报告回答…</p>}</div>}
       </div>}
       {error && <p className="report-qa-error" role="alert">{error} <button type="button" className="text-button" onClick={() => setReload(v => v + 1)}>重新连接</button></p>}

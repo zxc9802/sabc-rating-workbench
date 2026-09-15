@@ -23,8 +23,8 @@ CHECKS = {
 }
 RESOLVED = ('known', 'unknown', 'external', 'future')
 SHORT_UNKNOWN = re.compile(r'(?:我)?(?:不知道|不清楚|无法提供|不能提供|没有拿到)[。！!]?\s*')
-UNAVAILABLE = re.compile(r'不知道|不清楚|未知|未定|没定|未确认|待确认|尚未|还没|没有|没做|没问|未询价|未(?:经|做|完成)?(?:书面|独立|正式)?(?:核验|核查|验证|询价|报价|确认|落实)|待验证|待核|无法|不能提供|需要.*(?:核查|验证|试验)|预计|预估|估算|假设')
-TEST_TOPIC = r'测试|试点|试运行|试验|实测|实际运行|真实订单|真实成交|付费客户'
+UNAVAILABLE = re.compile(r'不知道|不清楚|未知|未定|没定|未确认|待确认|未(?:取得|获取|获得|拿到)|尚未|还没|没有|没做|没问|未询价|未(?:经|做|完成)?(?:书面|独立|正式)?(?:核验|核查|验证|询价|报价|确认|落实)|待验证|待核|无法|不能提供|需要.*(?:核查|验证|试验)|预计|预估|估算|假设')
+TEST_TOPIC = r'测试|试点|试运行|试验|实测|实际(?:运行|运营)|商业化(?:运行|运营)?|真实订单|真实成交|付费客户'
 
 
 def no_test(quote):
@@ -91,8 +91,8 @@ def explicit_unavailable(key, message):
         'costs': (r'持续成本|持续费用|单件成本|全部成本', r'未知|不知道|无法提供|没有报价'),
         'dependencies': (r'外包|依赖|代理', r'均未落实|都未落实|全部未落实|均未确认|均未确定'),
         'extra': (r'(?:迁移|扩大|复制|扩店).*(?:成本|费用|投入|工时)', r'未知|不知道|无法提供|没有报价'),
-        'investment_limit': (r'总投入|总预算|投入上限|预算上限', r'未知|不知道|不清楚|无法(?:提供|取得)'),
-        'max_loss': (r'损失|亏损|亏|赔', r'未知|不知道|不清楚|无法(?:提供|取得)'),
+        'investment_limit': (r'总投入|总预算|投入上限|预算上限', r'未知|不知道|不清楚|未(?:取得|获取|获得|拿到)|无法(?:提供|取得)'),
+        'max_loss': (r'损失|亏损|亏|赔', r'未知|不知道|不清楚|未(?:取得|获取|获得|拿到)|无法(?:提供|取得)'),
     }
     if key not in patterns:
         return ''
@@ -145,8 +145,14 @@ def question_reply(reply, old_questions, questions):
         if question.strip():
             reply = reply.replace(question, '')
     statements = [s.strip() for s in re.findall(r'[^。！？?！\n]+[。！？?！]?', reply)
-                  if s.strip() and not re.search(r'[？?]|^(?:请问|请补充|另外[，,]?$)', s.strip())]
-    return '\n\n'.join(statements + questions)
+                  if s.strip() and not re.search(r'[？?]|^(?:请问|请补充|另外[，,]?$)', s.strip())
+                  and not re.search(r'(?:问答|信息|八维|收集).*(?:已完成|已.*完毕)|正在整理报告|现在生成报告|(?:剩下|还有|先核实|能看|需要确认).*[一二两三四五六七八九十\d]+.*(?:件事|个|项)', s)
+                  and not re.fullmatch(r'[（）()：:\s]+', s.strip())]
+    text = '\n\n'.join(statements + questions)
+    for opening, closing in (('（', '）'), ('(', ')')):
+        if text.count(opening) != text.count(closing):
+            text = text.replace(opening, '').replace(closing, '')
+    return text
 
 
 def normalize(result, project, company, evidence, messages):

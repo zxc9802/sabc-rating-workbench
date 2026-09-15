@@ -1,0 +1,1168 @@
+{
+  "project": {
+    "budget_requested": null,
+    "business_goal": "评估既有Subscription业务持续经营及追加投入的依据充分性",
+    "collection_completion": {
+      "collection_version": 4,
+      "input_fingerprint": "7da6bd78f9ba0040337dedde148d156251227083a8b632efb01008272746f70a"
+    },
+    "description": "【第七次真实项目测评｜公开资料研究，不是模拟经营，也非投资申请】评估对象为Duolingo已经商业化运营的付费订阅业务（Subscription口径，包含Super与Max等订阅，不是Max单品，也不含广告、英语测试及虚拟物品收入）。讨论该业务后续投入是否有充分依据，不代表账号所有者拥有Duolingo或已获其授权。\n依据Duolingo截至2026年6月30日的官方10-Q：2026Q2订阅收入258.035百万美元，上年同期210.678百万美元；同季Subscription bookings为250.316百万美元，上年同期227.259百万美元。Bookings与按订阅期确认的收入不是同一指标。截至期末付费订阅账户1270万，上年同期1090万；此数排除免费试用及家庭计划中未付费成员，也不能当成Max用户数。\n公开经营数据是历史事实，不是我方未来目标。后续新增投入预算、专属团队、内部目标与验收期限、分产品CAC/LTV/续费率、订阅业务独立现金流及机会成本未知。未拿到这些内部数据不代表该业务没有真实付费用户或尚未运营。请通过访谈评估，记录已知、未知与预测，不把集团利润或现金当作订阅项目独立回报，也不替账号填写公司资料。\n来源：https://www.sec.gov/Archives/edgar/data/1562088/000162828026053603/duol-20260630.htm",
+    "framing": {
+      "business_stage": "operating",
+      "project_type": "growth",
+      "purpose": "research",
+      "quotes": {
+        "business_stage": "已经商业化运营的付费订阅业务",
+        "project_type": "评估对象为Duolingo已经商业化运营的付费订阅业务",
+        "purpose": "公开资料研究，不是模拟经营，也非投资申请"
+      }
+    },
+    "id": "c397a32aa65a40bb8e34bfd79a7ce0e5",
+    "interview": {
+      "gaps": [],
+      "note": "第一阶段问答已完成",
+      "question_targets": [],
+      "questions": [],
+      "state": "ready"
+    },
+    "lifecycle": {
+      "confirmed": true,
+      "coverage": {
+        "cash": {
+          "items": {
+            "initial": {
+              "knowledge": "unknown",
+              "quote": "追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "investment_limit": {
+              "knowledge": "unknown",
+              "quote": "追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得，不是0元，也不是已确认没有损失约束",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "max_loss": {
+              "knowledge": "unknown",
+              "quote": "追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得，不是0元，也不是已确认没有损失约束",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "ongoing": {
+              "knowledge": "unknown",
+              "quote": "预算、人力、内部目标和期限均未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "timing": {
+              "knowledge": "unknown",
+              "quote": "内部目标和期限均未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            }
+          },
+          "reason": "追加投入预算、总上限、最大可承受损失与回款时点均明确无法从公开财报取得。",
+          "status": "unknown"
+        },
+        "market": {
+          "items": {
+            "alternative": {
+              "knowledge": "reported",
+              "quote": "现有替代包括免费版以及其他语言学习服务",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "need": {
+              "knowledge": "reported",
+              "quote": "2026Q2订阅收入258.035百万美元，上年同期210.678百万美元",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "user": {
+              "knowledge": "reported",
+              "quote": "目标用户是全球使用Duolingo学习、愿意为付费订阅功能付费的学习者",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            }
+          },
+          "reason": "全球付费学习者、1270万付费账户及免费版与其他语言学习服务作为替代已明确。",
+          "status": "known"
+        },
+        "opportunity": {
+          "items": {
+            "comparison": {
+              "knowledge": "unknown",
+              "quote": "比较ROI也未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "options": {
+              "knowledge": "unknown",
+              "quote": "机会成本未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "tradeoff": {
+              "knowledge": "unknown",
+              "quote": "其他项目预算与比较ROI也未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            }
+          },
+          "reason": "不做、延后或替代方案的影响及内部资源占用均无公开依据，尚未问过。",
+          "status": "unknown"
+        },
+        "replication": {
+          "items": {
+            "assets": {
+              "knowledge": "reported",
+              "quote": "可复用资产可以从实际业务推断为学习产品、课程内容、品牌、用户触达和产品研发经验",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "extra": {
+              "knowledge": "reported_absent",
+              "quote": "没有获得获批的“后续投入”项目清单，不能确认产品/模型研发、营销投放或内容扩展的具体比例",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "scope": {
+              "knowledge": "reported",
+              "quote": "全球，采用官方10-Q的全球Subscription统计口径，不缩小为中国市场或某单一地区",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            }
+          },
+          "reason": "课程、品牌、用户触达等资产已推断，但无独立估值与迁移效果，扩大范围的额外投入未知；迁移到其他产品线的条件尚未问过。",
+          "status": "unknown"
+        },
+        "resources": {
+          "items": {
+            "capacity": {
+              "knowledge": "unknown",
+              "quote": "具体内部人力、老板时间、其他项目预算与比较ROI也未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "dependencies": {
+              "knowledge": "reported",
+              "quote": "Apple/Google/Stripe在2026Q2分别处理集团总收入59.6%/23.2%/11.9%，不是订阅产品专属渠道份额",
+              "source": "evidence",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "owner": {
+              "knowledge": "unknown",
+              "quote": "预算、人力、内部目标和期限均未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            }
+          },
+          "reason": "依赖Apple、Google等分发渠道明确，但专属团队、内部工时与负责人无法从公开资料取得。",
+          "status": "unknown"
+        },
+        "return": {
+          "items": {
+            "costs": {
+              "knowledge": "unknown",
+              "quote": "专属成本和单位净利润未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "metric_formula": {
+              "knowledge": "reported",
+              "quote": "Bookings与按订阅期确认的收入不是同一指标",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "success": {
+              "knowledge": "unknown",
+              "quote": "预算、人力、内部目标和期限均未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "validation_history": {
+              "knowledge": "reported",
+              "quote": "已实际运营，2025Q2和2026Q2的真实订阅收入与付费账户已经给出；不是启动前，也不是账号所有者亲自做的试点。",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "validation_records": {
+              "knowledge": "reported",
+              "quote": "记录来自Duolingo提交的10-Q，原始文件和研究摘录出处已提供，由公司披露，不是我方独立审计",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "validation_results": {
+              "knowledge": "reported",
+              "quote": "时间为2026Q2及2025Q2对比，范围全球Subscription，效果是已给出的真实收入和期末付费账户增长",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "validation_transfer": {
+              "knowledge": "not_obtained",
+              "quote": "本轮没有取得条件可比且利润、投入及资源口径一致的其他项目案例资料，记为未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "value": {
+              "knowledge": "reported",
+              "quote": "2026Q2订阅收入258.035百万美元，上年同期210.678百万美元",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            }
+          },
+          "reason": "历史收入、bookings、付费账户已有；成本、单位经济、达标阈值与可迁移案例仍缺。",
+          "status": "unknown"
+        },
+        "risk": {
+          "items": {
+            "compliance": {
+              "knowledge": "reported",
+              "quote": "官方公告列出的风险包括学习用户留存及竞争、第三方分发/收款平台、云服务与AI供应商依赖、个人数据和隐私、知识产权与AI应用效果",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "control": {
+              "knowledge": "reported_absent",
+              "quote": "并没有本轮证据证明已违规、牌照无法获得或必然停止经营",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "failure": {
+              "knowledge": "reported",
+              "quote": "未来若用户付费意愿或留存下降、单位服务成本上升，可能削弱盈利，此为待验证风险，不是已发生失败事实",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            }
+          },
+          "reason": "留存竞争、渠道与AI供应商依赖、数据隐私及知识产权等公开风险已明确，无已发生违规或停摆事实。",
+          "status": "unknown"
+        },
+        "strategy": {
+          "items": {
+            "fit": {
+              "knowledge": "unknown",
+              "quote": "账号公司的优先事项与本项目关系未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            },
+            "purpose": {
+              "knowledge": "reported",
+              "quote": "评估范围是既有Subscription业务持续经营及追加投入的依据充分性",
+              "source": "user",
+              "status": "known",
+              "subject": "project",
+              "verified": true
+            },
+            "timing": {
+              "knowledge": "unknown",
+              "quote": "预算、人力、内部目标和期限均未知",
+              "source": "user",
+              "status": "unknown",
+              "subject": "project",
+              "verified": true
+            }
+          },
+          "reason": "账号研究者与Duolingo战略优先事项的关系无法确认，账号不拥有该业务。",
+          "status": "unknown"
+        }
+      },
+      "mode": "continuous",
+      "review": {
+        "conclusion": "needs_info",
+        "coverage": {
+          "cash": {
+            "items": {
+              "initial": {
+                "knowledge": "unknown",
+                "quote": "追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "investment_limit": {
+                "knowledge": "unknown",
+                "quote": "追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得，不是0元，也不是已确认没有损失约束",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "max_loss": {
+                "knowledge": "unknown",
+                "quote": "追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得，不是0元，也不是已确认没有损失约束",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "ongoing": {
+                "knowledge": "unknown",
+                "quote": "预算、人力、内部目标和期限均未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "timing": {
+                "knowledge": "unknown",
+                "quote": "内部目标和期限均未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              }
+            },
+            "reason": "追加投入预算、总上限、最大可承受损失与回款时点均明确无法从公开财报取得。",
+            "status": "unknown"
+          },
+          "market": {
+            "items": {
+              "alternative": {
+                "knowledge": "reported",
+                "quote": "现有替代包括免费版以及其他语言学习服务",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "need": {
+                "knowledge": "reported",
+                "quote": "2026Q2订阅收入258.035百万美元，上年同期210.678百万美元",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "user": {
+                "knowledge": "reported",
+                "quote": "目标用户是全球使用Duolingo学习、愿意为付费订阅功能付费的学习者",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              }
+            },
+            "reason": "全球付费学习者、1270万付费账户及免费版与其他语言学习服务作为替代已明确。",
+            "status": "known"
+          },
+          "opportunity": {
+            "items": {
+              "comparison": {
+                "knowledge": "unknown",
+                "quote": "比较ROI也未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "options": {
+                "knowledge": "unknown",
+                "quote": "机会成本未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "tradeoff": {
+                "knowledge": "unknown",
+                "quote": "其他项目预算与比较ROI也未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              }
+            },
+            "reason": "不做、延后或替代方案的影响及内部资源占用均无公开依据，尚未问过。",
+            "status": "unknown"
+          },
+          "replication": {
+            "items": {
+              "assets": {
+                "knowledge": "reported",
+                "quote": "可复用资产可以从实际业务推断为学习产品、课程内容、品牌、用户触达和产品研发经验",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "extra": {
+                "knowledge": "reported_absent",
+                "quote": "没有获得获批的“后续投入”项目清单，不能确认产品/模型研发、营销投放或内容扩展的具体比例",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "scope": {
+                "knowledge": "reported",
+                "quote": "全球，采用官方10-Q的全球Subscription统计口径，不缩小为中国市场或某单一地区",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              }
+            },
+            "reason": "课程、品牌、用户触达等资产已推断，但无独立估值与迁移效果，扩大范围的额外投入未知；迁移到其他产品线的条件尚未问过。",
+            "status": "unknown"
+          },
+          "resources": {
+            "items": {
+              "capacity": {
+                "knowledge": "unknown",
+                "quote": "具体内部人力、老板时间、其他项目预算与比较ROI也未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "dependencies": {
+                "knowledge": "reported",
+                "quote": "Apple/Google/Stripe在2026Q2分别处理集团总收入59.6%/23.2%/11.9%，不是订阅产品专属渠道份额",
+                "source": "evidence",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "owner": {
+                "knowledge": "unknown",
+                "quote": "预算、人力、内部目标和期限均未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              }
+            },
+            "reason": "依赖Apple、Google等分发渠道明确，但专属团队、内部工时与负责人无法从公开资料取得。",
+            "status": "unknown"
+          },
+          "return": {
+            "items": {
+              "costs": {
+                "knowledge": "unknown",
+                "quote": "专属成本和单位净利润未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "metric_formula": {
+                "knowledge": "reported",
+                "quote": "Bookings与按订阅期确认的收入不是同一指标",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "success": {
+                "knowledge": "unknown",
+                "quote": "预算、人力、内部目标和期限均未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "validation_history": {
+                "knowledge": "reported",
+                "quote": "已实际运营，2025Q2和2026Q2的真实订阅收入与付费账户已经给出；不是启动前，也不是账号所有者亲自做的试点。",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "validation_records": {
+                "knowledge": "reported",
+                "quote": "记录来自Duolingo提交的10-Q，原始文件和研究摘录出处已提供，由公司披露，不是我方独立审计",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "validation_results": {
+                "knowledge": "reported",
+                "quote": "时间为2026Q2及2025Q2对比，范围全球Subscription，效果是已给出的真实收入和期末付费账户增长",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "validation_transfer": {
+                "knowledge": "not_obtained",
+                "quote": "本轮没有取得条件可比且利润、投入及资源口径一致的其他项目案例资料，记为未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "value": {
+                "knowledge": "reported",
+                "quote": "2026Q2订阅收入258.035百万美元，上年同期210.678百万美元",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              }
+            },
+            "reason": "历史收入、bookings、付费账户已有；成本、单位经济、达标阈值与可迁移案例仍缺。",
+            "status": "unknown"
+          },
+          "risk": {
+            "items": {
+              "compliance": {
+                "knowledge": "reported",
+                "quote": "官方公告列出的风险包括学习用户留存及竞争、第三方分发/收款平台、云服务与AI供应商依赖、个人数据和隐私、知识产权与AI应用效果",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "control": {
+                "knowledge": "reported_absent",
+                "quote": "并没有本轮证据证明已违规、牌照无法获得或必然停止经营",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "failure": {
+                "knowledge": "reported",
+                "quote": "未来若用户付费意愿或留存下降、单位服务成本上升，可能削弱盈利，此为待验证风险，不是已发生失败事实",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              }
+            },
+            "reason": "留存竞争、渠道与AI供应商依赖、数据隐私及知识产权等公开风险已明确，无已发生违规或停摆事实。",
+            "status": "unknown"
+          },
+          "strategy": {
+            "items": {
+              "fit": {
+                "knowledge": "unknown",
+                "quote": "账号公司的优先事项与本项目关系未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              },
+              "purpose": {
+                "knowledge": "reported",
+                "quote": "评估范围是既有Subscription业务持续经营及追加投入的依据充分性",
+                "source": "user",
+                "status": "known",
+                "subject": "project",
+                "verified": true
+              },
+              "timing": {
+                "knowledge": "unknown",
+                "quote": "预算、人力、内部目标和期限均未知",
+                "source": "user",
+                "status": "unknown",
+                "subject": "project",
+                "verified": true
+              }
+            },
+            "reason": "账号研究者与Duolingo战略优先事项的关系无法确认，账号不拥有该业务。",
+            "status": "unknown"
+          }
+        },
+        "next_action": "补齐影响判断的公开或经授权资料，再重新评估；现有材料不足以支持新增投入的判断。",
+        "next_review_days": 90,
+        "plan_version": null,
+        "stage": "pre",
+        "summary": "暂缓评级：尚未形成可靠判断的关键依据包括验证周期、公司当前战略、可调用人员、新项目可用预算、可用现金、现金安全线、负责人确认公司基线、首期投入范围、战略匹配度的方向性判断、资源匹配 / 凭什么赢的方向性判断、机会成本的方向性判断。\n战略匹配度：用户尚不清楚，当前无法判断。用户原话示例：「账号公司的优先事项与本项目关系未知」\n经营回报确定性：本次未取得相关资料，不能据此断定其不存在；用户尚不清楚，当前无法判断。用户原话示例：「本轮没有取得条件可比且利润、投入及资源口径一致的其他项目案例资料，记为未知」\n资源匹配 / 凭什么赢：用户尚不清楚，当前无法判断。用户原话示例：「预算、人力、内部目标和期限均未知」\n可复制性与复利资产：用户作了否定表述，具体范围以原话为准。用户原话示例：「没有获得获批的“后续投入”项目清单，不能确认产品/模型研发、营销投放或内容扩展的具体比例」\n现金流与资金效率：用户尚不清楚，当前无法判断。用户原话示例：「追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得」\n风险可控性：用户作了否定表述，具体范围以原话为准。用户原话示例：「并没有本轮证据证明已违规、牌照无法获得或必然停止经营」\n机会成本：用户尚不清楚，当前无法判断。用户原话示例：「机会成本未知」\n现有依据不足以给出可靠等级；资料未取得不代表相关事实不存在。",
+        "time": "2026-09-14T11:08:39.915496+00:00"
+      },
+      "stage": "pre"
+    },
+    "messages": [
+      {
+        "content": "【第七次真实项目测评｜公开资料研究，不是模拟经营，也非投资申请】评估对象为Duolingo已经商业化运营的付费订阅业务（Subscription口径，包含Super与Max等订阅，不是Max单品，也不含广告、英语测试及虚拟物品收入）。讨论该业务后续投入是否有充分依据，不代表账号所有者拥有Duolingo或已获其授权。\n依据Duolingo截至2026年6月30日的官方10-Q：2026Q2订阅收入258.035百万美元，上年同期210.678百万美元；同季Subscription bookings为250.316百万美元，上年同期227.259百万美元。Bookings与按订阅期确认的收入不是同一指标。截至期末付费订阅账户1270万，上年同期1090万；此数排除免费试用及家庭计划中未付费成员，也不能当成Max用户数。\n公开经营数据是历史事实，不是我方未来目标。后续新增投入预算、专属团队、内部目标与验收期限、分产品CAC/LTV/续费率、订阅业务独立现金流及机会成本未知。未拿到这些内部数据不代表该业务没有真实付费用户或尚未运营。请通过访谈评估，记录已知、未知与预测，不把集团利润或现金当作订阅项目独立回报，也不替账号填写公司资料。\n来源：https://www.sec.gov/Archives/edgar/data/1562088/000162828026053603/duol-20260630.htm",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:01:39.163435+00:00"
+      },
+      {
+        "content": "从公开资料看，这是对Duolingo已商业化订阅业务的公开资料研究，不是投资申请。\n\n你已给出2026Q2订阅收入2.58035亿美元（上年同期2.10678亿美元）、Subscription bookings 2.50316亿美元（上年同期2.27259亿美元）、期末付费订阅账户1270万（上年同期1090万），并说明bookings与按订阅期确认的收入不是同一指标、付费账户数不含免费试用和家庭计划未付费成员、也不能当作Max用户数。\n\n这些是历史经营事实，不能直接证明后续新增投入的回报。\n\n这次访谈希望补上两类尚缺的判断依据：一是订阅业务自身的单位经济，二是这笔“后续投入”的具体对象。\n\n如果都没有，请直接说没有。\n\n没有确定对象时，我只能把投入回报保留为未知。\n\n你说的“后续投入”具体指哪一类：产品/模型研发、市场营销投放，还是内容与课程扩展？",
+        "evidence_ids": [],
+        "field": null,
+        "mode": "model",
+        "question_targets": [
+          "return.costs"
+        ],
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:01:47.079464+00:00"
+      },
+      {
+        "content": "没有获得获批的“后续投入”项目清单，不能确认产品/模型研发、营销投放或内容扩展的具体比例。评估范围是既有Subscription业务持续经营及追加投入的依据充分性，不是虚构一个Max新建项目。上述三类只能作为待公司确认的候选方向，预算、人力、内部目标和期限均未知。可以先就真实历史需求和回报证据进行分析，新增投入决策保留待确认；不知道不等于没有经营业务。",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:02:10.273460+00:00"
+      },
+      {
+        "content": "候选投入方向留待公司确认，先按现有历史证据分析订阅业务。\n\n要让新增投入的回报能被判断，至少需要看到单位经济；没有内部数据时这部分只能标记未知。\n\nDeferred revenue（合同负债/递延收入）在10-Q里通常有披露，其中与订阅相关的部分能帮助理解已收款但尚未确认收入的规模。\n\n这属于公开财报数据，可以先看这一项。\n\n如果只需要全球，就直接说全球。\n\n本轮订阅业务分析以哪个国家或地区为范围？只需全球就回答全球。",
+        "evidence_ids": [],
+        "field": null,
+        "mode": "model",
+        "question_targets": [
+          "market.user"
+        ],
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:02:17.505869+00:00"
+      },
+      {
+        "content": "全球，采用官方10-Q的全球Subscription统计口径，不缩小为中国市场或某单一地区，也不把总体规模当成新增投入可获得的市场份额。",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:02:34.785434+00:00"
+      },
+      {
+        "content": "范围已知为全球，但外部取数缺产品/品类参数，先不搁置取数本身——有两处公开财报能查的方向需要你指认：一是10-Q里是否披露了订阅相关的递延收入或剩余履约义务金额，二是财报里能否分到Super与Max各自的订阅账户或收入。\n\n若你手上没有这两项数据，直接说没有，我就把它们记成当前无法从公开资料获得。\n\n它与公司当前优先事项有什么联系？\n\n目标用户现在怎样解决这个问题，你的方案有何不同？",
+        "evidence_ids": [],
+        "field": null,
+        "mode": "model",
+        "question_targets": [
+          "strategy.fit",
+          "market.alternative"
+        ],
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:02:41.407568+00:00"
+      },
+      {
+        "content": "目标用户是全球使用Duolingo学习、愿意为付费订阅功能付费的学习者；现有替代包括免费版以及其他语言学习服务。本次不是我方提出的新方案，Super/Max是Duolingo现有订阅产品，不能把公司产品和能力写成账号所有者的资源。订阅收入与账户增长支持存在真实付费需求，但公开数据不足以证明所有用户持续续费、Max单独盈利或新增投资必然成功。账号公司的优先事项与本项目关系未知；Duolingo自身以学习产品和用户增长为业务方向。分产品收入、独立订阅合同负债/剩余履约义务若未明确拆分，请保留未知，不用集团数代替。",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:03:14.970533+00:00"
+      },
+      {
+        "content": "全球订阅口径仍无法解决取数缺少“单一目标国家/地区”的参数限制，本轮外部取数没有返回引用条目，不能据此补数。\n\n公开数据能确认的是：2026Q2订阅收入约2.58亿美元、Subscription bookings约2.50亿美元、期末付费订阅账户1270万，但分产品收入、订阅相关的独立合同负债或剩余履约义务是否拆分未知，都不能替代新增投入的回报判断。\n\n它与公司当前优先事项有什么联系？\n\n这个项目已经做过测试、试点或实际运行吗？",
+        "evidence_ids": [],
+        "field": null,
+        "mode": "model",
+        "question_targets": [
+          "strategy.fit",
+          "return.validation_history"
+        ],
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:03:24.709380+00:00"
+      },
+      {
+        "content": "已实际运营，2025Q2和2026Q2的真实订阅收入与付费账户已经给出；不是启动前，也不是账号所有者亲自做的试点。Duolingo自身的订阅业务服务其学习产品商业化，是现有经营业务，不是账号公司的项目；账号公司战略关系未知。请保留全球范围，不为了取数工具参数而任意改成单一国家。补充核对官方10-Q Note 4：期末递延收入505.102百万美元主要来自订阅，但也包含英语测试，因此不能作为纯订阅余额；集团2026上半年经营现金流239.031百万美元不能作为订阅独立现金流。官方镜像原文：https://investors.duolingo.com/node/11971/html 。",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:03:47.991592+00:00"
+      },
+      {
+        "content": "现有公开数据能确认的是：2026Q2订阅收入约2.58亿美元、Subscription bookings约2.50亿美元、期末付费订阅账户1270万，递延收入5.05102亿美元主要来自订阅但含英语测试，集团上半年经营现金流2.39031亿美元不能当作订阅独立现金流；这些都是历史经营事实，分产品单位经济仍未知。\n\n这两项如果都没有，请直接说没有。\n\n若未来要追加投入，订阅业务的总投入上限和最多可承受的不可回收损失是多少？",
+        "evidence_ids": [],
+        "field": null,
+        "mode": "model",
+        "question_targets": [
+          "cash.max_loss"
+        ],
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:03:55.122982+00:00"
+      },
+      {
+        "content": "追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得，不是0元，也不是已确认没有损失约束。具体内部人力、老板时间、其他项目预算与比较ROI也未知。上传的TXT是我根据真实公开财报整理的资料要点，不是公司原始文件，不应因上传就标为独立核验通过；其中原始网址可追溯。",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:04:43.707097+00:00"
+      },
+      {
+        "content": "根据你上传整理的公开财报要点，提炼以下事实：\n\n1. 截至2026年6月30日，递延收入为5.05102亿美元，主要来自时间型订阅，但也包含未监考的英语测试递延收入；\n\n2. 2026Q2全集团总收入中，Apple、Google、Stripe分别处理了59.6%、23.2%和11.9%的款项，体现了对主流应用商店与支付渠道的依赖口径；\n\n3. 截至2026年6月30日的六个月，集团经营现金流为2.39031亿美元；\n\n4. 财报中未单独披露订阅业务独立的CAC、LTV、净利润、独立现金流及未来考核期限。\n\n这些事实支持集团当前具备较强的经营现金流入与较大的递延收入储备，但不能支持订阅业务专属的资金闭环、单客经济模型或新增投入的确定性回报。\n\n在公开披露中，订阅业务沉淀了哪些可复用的核心资产（如语言课程、自研AI模型或学习数据）？\n\n公开资料或财报风险提示中，哪些核心风险或合规条件可能导致订阅业务受挫？",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "field": null,
+        "mode": "model",
+        "question_targets": [
+          "replication.assets",
+          "risk.failure"
+        ],
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:05:22.441630+00:00"
+      },
+      {
+        "content": "可复用资产可以从实际业务推断为学习产品、课程内容、品牌、用户触达和产品研发经验；但资产价值、订阅专属数据资产和可迁移效果并无本轮独立估值，不能当作已证明的竞争壁垒或账号公司资产。官方公告列出的风险包括学习用户留存及竞争、第三方分发/收款平台、云服务与AI供应商依赖、个人数据和隐私、知识产权与AI应用效果。10-Q披露Apple/Google/Stripe处理的是集团收入份额，不是订阅单独渠道占比；依赖存在，但并没有本轮证据证明已违规、牌照无法获得或必然停止经营。未来若用户付费意愿或留存下降、单位服务成本上升，可能削弱盈利，此为待验证风险，不是已发生失败事实。",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:05:49.097894+00:00"
+      },
+      {
+        "content": "第一阶段问答已完成，正在整理报告。\n\n已有测试是在什么时间、什么样本范围做的，实际效果和成本怎样，哪些结果仍不清楚？\n\n这些测试结果有什么记录、由谁核对，能提供哪些材料或明确哪些无法提供？",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "field": null,
+        "mode": "model",
+        "question_targets": [
+          "return.validation_results",
+          "return.validation_records"
+        ],
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:06:24.734525+00:00"
+      },
+      {
+        "content": "可提供的是公司公开经营披露，不是我方试点：时间为2026Q2及2025Q2对比，范围全球Subscription，效果是已给出的真实收入和期末付费账户增长。试点招募样本、分组、实验持续期、专属成本和单位净利润未知；不能把1270万付费账户写成某次试验的样本量。记录来自Duolingo提交的10-Q，原始文件和研究摘录出处已提供，由公司披露，不是我方独立审计。无法提供内部试点材料、原始交易明细、获客成本/续费台账、额外预算审批和项目期限；这些未知不否定实际运营及已披露收入。",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:06:56.014900+00:00"
+      },
+      {
+        "content": "历史结果已经落在公开财报口径上，不必再当试点样本追问。\n\n有没有可参考的类似项目实绩？如果有，哪些条件与本项目相同或不同，有什么依据？",
+        "evidence_ids": [],
+        "field": null,
+        "mode": "model",
+        "question_targets": [
+          "return.validation_transfer"
+        ],
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:07:05.941855+00:00"
+      },
+      {
+        "content": "本轮没有取得条件可比且利润、投入及资源口径一致的其他项目案例资料，记为未知；不是断言世上不存在类似案例。已有Duolingo自身2025Q2与2026Q2经营比较，但不能当成两个独立外部案例。替代项目的ROI、预算、人员和老板时间占用也未知，无法认定本项目优于其他资源去向。",
+        "role": "user",
+        "stage": "pre",
+        "time": "2026-09-14T11:07:46.098252+00:00"
+      },
+      {
+        "content": "第一阶段问答已完成，正在整理报告。",
+        "evidence_ids": [],
+        "mode": "model",
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:07:59.392301+00:00"
+      },
+      {
+        "content": "第二阶段审查已完成，最终报告已生成。",
+        "evidence_ids": [],
+        "mode": "model",
+        "role": "assistant",
+        "stage": "pre",
+        "time": "2026-09-14T11:08:49.632869+00:00"
+      }
+    ],
+    "name": "第七次测评-Duolingo真实订阅业务-20260914",
+    "pending_patch": {},
+    "project_type": "growth",
+    "risks": [
+      "未获得获批的“后续投入”项目清单，产品/模型研发、营销投放、内容扩展的具体比例不能确认",
+      "追加投入的预算、人力、内部目标和期限均未知",
+      "分产品CAC/LTV/续费率未知",
+      "订阅业务独立现金流未知",
+      "机会成本未知",
+      "不得把集团利润或现金当作订阅项目独立回报",
+      "账号所有者不拥有Duolingo，也未获其授权，本研究不能替公司做经营决策",
+      "付费订阅账户数不含免费试用及家庭计划未付费成员，也不能当作Max用户数",
+      "Bookings与按订阅期确认的收入不是同一指标，不能互相替代",
+      "公开数据不能证明所有用户持续续费、Max单独盈利或新增投资必然成功",
+      "分产品收入及独立订阅合同负债/剩余履约义务若未明确拆分，须保留未知，不用集团数代替",
+      "外部研究者无法代表公司确认其优先事项",
+      "追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得",
+      "具体内部人力、老板时间、其他项目预算与比较ROI也未知",
+      "上传的资料为研究者整理要点，非公司原始文件，不能视为独立核验通过",
+      "资产价值、订阅专属数据资产和可迁移效果无独立估值，不能作为已证明的竞争壁垒或账号公司资产",
+      "存在对第三方分发与收款平台、云服务及AI供应商的依赖，以及数据合规、IP与用户留存竞争等公开披露风险，但当前无违规或停业证据"
+    ],
+    "risks_source": "model",
+    "success_metric": "暂以付费订阅账户数、Subscription bookings、订阅收入作为历史观察口径；后续验收阈值未知",
+    "target_user": "全球使用Duolingo学习、愿意为付费订阅功能付费的学习者",
+    "timeframe": null,
+    "value_mechanism": "Super与Max是Duolingo现有订阅产品，不是账号所有者的资源；通过现有付费订阅产品获得订阅收入与订阅预订量",
+    "version": 11
+  },
+  "company": {},
+  "evidence": [
+    {
+      "attachment_id": "9d9305cd-b4de-4aa9-8fd9-8d113c0dde6d",
+      "content": "公开资料摘录说明（研究者整理，不是公司新提供的内部资料，也不是原始财报文件）\n原始文件：Duolingo, Inc. Form 10-Q, period ended 2026-06-30, filed 2026-08-06.\n公司官网原文：https://investors.duolingo.com/node/11971/html\nSEC原文：https://www.sec.gov/Archives/edgar/data/1562088/000162828026053603/duol-20260630.htm\n\n单位：百万美元，除账户数外。2026Q2/2025Q2：订阅收入258.035/210.678；Subscription bookings250.316/227.259；付费账户1270万/1090万。付费账户排除试用者及家庭计划未付费成员，不代表Max用户数量。收入与Bookings确认口径不同。\n财报Note 4（文内第16页附近）：2026-06-30递延收入505.102，主要是时间型订阅，亦有尚未监考的英语测试递延收入；不能全当成Subscription独立余额。\n同注释：Apple/Google/Stripe在2026Q2分别处理集团总收入59.6%/23.2%/11.9%，不是订阅产品专属渠道份额。\n现金流量表（截至6月的六个月）：集团经营现金流239.031，不能当订阅业务或追加投入计划的独立现金流。\n来源均为同一公司披露，不构成独立交叉验证。未取得独立订阅CAC/LTV/获客回本、净利润、投入授权、未来考核期限与机会成本资料。这些项目记未知，不推定不存在。\n\n",
+      "created_at": "2026-09-14T11:04:32.236639+00:00",
+      "data_period": "待核对",
+      "id": "c3bd96eae3a34ff9ad3d4a4c1acb7287",
+      "level": 0,
+      "processing_note": "提取可读文本、文档表格或工作表；嵌入图片不属于文本提取结果。",
+      "processing_seconds": 0.0,
+      "project_id": "c397a32aa65a40bb8e34bfd79a7ce0e5",
+      "retrieved_at": "2026-09-14T11:04:32.236612+00:00",
+      "scope": "公开财报要点_研究者整理非原件.txt",
+      "source_locator": "对话附件：公开财报要点_研究者整理非原件.txt",
+      "source_type": "user",
+      "title": "公开财报要点_研究者整理非原件.txt",
+      "updated_at": "2026-09-14T11:04:32.236639+00:00",
+      "verification_status": "unverified",
+      "vision_images": 0
+    }
+  ],
+  "proposal": {
+    "assumptions": [
+      {
+        "claim": "全球语言学习用户付费转化与留存意愿保持稳健，付费订阅账户规模及预订量不会发生系统性大幅下滑。",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "fail_threshold": "付费订阅账户数出现连续两个季度负增长，或单季预订量同比下滑超5%（建议、待业务确认）。",
+        "id": "P0-01",
+        "pass_threshold": "付费订阅账户数同比增速保持在10%以上，单季预订量同比维持正增长（建议、待业务确认）。",
+        "validation_method": "按季度跟踪官方披露的付费订阅账户数与订阅预订量同比增速。"
+      },
+      {
+        "claim": "订阅业务单位经济模型（LTV与CAC比值）健康，新增获客投入能实现边际盈利而非侵蚀利润。",
+        "evidence_ids": [],
+        "fail_threshold": "增量客户生命周期价值低于获客成本的1.5倍，或回本周期超过18个月（建议、待业务确认）。",
+        "id": "P0-02",
+        "pass_threshold": "核心订阅产品客户生命周期价值大于获客成本的3倍，且回本周期在12个月以内（建议、待业务确认）。",
+        "validation_method": "由内部财务团队建立细分产品（Super/Max）的独立获客成本台账与按 cohorts 划分的留存续费模型。"
+      },
+      {
+        "claim": "Apple与Google应用商店的核心分发与支付合作政策保持稳定，渠道抽成比例未发生不利重大调整。",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "fail_threshold": "主流平台单方面上调分成比例超5个百分点，或核心产品遭受下架或重大限制。",
+        "id": "P0-03",
+        "pass_threshold": "核心渠道支付费率与分发协议保持现有水平，无重大下架或违规审查事件。",
+        "validation_method": "持续跟踪两大应用市场开发者协议、反垄断政策变动及官方财报披露的渠道手续费率变动。"
+      },
+      {
+        "claim": "生成式AI服务接口及云算力成本处于可承受范围，不会因Max等高阶功能调用激增而导致单用户履约毛利转负。",
+        "evidence_ids": [],
+        "fail_threshold": "单用户月均AI与服务器成本占订阅月费比例超过40%（建议、待业务确认）。",
+        "id": "P0-04",
+        "pass_threshold": "单用户月均AI与服务器成本占订阅月费比例低于20%（建议、待业务确认）。",
+        "validation_method": "统计Max订阅用户的单均token调用量及对应云厂商计费账单，计算单用户月均模型服务成本。"
+      },
+      {
+        "claim": "后续追加投入具备明确的预算红线与考核周期，不进行无限期无上限的资本支出。",
+        "evidence_ids": [],
+        "fail_threshold": "无法确认追加投入预算总额，或缺乏量化考核验收指标导致资本沉没风险不可控。",
+        "id": "P0-05",
+        "pass_threshold": "获得包含明确不可撤销损失上限及分阶段ROI验收标准的书面授权方案。",
+        "validation_method": "立项前由管理层审批包含预算上限、交付里程碑及专属考核周期的决策文件。"
+      }
+    ],
+    "cons": [
+      "渠道分发与收款高度集中于单一外部生态[事实]：财报披露Apple处理集团59.6%收入、Google处理23.2%，业务极度受制于移动应用商店政策、分成比例与审核合规，抗外部规则变动冲击脆弱性显著。",
+      "独立单位经济模型与增量回报率缺乏透明度[待验证]：公开数据未单独拆分Super与Max各自的真实获客成本、生命周期价值及续费留存台账，难以推导后续追加投入能否获得超额边际产出。",
+      "缺乏申报主体战略协同与机会成本比较基线[推断]：评估主体未提供自身的战略承接目标与备选项目ROI，当前无法证明向该方向投入内部资源优于其他主业升级方向。"
+    ],
+    "decision_brief": {
+      "allocation": "补齐影响判断的公开或经授权资料，再重新评估；现有材料不足以支持新增投入的判断。",
+      "assets": "全球1270万付费订阅用户心智、成熟的标准化多语言课程库、高效率订阅计费转化漏斗及知名教育品牌资产。",
+      "biggest_risk": "第三方渠道分发与收款高度依赖Apple生态（占59.6%），若平台分成上调、反垄断政策剧变或发生下架审查，将直接重创订阅变现。",
+      "definition": "基于官方公开财报对Duolingo全球既有付费订阅业务（包含Super与Max产品）商业化基本面及追加投入依据的研究性评估。",
+      "goal_and_success": "评估既有订阅业务持续经营的稳健性与增量追加投入的合理性；成功标准为订阅预订量与账户数保持双位数健康增长，且增量收益明确覆盖追加成本。",
+      "key_unknown": "缺乏细分产品（Super/Max）的独立CAC、LTV、续费留存数据台账，以及后续若追加投入的具体预算上限与专属团队编制。",
+      "maximum_loss": "作为公开资料研究，当前申报方实际直接损失仅为内部研究工时；若作为经营主体追加投入，最坏损失为新增营销及模型研发预算全额沉没，上限取决于后续审批的预算额度（目前未知）。",
+      "stop": "若Apple或Google渠道发生下架或严重规则限制，或付费订阅账户数连续两个季度净减少且退款率出现异常攀升，应立即终止追加投入计划。",
+      "upgrade_a": "需补充经过审计的细分订阅产品独立CAC/LTV测算、用户按季度留存续费台账，以及明确的增量追加投入预算与回收期计划。",
+      "upgrade_s": "需提供E3级独立核验证据，证明战略与机会成本五维原始分均达到4分以上，且高阶AI订阅产品在多周期内完成跨区域重复规模化盈利验证。"
+    },
+    "dimensions": {
+      "cash": {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "missing_evidence": "缺少订阅业务完全独立的现金流量表拆分，以及后续追加投入的资金占用明细与预算上限。",
+        "negative_fact": "",
+        "reason": "订阅业务先付款后履约，2026年第二季度末递延收入超5.05亿美元，同季订阅预订量达2.50亿美元，营运资金周转极佳；但递延收入包含英语测试，且集团上半年2.39亿美元经营现金流不能直接等同于订阅独立现金流，追加投入所需资金与承受上限未知。",
+        "score": 3.5
+      },
+      "market": {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "missing_evidence": "缺少全球细分语言学习市场第三方独立容量测算，以及新增投入可撬动的潜在增量空间依据。",
+        "negative_fact": "",
+        "reason": "官方最新财报显示2026年第二季度付费订阅账户达1270万（同比增长16.5%），订阅单季收入达2.58亿美元（同比增长22.5%），证明全球语言数字化学习存在经大规模验证且持续扩大的真实付费需求；未给满分因增量市场空间及细分人群渗透缺乏独立第三方交叉验证。",
+        "score": 4.5
+      },
+      "opportunity": {
+        "basis": "unknown",
+        "evidence_ids": [],
+        "missing_evidence": "缺少公司内部同期其他备选投资或研发项目的投入产出比、预算占用与优先级对比依据。",
+        "negative_fact": "",
+        "reason": "本次测评未获取可比口径的替代项目案例、备选方案预算及比较回报率数据，无法定量或定性判断资金投入该方向是否优于其他配置选择。",
+        "score": null
+      },
+      "replication": {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "missing_evidence": "缺少订阅专属算法模型与数据资产的独立估值，以及跨业务线/品类复用的实测记录。",
+        "negative_fact": "",
+        "reason": "标准化数字学习产品具备极强的边际零成本复用能力，课程体系、多语言题库与游戏化学习机制已在全球1270万账户中跑通复用；未给5分系因订阅专属数据资产与技术壁垒未开展独立估值，且未能验证向其他衍生品类迁移的边际效应。",
+        "score": 4.0
+      },
+      "resources": {
+        "basis": "unknown",
+        "evidence_ids": [],
+        "missing_evidence": "缺少后续追加投入所需的专属研发、运营、投放团队人员配置计划与组织能力保障依据。",
+        "negative_fact": "",
+        "reason": "既有业务运营由Duolingo官方团队执行，但评估方并未取得其内部团队配置、核心研发与运营资源权限；若针对后续追加投入，申报主体未提供拟投入的专属团队、预算及组织资源，能力匹配度无法判断。",
+        "score": null
+      },
+      "return": {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "missing_evidence": "缺少独立订阅业务的获客成本、客户生命周期价值、留存续费率台账及追加投入的独立净利润测算模型。",
+        "negative_fact": "",
+        "reason": "既有业务已验证极大规模的商业化变现能力，单季订阅收入与预订量均超2.5亿美元；但公开财报未披露分产品（如Super与Max）的独立获客成本、生命周期价值、毛利率及续费率，新增追加投入的增量回报模型缺乏本项目内部测算依据。",
+        "score": 3.5
+      },
+      "risk": {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "missing_evidence": "缺少第三方平台政策与费率变动的敏感性压力测试，以及云服务与AI模型供应商替换预案。",
+        "negative_fact": "",
+        "reason": "业务已进入成熟运营期，主要合规与运营风险已被长期管理；但对第三方应用商店分发与收款存在较高依赖（Apple处理集团59.6%收入，Google处理23.2%），平台费率政策、AI供应商依赖及隐私合规属于需持续监控的重要外部约束。",
+        "score": 3.5
+      },
+      "strategy": {
+        "basis": "unknown",
+        "evidence_ids": [],
+        "missing_evidence": "缺少评估申报主体自身的战略定位、业务协同目标及对该外部标的的研究投入意图说明。",
+        "negative_fact": "",
+        "reason": "评估主体（账号公司）未提供自身的顶层战略规划与业务边界，无法界定该研究项目与主体战略的匹配及协同程度；Duolingo自身订阅战略公开可见，但非本次申报主体的自有战略。",
+        "score": null
+      }
+    },
+    "policy_caps": [
+      "高度依赖单一平台：集团59.6%收入处理依赖Apple单一渠道分发与收款，业务受iOS生态政策制约明显"
+    ],
+    "pros": [
+      "付费规模与商业化收入基石稳固：2026年第二季度订阅收入达2.58亿美元（同比增长22.5%），付费订阅账户达1270万（净增180万），已形成极具规模的全球数字订阅现金牛业务。",
+      "预收现金流结构与营运资金效率突出：期末递延收入超5.05亿美元，单季订阅预订量达2.50亿美元，先付款后分期履约的模式具备极高资金使用效率与低资金占用特征。",
+      "标准化数字资产具备强大的边际复利：多语言教学内容、游戏化交互体系及全球品牌认知具有极高的复用价值，边际服务新增用户的成本极低，壁垒显著。"
+    ],
+    "s_conditions": {
+      "portfolio_feasible": false,
+      "repeatable": false,
+      "resources_available": false,
+      "review_complete": true
+    },
+    "vetoes": []
+  },
+  "result": {
+    "action": "补齐信息后再评级",
+    "assessment_purpose": "research",
+    "assumptions": [],
+    "base_grade": null,
+    "base_score": null,
+    "business_stage": "operating",
+    "confidence": "低",
+    "cons": [
+      "渠道分发与收款高度集中于单一外部生态[事实]：财报披露Apple处理集团59.6%收入、Google处理23.2%，业务极度受制于移动应用商店政策、分成比例与审核合规，抗外部规则变动冲击脆弱性显著。",
+      "独立单位经济模型与增量回报率缺乏透明度[待验证]：公开数据未单独拆分Super与Max各自的真实获客成本、生命周期价值及续费留存台账，难以推导后续追加投入能否获得超额边际产出。",
+      "缺乏申报主体战略协同与机会成本比较基线[推断]：评估主体未提供自身的战略承接目标与备选项目ROI，当前无法证明向该方向投入内部资源优于其他主业升级方向。"
+    ],
+    "deferral_reason": "暂缓评级：尚未形成可靠判断的关键依据包括验证周期、公司当前战略、可调用人员、新项目可用预算、可用现金、现金安全线、负责人确认公司基线、首期投入范围、战略匹配度的方向性判断、资源匹配 / 凭什么赢的方向性判断、机会成本的方向性判断。\n战略匹配度：用户尚不清楚，当前无法判断。用户原话示例：「账号公司的优先事项与本项目关系未知」\n经营回报确定性：本次未取得相关资料，不能据此断定其不存在；用户尚不清楚，当前无法判断。用户原话示例：「本轮没有取得条件可比且利润、投入及资源口径一致的其他项目案例资料，记为未知」\n资源匹配 / 凭什么赢：用户尚不清楚，当前无法判断。用户原话示例：「预算、人力、内部目标和期限均未知」\n可复制性与复利资产：用户作了否定表述，具体范围以原话为准。用户原话示例：「没有获得获批的“后续投入”项目清单，不能确认产品/模型研发、营销投放或内容扩展的具体比例」\n现金流与资金效率：用户尚不清楚，当前无法判断。用户原话示例：「追加投入总上限、最多可接受的不可回收损失均未知，无法从公开财报取得」\n风险可控性：用户作了否定表述，具体范围以原话为准。用户原话示例：「并没有本轮证据证明已违规、牌照无法获得或必然停止经营」\n机会成本：用户尚不清楚，当前无法判断。用户原话示例：「机会成本未知」\n现有依据不足以给出可靠等级；资料未取得不代表相关事实不存在。",
+    "dimensions": [
+      {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "key": "market",
+        "missing_evidence": "缺少全球细分语言学习市场第三方独立容量测算，以及新增投入可撬动的潜在增量空间依据。",
+        "name": "市场空间 / 需求价值",
+        "reason": "官方最新财报显示2026年第二季度付费订阅账户达1270万（同比增长16.5%），订阅单季收入达2.58亿美元（同比增长22.5%），证明全球语言数字化学习存在经大规模验证且持续扩大的真实付费需求；未给满分因增量市场空间及细分人群渗透缺乏独立第三方交叉验证。",
+        "score": 4.5,
+        "weight": 15,
+        "weighted": 13.5
+      },
+      {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "key": "return",
+        "missing_evidence": "缺少独立订阅业务的获客成本、客户生命周期价值、留存续费率台账及追加投入的独立净利润测算模型。",
+        "name": "经营回报确定性",
+        "reason": "既有业务已验证极大规模的商业化变现能力，单季订阅收入与预订量均超2.5亿美元；但公开财报未披露分产品（如Super与Max）的独立获客成本、生命周期价值、毛利率及续费率，新增追加投入的增量回报模型缺乏本项目内部测算依据。",
+        "score": 3.5,
+        "weight": 20,
+        "weighted": 14.0
+      },
+      {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "key": "replication",
+        "missing_evidence": "缺少订阅专属算法模型与数据资产的独立估值，以及跨业务线/品类复用的实测记录。",
+        "name": "可复制性与复利资产",
+        "reason": "标准化数字学习产品具备极强的边际零成本复用能力，课程体系、多语言题库与游戏化学习机制已在全球1270万账户中跑通复用；未给5分系因订阅专属数据资产与技术壁垒未开展独立估值，且未能验证向其他衍生品类迁移的边际效应。",
+        "score": 4.0,
+        "weight": 10,
+        "weighted": 8.0
+      },
+      {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "key": "cash",
+        "missing_evidence": "缺少订阅业务完全独立的现金流量表拆分，以及后续追加投入的资金占用明细与预算上限。",
+        "name": "现金流与资金效率",
+        "reason": "订阅业务先付款后履约，2026年第二季度末递延收入超5.05亿美元，同季订阅预订量达2.50亿美元，营运资金周转极佳；但递延收入包含英语测试，且集团上半年2.39亿美元经营现金流不能直接等同于订阅独立现金流，追加投入所需资金与承受上限未知。",
+        "score": 3.5,
+        "weight": 10,
+        "weighted": 7.0
+      },
+      {
+        "basis": "fact",
+        "evidence_ids": [
+          "c3bd96eae3a34ff9ad3d4a4c1acb7287"
+        ],
+        "key": "risk",
+        "missing_evidence": "缺少第三方平台政策与费率变动的敏感性压力测试，以及云服务与AI模型供应商替换预案。",
+        "name": "风险可控性",
+        "reason": "业务已进入成熟运营期，主要合规与运营风险已被长期管理；但对第三方应用商店分发与收款存在较高依赖（Apple处理集团59.6%收入，Google处理23.2%），平台费率政策、AI供应商依赖及隐私合规属于需持续监控的重要外部约束。",
+        "score": 3.5,
+        "weight": 10,
+        "weighted": 7.0
+      }
+    ],
+    "evidence_level": "E0",
+    "grade": "NR",
+    "missing": [
+      "验证周期",
+      "公司当前战略",
+      "可调用人员",
+      "新项目可用预算",
+      "可用现金",
+      "现金安全线",
+      "负责人确认公司基线",
+      "首期投入范围",
+      "战略匹配度的方向性判断",
+      "资源匹配 / 凭什么赢的方向性判断",
+      "机会成本的方向性判断"
+    ],
+    "pros": [
+      "付费规模与商业化收入基石稳固：2026年第二季度订阅收入达2.58亿美元（同比增长22.5%），付费订阅账户达1270万（净增180万），已形成极具规模的全球数字订阅现金牛业务。",
+      "预收现金流结构与营运资金效率突出：期末递延收入超5.05亿美元，单季订阅预订量达2.50亿美元，先付款后分期履约的模式具备极高资金使用效率与低资金占用特征。",
+      "标准化数字资产具备强大的边际复利：多语言教学内容、游戏化交互体系及全球品牌认知具有极高的复用价值，边际服务新增用户的成本极低，壁垒显著。"
+    ],
+    "provisional": true,
+    "reassessment_triggers": [
+      "公司战略、预算或团队变更",
+      "关键证据更新或过期",
+      "试验触及通过或止损阈值"
+    ],
+    "resource_plan": {},
+    "rule_version": "SABC-2.1.0",
+    "stage": "pre",
+    "status": "待评级",
+    "triggered_rules": [],
+    "unique_sources": 0,
+    "validation_plan": [
+      {
+        "claim": "全球语言学习用户付费转化与留存意愿保持稳健，付费订阅账户规模及预订量不会发生系统性大幅下滑。",
+        "fail": "付费订阅账户数出现连续两个季度负增长，或单季预订量同比下滑超5%（建议、待业务确认）。",
+        "method": "按季度跟踪官方披露的付费订阅账户数与订阅预订量同比增速。",
+        "pass": "付费订阅账户数同比增速保持在10%以上，单季预订量同比维持正增长（建议、待业务确认）。"
+      },
+      {
+        "claim": "订阅业务单位经济模型（LTV与CAC比值）健康，新增获客投入能实现边际盈利而非侵蚀利润。",
+        "fail": "增量客户生命周期价值低于获客成本的1.5倍，或回本周期超过18个月（建议、待业务确认）。",
+        "method": "由内部财务团队建立细分产品（Super/Max）的独立获客成本台账与按 cohorts 划分的留存续费模型。",
+        "pass": "核心订阅产品客户生命周期价值大于获客成本的3倍，且回本周期在12个月以内（建议、待业务确认）。"
+      },
+      {
+        "claim": "Apple与Google应用商店的核心分发与支付合作政策保持稳定，渠道抽成比例未发生不利重大调整。",
+        "fail": "主流平台单方面上调分成比例超5个百分点，或核心产品遭受下架或重大限制。",
+        "method": "持续跟踪两大应用市场开发者协议、反垄断政策变动及官方财报披露的渠道手续费率变动。",
+        "pass": "核心渠道支付费率与分发协议保持现有水平，无重大下架或违规审查事件。"
+      },
+      {
+        "claim": "生成式AI服务接口及云算力成本处于可承受范围，不会因Max等高阶功能调用激增而导致单用户履约毛利转负。",
+        "fail": "单用户月均AI与服务器成本占订阅月费比例超过40%（建议、待业务确认）。",
+        "method": "统计Max订阅用户的单均token调用量及对应云厂商计费账单，计算单用户月均模型服务成本。",
+        "pass": "单用户月均AI与服务器成本占订阅月费比例低于20%（建议、待业务确认）。"
+      },
+      {
+        "claim": "后续追加投入具备明确的预算红线与考核周期，不进行无限期无上限的资本支出。",
+        "fail": "无法确认追加投入预算总额，或缺乏量化考核验收指标导致资本沉没风险不可控。",
+        "method": "立项前由管理层审批包含预算上限、交付里程碑及专属考核周期的决策文件。",
+        "pass": "获得包含明确不可撤销损失上限及分阶段ROI验收标准的书面授权方案。"
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -40,7 +40,7 @@ def test_report_preserves_early_user_corrections_without_old_report_prose():
         'id': 'old', 'result': {'grade': 'B', 'dimensions': [{'key': 'return', 'score': 3, 'reason': '旧公式'}],
                              'validation_plan': [{'method': '净贡献=收入-广告费'}]}}}
     c = model_context(project, {}, [], messages)
-    assert c['conversation'][0] == messages[0]
+    assert c['conversation'][0] == {**messages[0], 'source_id': 'turn-0'}
     assert all(m['role'] == 'user' for m in c['conversation'])
     assert c['project']['previous_stage_report']['id'] == 'old'
     assert not {'grade', 'base_score', 'dimensions'} & c['project']['previous_stage_report'].keys()
@@ -52,7 +52,7 @@ def test_report_user_history_is_bounded_and_latest_correction_kept():
     messages = [{'role': 'user', 'content': '旧资料' * 10000}, {'role': 'user', 'content': '最新总上限3万，损失1.5万。'}]
     c = model_context({'_report_requested': True}, {}, [], messages)
     assert sum(len(m['content']) for m in c['conversation']) == 24000
-    assert c['conversation'][-1] == messages[-1]
+    assert c['conversation'][-1] == {**messages[-1], 'source_id': 'turn-1'}
     assert c['context_limits']['conversation_chars_truncated']
 
 
@@ -65,7 +65,7 @@ def test_report_does_not_treat_model_coverage_summary_as_new_evidence():
     messages = [{'role': 'user', 'content': '重大金额漏报立即停止，不追加预算。'}]
     c = model_context(project, {}, [{'id': 'proof', 'content': '已核验记录'}], messages)
     assert 'lifecycle' not in c['project']
-    assert c['conversation'] == messages
+    assert c['conversation'] == [{**m, 'source_id': f'turn-{i}'} for i, m in enumerate(messages)]
     assert c['evidence'][0]['content'] == '已核验记录'
     assert project == before
 
@@ -78,7 +78,7 @@ def test_report_uses_complete_user_history_instead_of_model_risk_summary():
     messages = [{'role': 'user', 'content': '现金订阅固定500元，维护由内部技术承担，不另付现金。'}]
     c = model_context(project, {}, [], messages)
     assert 'risks' not in c['project'] and 'risks' not in c['project']['pending_patch']
-    assert c['conversation'] == messages
+    assert c['conversation'] == [{**m, 'source_id': f'turn-{i}'} for i, m in enumerate(messages)]
     assert c['project']['pending_patch']['budget_requested'] == 5000
     assert project == before
     for origin in ('user', 'unknown'):

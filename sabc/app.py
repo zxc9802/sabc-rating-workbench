@@ -16,7 +16,7 @@ from sabc.catalog import catalog
 from sabc.key_storage import encrypt_key, model_key, key_origin
 from sabc.request_limits import BodyLimitMiddleware
 from sabc.llm import analyze, guide
-from sabc import planner, report_qa, report_readiness, advisory, framing
+from sabc import planner, report_qa, report_readiness, advisory, framing, report_grounding
 from sabc.fact_boundaries import gap_details
 from sabc import auth, lifecycle, model_router, sso
 from sabc.tenancy import AccountStore, account_id
@@ -255,6 +255,8 @@ def model_runs(pid:str):
 
 
 class Chat(BaseModel):
+    revision_of: str | None = None
+    revision_turn_id: str | None = None
     message:str=Field(min_length=1,max_length=12000)
     field:str|None=None
     generate_report:bool=False
@@ -291,6 +293,20 @@ def chat_turn(pid,body):
         previous_report = {'id': previous['id'], 'created_at': previous['created_at'], 'result': previous['result'],
                            'lifecycle': lifecycle.context(previous['snapshot']['project'])}
     c=company(); e=evidence_for(pid)
+    if body.revision_of:
+        report_or_404(pid, body.revision_of)
+        turn = store.get('report_turns', body.revision_turn_id or '')
+        if not turn or turn.get('project_id') != pid or turn.get('assessment_id') != body.revision_of:
+            raise ValueError('请选择当前项目已保存的报告问答用于修订')
+        if not lifecycle.collection_ready(p.get('lifecycle', {})) or p.get('interview', {}).get('questions'):
+            return {'mode':'model','needs_collection':True,'reply':'当前仍有待回答问题，请先完成本轮问答再修订报告。'}
+        revision={'assessment_id':body.revision_of,'turn_id':body.revision_turn_id,'question':turn['question']}
+        if p.get('report_revision') != revision:
+            p['report_revision']=revision
+            p['version']+=1
+            p['collection_completion']={'input_fingerprint':report_readiness.fingerprint(p,c,e),'collection_version':4}
+            store.save('projects',p)
+        return generate_final_report(p,c,e,previous_report)
     workflow=current_workflow(p,c,e)
     same_answer = next((m.get('content') for m in reversed(p.get('messages', [])) if m.get('role')=='user'), None)==body.message
     resumable = workflow and workflow.get('input_fingerprint')==report_readiness.fingerprint(p,c,e)
@@ -302,6 +318,7 @@ def chat_turn(pid,body):
     p.pop('assessment_review', None)
     p.pop('report_preparation', None)
     p.pop('collection_completion', None)
+    p.pop('report_revision', None)
     p['proposal']=None
     # New input invalidates the old approval even if this interview request fails.
     with jobs.lock:
@@ -348,6 +365,7 @@ def chat_turn(pid,body):
     else:
         result=guide(p,body.message,body.field)
         p.update(result['project_patch'])
+    report_grounding.preserve_period(p)
     followups=[q for q in result.get('questions',[])[:2] if q.strip() and q not in result['reply']]
     # Some providers put the questions in both fields, with different wording.
     # Keep the intact conversational reply instead of adding a second interview.
@@ -458,6 +476,26 @@ def generate_final_report(p,c,e,previous_report):
         if report_readiness.fingerprint(project_or_404(pid),company(),evidence_for(pid))!=starting_inputs:
             raise ValueError('处理期间资料发生变化，请根据最新资料继续问答。')
         final_project=candidate['snapshot']['project']
+        if p.get('report_revision'):
+            old=report_or_404(pid,p['report_revision']['assessment_id'])
+            changes=[]
+            for key,(name,_) in DIMENSIONS.items():
+                if old['snapshot']['proposal'].get('dimensions',{}).get(key) != candidate['snapshot']['proposal']['dimensions'].get(key):
+                    changes.append(name+'的分数或依据')
+            if old['snapshot']['proposal'].get('decision_brief') != candidate['snapshot']['proposal'].get('decision_brief'):
+                changes.append('关键判断与升级说明')
+            for field,label in (('assessment_scope','评估主体与范围'),('pros','正方结论'),
+                                ('cons','反方结论'),('strongest_objections','最强反对意见')):
+                if old['snapshot']['proposal'].get(field) != candidate['snapshot']['proposal'].get(field):
+                    changes.append(label)
+            for field,label in (('timeframe','未来验证周期'),('data_period','历史资料期间')):
+                if old['snapshot']['project'].get(field) != final_project.get(field):
+                    changes.append(label)
+            old_review=old['snapshot']['project'].get('lifecycle',{}).get('review') or {}
+            new_review=final_project.get('lifecycle',{}).get('review') or {}
+            if any(old_review.get(field)!=new_review.get(field) for field in ('summary','next_action','next_review_days','conclusion')):
+                changes.append('行动建议')
+            candidate['result']['revision']={'source_report_id':old['id'],'changes':changes}
         final_project['messages'].append({'role':'assistant','content':'第二阶段审查已完成，最终报告已生成。',
                                          'mode':'model','stage':lifecycle.state(final_project)['stage'],'evidence_ids':[],'time':utcnow()})
         final_project['collection_completion']={'input_fingerprint':report_readiness.fingerprint(final_project,c,e),'collection_version':4}
@@ -475,6 +513,7 @@ def generate_final_report(p,c,e,previous_report):
 
 
 class Evidence(BaseModel):
+    publisher: str = Field(default='',max_length=200)
     title:str=Field(min_length=1,max_length=200)
     source_locator:str=Field(min_length=1,max_length=2000)
     content:str=Field(default='',max_length=200000)
@@ -721,6 +760,7 @@ def evaluate(pid:str,body:dict):
 def build_assessment(project, c, e, proposal):
     p=deepcopy(project)
     proposal=deepcopy(proposal)
+    report_grounding.apply_decision_facts(p, proposal)
     p['proposal']=proposal
     p.pop('assessment_review', None)
     life=lifecycle.state(p)
@@ -739,7 +779,7 @@ def build_assessment(project, c, e, proposal):
     # A generated recommendation must not override the engine's final decision.
     if result['grade'] in ('C', 'NR') and life.get('review'):
         deferred = result['grade'] == 'NR'
-        negative_reasons = [d['reason'] for d in result['dimensions'] if d['score'] < 3]
+        negative_reasons = [d['reason'] for d in result['dimensions'] if d['score'] is not None and d['score'] < 3]
         explanation = result.get('deferral_reason') if deferred else (
             '当前不立项：' + '；'.join(negative_reasons or result['triggered_rules'] or [result['action']]))
         purpose=p.get('framing', {}).get('purpose')

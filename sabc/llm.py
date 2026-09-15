@@ -18,6 +18,7 @@ from sabc.templates import TEMPLATES
 from sabc.context import model_context
 from sabc.lifecycle import collection_ready, Coverage, PilotPlan, StageReview, PROMPT, absorb
 from sabc.framing import Framing, PROMPT as FRAMING_PROMPT, grounded
+from sabc import report_grounding
 
 KEY_FIELDS = ['target_user','business_goal','value_mechanism','success_metric','timeframe','budget_requested','risks']
 QUESTIONS = {
@@ -145,10 +146,11 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
     from sabc.standard import INTERVIEW, REPORT
     system += REPORT if report_requested else INTERVIEW
     if report_requested:
+        system += report_grounding.PROMPT
         system += '\n本轮任务：第一阶段问答已完成，后端开始整理报告草稿。根据已收集信息和已有证据生成完整proposal与stage_review（包括试点建议），不再提问或独立审查。questions为空，project_patch为空，dimension_coverage填空对象（程序保留已确认的访谈覆盖状态，无需重写），pilot_plan为null，reply只写“报告已生成。”。未知依据如实保留，不能编造。'
     else:
         system += '\n本轮任务：仅整理事实与八维覆盖状态，不生成或预备评分草稿。proposal、stage_review、pilot_plan必须为null。有问题直接追问；无可答缺口且questions为空时，reply只写“第一阶段问答已完成，正在整理报告。”。不要另说八维收集完毕，报告整理与审查由程序在本轮问答完成后独立执行。每个覆盖理由只需简洁说明事实或缺口。'
-    system += '\n最终JSON顶层字段固定为reply、reply_evidence_ids、project_patch、proposal、data_requests、questions、question_targets、needs_external_action、dimension_coverage、stage_review、pilot_plan、framing。stage_review与pilot_plan位于顶层，不能嵌入proposal。proposal内仅有dimensions、assumptions、pros、cons、policy_caps、vetoes、s_conditions、decision_brief。注意每层大括号必须正确闭合，整个响应是一个JSON对象。'
+    system += '\n最终JSON顶层字段固定为reply、reply_evidence_ids、project_patch、proposal、data_requests、questions、question_targets、needs_external_action、dimension_coverage、stage_review、pilot_plan、framing。stage_review与pilot_plan位于顶层，不能嵌入proposal。proposal包含dimensions、assumptions、pros、cons、policy_caps、vetoes、s_conditions、decision_brief及报告来源约束要求的grounding_version、assessment_scope、decision_facts、strongest_objections。注意每层大括号必须正确闭合，整个响应是一个JSON对象。'
     payload={'model':settings['model'],'temperature':0.1,
              'messages':[{'role':'system','content':system},
                          {'role':'user','content':json.dumps(model_context(project,company,evidence,messages),ensure_ascii=False)}],
@@ -211,6 +213,8 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
                         assumptions=parsed['proposal']['assumptions']
                         if not assumptions or not all(all(a[k].strip() for k in ('validation_method','pass_threshold','fail_threshold')) for a in assumptions):
                             raise ValueError('模型评分建议缺少完整的关键假设及验证条件，请重试。')
+                        if report_requested:
+                            report_grounding.validate(parsed['proposal'], project, company, evidence, messages, required=True)
                     if project.get('lifecycle') and not report_requested:
                         from sabc.checkpoints import normalize
                         normalize(parsed, project, company, evidence, messages)
@@ -219,6 +223,10 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
                     break
                 except ValueError as error:
                     failure = format_failure(error, content)
+                    if report_requested:
+                        failure.retry_messages[-1]['content'] += ('\n本轮为报告校验补正：若错误涉及来源、评分或用户确认状态，'
+                            '须依据原始资料重新判断并修正所有同类问题，必要时将分数或事实恢复未知。'
+                            '不能为了保留原分数改写引文，不能将未知原话标reported；不受“保留原评分”的格式修复要求限制。')
                     if attempt or settings.get('deepseek') or settings.get('single_attempt'): raise failure
                     payload['messages'] += failure.retry_messages
     except httpx.HTTPStatusError as e:
