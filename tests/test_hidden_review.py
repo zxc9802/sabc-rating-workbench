@@ -141,7 +141,8 @@ def test_review_cannot_reask_unavailable_information(status):
 
 
 
-def test_review_failover_shares_total_deadline(monkeypatch):
+def test_review_provider_failover_has_fresh_deadline(monkeypatch):
+    import httpx
     from sabc import advisory
     clock=[0.0];timeouts=[]
     monkeypatch.setattr(advisory.time,'monotonic',lambda:clock[0])
@@ -149,14 +150,14 @@ def test_review_failover_shares_total_deadline(monkeypatch):
         timeouts.append(timeout)
         if len(timeouts)==1:
             clock[0]=60.0
-            raise ValueError('first provider failed after 60 seconds')
+            raise httpx.ReadTimeout('first provider failed after 60 seconds')
         return '{}'
     def routed(role,settings,execute):
         route={'model':'test','base_url':'https://model.example/v1','key':'test','primary':False}
         try:return execute(route)
-        except ValueError:return execute(route)
+        except httpx.ReadTimeout:return execute(route)
     monkeypatch.setattr(advisory,'completion',completion)
     monkeypatch.setattr(advisory,'routed',routed)
     monkeypatch.setattr(advisory,'validate',lambda value,context:accepted())
     assert advisory._request({},'',{})['checks']['facts']=='pass'
-    assert timeouts==[90.0,30.0]
+    assert timeouts==[90.0,90.0]

@@ -1,5 +1,7 @@
 import json
 import time
+import httpx
+from types import SimpleNamespace
 from threading import Event
 from uuid import uuid4
 import pytest
@@ -114,7 +116,15 @@ def test_active_answer_recovers_only_in_report(client,monkeypatch):
 
 @pytest.mark.parametrize('reply',['{}','{"reply":""}','{"reply":42}','not json'])
 def test_invalid_model_output_is_not_accepted(monkeypatch,reply):
-    monkeypatch.setattr(report_qa,'completion',lambda *args:reply)
+    from sabc import model_router
+    now = [100.0]
+    timer = SimpleNamespace(monotonic=lambda: now[0])
+    monkeypatch.setattr(model_router, 'time', timer)
+    monkeypatch.setattr(report_qa, 'time', timer)
+    def complete(*args):
+        now[0] += 30
+        return reply
+    monkeypatch.setattr(report_qa,'completion',complete)
     with pytest.raises(ValueError,match='未完成'):
         report_qa.answer({'base_url':'https://model.example'},'test',{'result':{},'snapshot':{}},[],'问题')
 
@@ -128,7 +138,7 @@ def test_report_qa_uses_same_fallback_chain(monkeypatch):
         if payload['model']!='deepseek-flash':
             assert url=='https://provider.example/v1/chat/completions'
             assert headers['Authorization']=='Bearer synthetic-shared'
-            raise ValueError('invalid response')
+            raise httpx.ReadError('upstream interrupted')
         assert headers['Authorization']=='Bearer synthetic-deepseek'
         assert payload['thinking']=={'type':'enabled'}
         return json.dumps({'reply':'根据这份报告说明'})
@@ -140,14 +150,15 @@ def test_report_qa_uses_same_fallback_chain(monkeypatch):
 
 def test_primary_stream_repairs_json_once_before_fallback(monkeypatch):
     monkeypatch.setenv('SABC_MIXTOKEN_API_KEY', 'synthetic-mixtoken')
-    times = iter([100, 100, 110])
-    monkeypatch.setattr(report_qa.time, 'monotonic', lambda: next(times))
+    now = [100.0]
+    monkeypatch.setattr(report_qa, 'time', SimpleNamespace(monotonic=lambda: now[0]))
     calls = []
     def complete(client, url, payload, headers, remaining):
         calls.append((payload, remaining))
         assert payload['stream'] is True
         assert payload['model'] == 'deepseek-v4.1-flash'
         if len(calls) == 1:
+            now[0] += 10
             return '{"reply":"成本未知"'
         assert any('格式补正' in message['content'] for message in payload['messages'])
         return '{"reply":"成本未知，不能计算净利润。"}'

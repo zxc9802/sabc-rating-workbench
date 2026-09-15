@@ -104,8 +104,11 @@ def test_network_gets_compact_input_but_validation_matches_original_user_quote(m
         if len(seen)==1:return '{"checks":{}}'  # Trigger the existing format retry.
         return json.dumps(response,ensure_ascii=False)
     monkeypatch.setattr(advisory,'completion',completion)
-    monkeypatch.setattr(advisory,'routed',lambda role,settings,execute:execute({
-        'model':'test','base_url':'https://model.example/v1','key':'test','primary':True}))
+    from sabc.model_router import routed
+    for key in ('SABC_MIXTOKEN_API_KEY','SABC_FAL_API_KEY','SABC_DEEPSEEK_API_KEY'):
+        monkeypatch.delenv(key,raising=False)
+    monkeypatch.setattr(advisory,'routed',lambda role,settings,execute:routed(role,{
+        **settings,'model':'test','base_url':'https://model.example/v1','key':'test'},execute))
     result=advisory._request({},'',original)
     assert len(seen)==2 and seen[0]['messages'][1]==seen[1]['messages'][1]
     assert advisory.REFERENCE_PROMPT in seen[0]['messages'][0]['content']

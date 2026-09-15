@@ -431,6 +431,7 @@ def pipeline_status(project, c, e):
 
 
 def generate_final_report(p,c,e,previous_report):
+    from sabc.report_corrections import ReportCorrections
     pid=p['id']
     starting_inputs=report_readiness.fingerprint(p,c,e)
     workflow=current_workflow(p,c,e)
@@ -438,6 +439,7 @@ def generate_final_report(p,c,e,previous_report):
         workflow={'id':pid,'project_id':pid,'input_fingerprint':starting_inputs,'step':'preparing'}
     if workflow.get('report_id'):
         return {'mode':'model','report_id':workflow['report_id'],'reply':'最终报告已生成。'}
+    correction_state=workflow.setdefault('corrections',{'count':len(workflow.get('notes',[]))})
 
     def checkpoint(candidate=None, notes=None):
         nonlocal workflow
@@ -447,10 +449,11 @@ def generate_final_report(p,c,e,previous_report):
                 raise ValueError('处理期间资料发生变化，请根据最新资料继续问答。')
             if candidate is not None:
                 workflow.update(candidate=candidate, notes=notes or [], step='revising' if notes else 'reviewing')
+            workflow['corrections']=correction_state
             workflow=store.save('report_workflows',workflow)
 
     checkpoint()
-    s=settings()
+    s={**settings(),'report_corrections':ReportCorrections(correction_state,checkpoint)}
     if not workflow.get('candidate'):
         result=analyze(s,model_key(s),{**p,'_report_requested':True,'_previous_stage_report':previous_report},
                        c,model_evidence_for(pid),p.get('messages',[]))
@@ -496,7 +499,8 @@ def generate_final_report(p,c,e,previous_report):
             if any(old_review.get(field)!=new_review.get(field) for field in ('summary','next_action','next_review_days','conclusion')):
                 changes.append('行动建议')
             candidate['result']['revision']={'source_report_id':old['id'],'changes':changes}
-        final_project['messages'].append({'role':'assistant','content':'第二阶段审查已完成，最终报告已生成。',
+        completed='最终报告已生成。' if candidate['snapshot']['quality_review'].get('status')=='revision_limit' else '第二阶段审查已完成，最终报告已生成。'
+        final_project['messages'].append({'role':'assistant','content':completed,
                                          'mode':'model','stage':lifecycle.state(final_project)['stage'],'evidence_ids':[],'time':utcnow()})
         final_project['collection_completion']={'input_fingerprint':report_readiness.fingerprint(final_project,c,e),'collection_version':4}
         candidate['id']=workflow.setdefault('final_id',uuid4().hex)

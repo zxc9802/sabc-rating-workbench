@@ -19,7 +19,7 @@ def test_gemini_first_with_luna_key_and_existing_fallbacks(monkeypatch, role):
             assert authorization(route, route['key']) == {'x-goog-api-key': 'luna-test-key'}
         if route.get('deepseek'):
             return 'ok'
-        raise ValueError('failed')
+        raise httpx.ConnectError('failed')
     assert routed(role, {'base_url': 'https://api.openlux.ai/v1', 'model': 'glm-5.3-flash',
                          'key': 'luna-test-key'}, execute) == 'ok'
     assert [route['model'] for route in calls] == [

@@ -1,6 +1,16 @@
 import json
 import httpx
+import pytest
+from sabc.model_output import ModelResponseError
 from sabc.streaming import completion, progress, reply_prefix
+
+
+@pytest.mark.parametrize('body', [{}, {'choices': []}, {'choices': [None]}, {'choices': [{'message': {}}]}])
+def test_invalid_provider_envelope_is_a_transport_failure(body):
+    with httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, json=body))) as client:
+        with pytest.raises(ModelResponseError) as error:
+            completion(client, 'https://model.test/v1/chat/completions', {}, {}, 90)
+    assert error.value.stage == 'transport_schema'
 
 
 def test_partial_json_escapes_and_structured_fields_are_not_shown():

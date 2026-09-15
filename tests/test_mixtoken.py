@@ -19,7 +19,7 @@ def test_mixtoken_first_preserves_full_fallback_order(mixtoken, role):
     def execute(route):
         calls.append(route)
         if route['deepseek']: return 'ok'
-        raise ValueError('unavailable')
+        raise httpx.ConnectError('unavailable')
     token=model_router.audit.set(events.append)
     try:
         assert model_router.routed(role, mixtoken, execute)=='ok'

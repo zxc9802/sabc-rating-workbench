@@ -51,10 +51,14 @@ def completion(client, url, payload, headers, remaining):
         r = client.post(url, json=payload, headers=headers, timeout=remaining)
         r.raise_for_status()
         check_cancelled()
-        choice = decode_json(r.text, 'transport_json')['choices'][0]
-        if choice.get('finish_reason') not in (None, 'stop'):
-            raise ModelResponseError('模型未完成有效回答', 'response_incomplete', error_code='unfinished_output')
-        return choice['message']['content']
+        try:
+            choice = decode_json(r.text, 'transport_json')['choices'][0]
+            if choice.get('finish_reason') not in (None, 'stop'):
+                raise ModelResponseError('模型未完成有效回答', 'response_incomplete', error_code='unfinished_output')
+            return choice['message']['content']
+        except (KeyError, IndexError, TypeError, AttributeError):
+            raise ModelResponseError('模型接口返回结构异常，请重试。', 'transport_schema',
+                                     error_code='invalid_envelope') from None
     notify = notify or (lambda _: None)
     notify('')
     content = ''

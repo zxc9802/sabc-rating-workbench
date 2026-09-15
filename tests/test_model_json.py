@@ -60,11 +60,12 @@ def test_glm_retry_contains_correction_and_original_context(monkeypatch, raw, st
     assert raw not in json.dumps(events, ensure_ascii=False)
 
 
-def test_format_retry_is_not_carried_into_luna(monkeypatch):
+def test_repeated_format_retry_stays_with_glm_and_keeps_latest_draft(monkeypatch):
     calls = serve(monkeypatch, ['bad json', 'bad json', GOOD])
     assert analyze(SETTINGS, '', {}, {}, [], [])['reply']
-    assert [c['model'] for c in calls] == ['glm-5.3-flash'] * 2 + ['gpt-5.6-luna']
-    assert len(calls[1]['messages']) == 4 and len(calls[2]['messages']) == 2
+    assert [c['model'] for c in calls] == ['glm-5.3-flash'] * 3
+    assert len(calls[1]['messages']) == 4 and len(calls[2]['messages']) == 4
+    assert calls[2]['messages'][-2] == {'role': 'assistant', 'content': 'bad json'}
 
 
 def test_stream_json_error_is_distinct_and_never_saved_as_reply(monkeypatch):

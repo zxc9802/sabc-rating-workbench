@@ -206,16 +206,20 @@ def test_new_question_starts_new_interview_and_preserves_old_report(client,monke
     assert not detail['project']['report_ready'] and detail['project']['proposal'] is None
 
 
-def test_unresolved_second_review_never_publishes(client,monkeypatch):
+def test_four_revisions_publish_without_a_fifth_review(client,monkeypatch):
     module,advisory,url,calls=prepare(client,monkeypatch)
     reviews=[]
     def revise(*args):
         reviews.append(1);r=accepted();r.update(checks={**r['checks'],'facts':'revise'},
             findings=[{'reason':'待解决'}],coverage_reasons={'opportunity':'对照资料尚未取得'});return r
     monkeypatch.setattr(advisory,'_request',revise)
-    assert send(client,url).status_code==422
-    assert len(reviews)==2 and not client.get(url).json()['assessments']
-    assert client.get(url).json()['project']['report_pipeline']['step']=='revising'
+    assert send(client,url).status_code==200
+    detail=client.get(url).json()
+    assert len(reviews)==4 and len(detail['assessments'])==1
+    assert detail['project']['report_pipeline']['step']=='complete'
+    quality=detail['assessments'][0]['snapshot']['quality_review']
+    assert quality['status']=='revision_limit' and quality['corrections']==4
+    assert '审查已完成' not in detail['project']['messages'][-1]['content']
 
 
 def test_retry_recovers_publication_interrupted_after_project_save(client,monkeypatch):

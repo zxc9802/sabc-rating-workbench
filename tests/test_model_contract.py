@@ -1,14 +1,26 @@
 import json
 import httpx
 import pytest
+from types import SimpleNamespace
 from sabc.llm import analyze
 from sabc.schema import validate_proposal
 from tests.test_rating import case
 from tests.report_fixtures import grounded_proposal, REPORT_DESCRIPTION
 
 
+def advancing_clock(monkeypatch):
+    from sabc import llm, model_router
+    now = [100.0]
+    timer = SimpleNamespace(monotonic=lambda: now[0])
+    monkeypatch.setattr(llm, 'time', timer)
+    monkeypatch.setattr(model_router, 'time', timer)
+    return now
+
+
 def model_response(monkeypatch,content):
+    now = advancing_clock(monkeypatch)
     def post(*args,**kwargs):
+        now[0] += 100
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps(content)}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
 
@@ -60,13 +72,14 @@ def test_incomplete_assumptions_repaired_once(monkeypatch):
     r=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, case()[2], [])
     assert len(calls)==2
     assert r['proposal']['assumptions'][0]['validation_method']=='负责人核对真实订单'
-    assert 0<calls[1]['timeout']<=calls[0]['timeout']<=90
+    assert 0<calls[1]['timeout']<=calls[0]['timeout']<=300
     assert len(calls[0]['json']['messages'])==2
     assert len(calls[1]['json']['messages'])==4
 
 
 @pytest.mark.parametrize('missing',['empty','validation_method','pass_threshold','fail_threshold'])
 def test_incomplete_assumptions_never_accepted_after_repair(monkeypatch,missing):
+    now = advancing_clock(monkeypatch)
     proposal=grounded_proposal()
     for a in proposal['assumptions']:
         a.update(validation_method='核对订单',pass_threshold='待确认口径',fail_threshold='口径未确认暂停')
@@ -75,11 +88,12 @@ def test_incomplete_assumptions_never_accepted_after_repair(monkeypatch,missing)
     calls=[]
     def post(*args,**kwargs):
         calls.append(1)
+        now[0] += 100
         return httpx.Response(200,json={'choices':[{'message':{'content':json.dumps({'reply':'建议','proposal':proposal})}}]},request=httpx.Request('POST','https://model.example/chat/completions'))
     monkeypatch.setattr(httpx.Client,'post',post)
     with pytest.raises(ValueError,match='缺少完整的关键假设'):
         analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, case()[2], [])
-    assert len(calls)==2
+    assert len(calls)==3
 
 
 @pytest.mark.parametrize('has_proposal',[True,False])
@@ -113,7 +127,7 @@ def test_structural_error_is_repaired_without_accepting_invalid_proposal(monkeyp
     result=analyze({'base_url':'https://model.example','model':'test'},'',{'_report_requested': True, 'description': REPORT_DESCRIPTION}, {}, [], [])
     assert result['proposal'] is None
     assert result['reply']=='还需核实需求。'
-    assert len(calls)==2 and 0<calls[1]<=calls[0]<=90
+    assert len(calls)==2 and 0<calls[1]<=calls[0]<=300
 
 
 def test_ordinary_interview_does_not_accept_unsolicited_scoring(monkeypatch):

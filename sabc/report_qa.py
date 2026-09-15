@@ -63,13 +63,14 @@ def answer(settings, key, report, history, question):
         if route.get('deepseek'):
             payload.pop('temperature')
             payload.update(thinking={'type': 'enabled'}, reasoning_effort=route['effort'])
-        deadline = time.monotonic() + 90
+        deadline = min(time.monotonic() + 90, route.get('correction_deadline', float('inf')))
         attempts = 2 if route.get('primary') and route.get('stream') else 1
         with httpx.Client() as client:
             for attempt in range(attempts):
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    raise ModelResponseError('报告答疑格式补正超时。', 'timeout', error_code='format_deadline')
+                    raise ModelResponseError('已达到本轮答疑补正时限，内容尚未通过校验，请重试。',
+                                             'response_validation', error_code='correction_deadline')
                 raw = completion(client, endpoint(route), payload, authorization(route, route['key']), remaining)
                 try:
                     reply = parse_object(raw).get('reply')
@@ -78,7 +79,7 @@ def answer(settings, key, report, history, question):
                     return reply.strip()
                 except ValueError as error:
                     failure = format_failure(error, raw)
-                    if attempt + 1 == attempts:
+                    if attempt + 1 == attempts or time.monotonic() >= deadline:
                         raise failure
                     payload['messages'] = payload['messages'] + failure.retry_messages
     try:

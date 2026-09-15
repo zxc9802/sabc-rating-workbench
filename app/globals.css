@@ -246,6 +246,9 @@ textarea { resize: vertical; line-height: 1.8; }
 .report-qa-history { max-height: 38dvh; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--line); margin-bottom: 12px; overflow-wrap: anywhere; }
 .report-qa-turn { padding: 12px 0; border-bottom: 1px solid var(--line); }
 .report-qa-turn > p { white-space: pre-wrap; }
+.report-revision-action { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 10px; }
+.report-revision-action > button { flex-shrink: 0; max-width: 100%; }
+.report-revision-action > span { flex: 1 1 260px; min-width: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
 .report-qa-error { color: #a43e3e; margin: 8px 0; font-size: 12px; }
 @media (max-width: 1150px) { .report-assistant { left: 205px; } }
 @media (max-width: 900px) { .report-assistant { left: 178px; } }

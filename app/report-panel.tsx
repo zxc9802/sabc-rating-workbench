@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type SetStateAction } from 'react';
-import { Download, FileCheck2, RefreshCw, ArrowUpRight, ChevronDown, Printer } from 'lucide-react';
+import { Download, FileCheck2, RefreshCw, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { api, Detail, Dimension, Proposal, Score, Assumption, Assessment, Evidence, Lifecycle, gradeLabel } from '../lib/types';
 import { ReportAssistant } from './report-assistant';
 import { Field } from './workbench-forms';
@@ -60,6 +60,8 @@ export function ReportPanel({ detail, dimensions, busy, run, refresh, onGenerate
   const [selected, setSelected] = useState<Assessment | null>(reports[0] || null);
   const [confirmed, setConfirmed] = useState(false);
   const [edit, setEdit] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const reportRef = useRef<HTMLElement>(null);
   useEffect(() => { setConfirmed(false); }, [proposal]);
   useEffect(() => { setEdit(false); }, [detail.project.id]);
   useEffect(() => { setSelected(detail.assessments[0] || null); }, [detail.assessments]);
@@ -72,12 +74,26 @@ export function ReportPanel({ detail, dimensions, busy, run, refresh, onGenerate
   async function evaluate(manual = false) {
     await run(async () => { const record = await api<Assessment>('/projects/' + detail.project.id + '/assess', 'POST', manual ? { proposal, confirmed } : {}); draft.current.dirty = false; setSelected(record); await refresh(); if (record.result.grade !== 'NR') setEdit(false); }, '本次评估已保存，历史结果不会被覆盖');
   }
+  async function exportLongImage() {
+    if (!selected || !reportRef.current || busy || exporting) return;
+    const report = reportRef.current.cloneNode(true) as HTMLElement;
+    const filename = `${selected.snapshot.project.name.slice(0, 60)}-项目评估报告-${selected.created_at}`;
+    await run(async () => {
+      setExporting(true);
+      try {
+        const { exportReportImage } = await import('../lib/report-image');
+        await exportReportImage(report, filename);
+      } finally {
+        setExporting(false);
+      }
+    });
+  }
   const r = selected?.result;
   const pendingFacts = Object.entries(detail.project.pending_patch || {}).some(([key, value]) => detail.project[key] !== value);
-  return <section className="report-area"><div className="section-heading"><div><h2>项目评估报告</h2><p>结合项目现状进行八维评估，历次访谈与报告持续保存。</p></div><div className="button-group">{selected && <><button className="secondary" onClick={() => window.print()}><Printer size={15} />打印</button><a className="secondary" href={'/api/assessments/' + selected.id + '/export'}><Download size={15} />导出快照</a></>}<button className="primary" disabled={busy} onClick={onGenerate}><RefreshCw size={15} />重新评估</button></div></div>
+  return <section className="report-area"><div className="section-heading"><div><h2>项目评估报告</h2><p>结合项目现状进行八维评估，历次访谈与报告持续保存。</p></div><div className="button-group">{selected && <button className="secondary" disabled={busy || exporting} aria-busy={exporting} onClick={exportLongImage}><Download size={15} />{exporting ? '正在导出…' : '导出长图'}</button>}<button className="primary" disabled={busy} onClick={onGenerate}><RefreshCw size={15} />重新评估</button></div></div>
     {pendingFacts && <p className="review-note" role="status">报告将使用本轮整理的项目资料；如需更正，可返回访谈补充或在项目资料中修改。</p>}
-    {reports.length > 0 && <label className="history-select">历史报告版本<select value={selected?.id || ''} onChange={e => setSelected(reports.find(a => a.id === e.target.value) || null)}>{reports.map((a, i) => <option key={a.id} value={a.id}>{new Date(a.created_at).toLocaleString('zh-CN')} · {gradeLabel(a.result.grade)}{i === 0 ? ' · 本次最新' : ''}</option>)}</select></label>}
-    {!r ? <div className="report-empty"><FileCheck2 size={35} /><h3>报告尚未生成</h3><p>第一阶段问答完成后，系统自动整理并审查报告；审查完成后在这里展示最终报告。</p><PilotRecommendation life={detail.project.lifecycle} /></div> : <article className="rating-document">
+    {reports.length > 0 && <label className="history-select">历史报告版本<select disabled={exporting} value={selected?.id || ''} onChange={e => setSelected(reports.find(a => a.id === e.target.value) || null)}>{reports.map((a, i) => <option key={a.id} value={a.id}>{new Date(a.created_at).toLocaleString('zh-CN')} · {gradeLabel(a.result.grade)}{i === 0 ? ' · 本次最新' : ''}</option>)}</select></label>}
+    {!r ? <div className="report-empty"><FileCheck2 size={35} /><h3>报告尚未生成</h3><p>第一阶段问答完成后，系统自动整理并审查报告；审查完成后在这里展示最终报告。</p><PilotRecommendation life={detail.project.lifecycle} /></div> : <article className="rating-document" ref={reportRef}>
       <div className="rating-summary"><div className={'final-grade grade-' + r.grade}>{gradeLabel(r.grade)}</div><div className="rating-summary-text"><h2>{r.grade === 'NR' ? '项目分析记录 · 暂缓评级' : r.action}</h2>{r.grade === 'NR' && <p className="deferral-reason">{deferralReason(r, selected!.snapshot.project.lifecycle)}</p>}<p>判断置信度：{r.confidence} · 证据：{r.evidence_evaluated || r.base_score !== null ? r.evidence_level : '本版未记录完整核算状态'}</p><span>评估于 {new Date(selected!.created_at).toLocaleString('zh-CN')}</span></div><div className="rating-score"><strong>{r.base_score === null ? '暂不计算' : r.base_score}{r.base_score !== null && <span>/100</span>}</strong><small>{r.base_score === null ? '关键依据不足，未知分数不按零分计算' : '八维业务分'}</small></div></div>
       {r.revision && <section className="report-section"><h3>本次修订</h3><p>已保存新版本，原报告仍可在历史版本中查看。</p><p>{r.revision.changes.length ? '调整内容：' + r.revision.changes.join('、') : '复核后未发现需要调整的分数或关键判断。'}</p></section>}
       <section className="report-section"><h3>项目基本信息</h3><p><strong>项目名称：</strong>{selected!.snapshot.project.name}</p><p><strong>评估对象：</strong>{selected!.snapshot.proposal.assessment_scope?.subject || selected!.snapshot.proposal.decision_brief?.definition || selected!.snapshot.project.name}</p><p><strong>历史资料期间：</strong>{String(selected!.snapshot.project.data_period || '见各项来源期间')}</p><p><strong>未来验证周期：</strong>{String(selected!.snapshot.project.timeframe || '未知，待确认')}</p></section>

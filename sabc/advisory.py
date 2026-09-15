@@ -13,13 +13,14 @@ from sabc.framing import Framing
 from sabc.checkpoints import CHECKS, UNAVAILABLE
 from sabc.fact_boundaries import qualification, unsupported_absence
 from sabc.lifecycle import StageReview
-from sabc.model_output import parse_object, format_failure
+from sabc.model_output import ModelResponseError, parse_object, format_failure
 from sabc.model_router import routed, endpoint, authorization
 from sabc.rating import DIMENSIONS, PROJECT_FIELDS
 from sabc.schema import Proposal, validate_amounts, validate_project_type
 from sabc.standard import REPORT, ground_low_scores, validate_rubric_reasons
 from sabc.streaming import progress, check_cancelled
 from sabc.streaming import completion
+from sabc.report_corrections import ReportCorrections, MAX_REVISIONS
 
 VERSION = 4
 PERSPECTIVES = {'facts', 'business', 'risk', 'consistency'}
@@ -288,31 +289,62 @@ def validate(value, context):
     return result
 
 
-def validate_report_proposal(proposal, project, evidence):
-    if set(proposal['dimensions']) != set(DIMENSIONS) or any(not d['reason'].strip() for d in proposal['dimensions'].values()):
+def validate_report_proposal(proposal, project, evidence, content=True):
+    if set(proposal['dimensions']) != set(DIMENSIONS) or (content and any(not d['reason'].strip() for d in proposal['dimensions'].values())):
         raise ValueError('报告须保留完整八维及非空理由')
-    if not proposal['assumptions'] or any(not all(a.get(k, '').strip() for k in ('validation_method', 'pass_threshold', 'fail_threshold')) for a in proposal['assumptions']):
+    if content and (not proposal['assumptions'] or any(not all(a.get(k, '').strip() for k in ('validation_method', 'pass_threshold', 'fail_threshold')) for a in proposal['assumptions'])):
         raise ValueError('报告须保留至少一项假设和非空validation_method/pass_threshold/fail_threshold；未知写待确认的业务条件，不编数值')
     cited = list(proposal['dimensions'].values()) + proposal['assumptions'] + proposal['vetoes']
     if any(ref not in {item['id'] for item in evidence} for item in cited for ref in item['evidence_ids']):
         raise ValueError('报告不能引用不存在的证据')
-    validate_rubric_reasons(proposal, project)
+    if proposal.get('grounding_version') == report_grounding.VERSION and set(proposal.get('decision_facts', {})) != set(report_grounding.DECISION_FIELDS):
+        raise ValueError('报告缺少展示所需的decision_facts字段')
+    if content:
+        validate_rubric_reasons(proposal, project)
+
+
+def delivery(value, context):
+    """Decode the final revision without another content review."""
+    result = Review.model_validate(value).model_dump(mode='json')
+    if set(result['project_patch']) - ((set(PROJECT_FIELDS) - {'name'}) | {'budget_requested'}):
+        raise ValueError('不能修改原始描述、名称或未经授权的字段')
+    if any(isinstance(v, dict) and '$ref' in v for v in result['project_patch'].values()):
+        raise ValueError('修订须填写实际内容，不能返回输入引用对象')
+    validate_project_type(result['project_patch'])
+    validate_amounts(result['project_patch'], ('budget_requested',))
+    coverage = context['project']['lifecycle'].get('coverage', {})
+    if (set(result['coverage_reasons']) | set(result['coverage_statuses'])) - set(coverage):
+        raise ValueError('覆盖修订须对应已有维度')
+    for dim, changes in result['coverage_statuses'].items():
+        if set(changes) - set(coverage[dim].get('items', {})):
+            raise ValueError('覆盖修订须对应已有检查项')
+    validate_report_proposal(result['proposal'] or context['candidate']['proposal'],
+                             context['project'], context['evidence'], content=False)
+    result['questions'] = []
+    return result
 
 
 def _request(settings, key, context):
+    corrections = settings.get('report_corrections')
+    if context.get('mode') == 'report' and corrections is None:
+        corrections = ReportCorrections()
     request_context = json.dumps(context, ensure_ascii=False)
     compacted = json.dumps(compact_context(context), ensure_ascii=False)
     use_references = len(compacted) + len(REFERENCE_PROMPT) < len(request_context)
     if use_references:
         request_context = compacted
-    deadline = time.monotonic() + 90
+    timeout = 300 if context.get('mode') == 'report' else 90
     def execute(route):
+        final_revision = context.get('final_revision') or (corrections is not None and corrections.final)
+        deadline = min(time.monotonic() + timeout, route.get('correction_deadline', float('inf')))
         task_prompt = PROMPT + (report_grounding.PROMPT if context.get('mode') == 'report' else '') + (REFERENCE_PROMPT if use_references else '')
         if context.get('previous_findings'):
             task_prompt += ('\n本次是修订后的验证：逐项检查previous_findings是否已由previous_changes修复，'
                             '并核对修改是否引入新的事实或计算矛盾。不要重新开展一轮开放式质疑，'
                             '不要重写已经含义正确的文字，也不要把未改动且上一轮未发现错误的内容重新润色。'
                             '原问题已解决且修改没有引入错误时，返回全部pass及空修订。')
+        if final_revision:
+            task_prompt += '\n这是最后一次报告修改。结合已有修改意见给出可直接交付的修订结果，不再要求下一轮审查或追加问题。'
         payload = {'model': route['model'], 'temperature': 0.1, 'max_tokens': 16000,
                    'response_format': {'type': 'json_object'},
                    'messages': [{'role': 'system', 'content': task_prompt + '\n返回结构严格遵循JSON Schema：' +
@@ -324,22 +356,24 @@ def _request(settings, key, context):
             payload.pop('temperature')
             payload.update(thinking={'type': 'enabled'}, reasoning_effort=route['effort'])
         with httpx.Client() as client:
-            for attempt in range(2 if route.get('primary') and not route.get('single_attempt') else 1):
+            for attempt in range(2 if corrections is None and route.get('primary') and not route.get('single_attempt') else 1):
                 check_cancelled()
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    raise ValueError('分析请求超时')
+                    raise ModelResponseError('已达到本轮补正时限，内容尚未通过校验，请继续处理。',
+                                             'response_validation', error_code='correction_deadline')
                 raw = completion(client, endpoint(route), payload, authorization(route, route['key']), remaining)
                 try:
-                    return validate(parse_object(raw), context)
+                    return delivery(parse_object(raw), context) if final_revision else validate(parse_object(raw), context)
                 except ValueError as error:
                     failure = format_failure(error, raw)
-                    if attempt or route.get('single_attempt') or not route.get('primary'):
+                    if corrections is not None or attempt or route.get('single_attempt') or not route.get('primary') or time.monotonic() >= deadline:
                         raise failure
                     payload['messages'] += failure.retry_messages
     token = progress.set(lambda _: None)
     try:
-        return routed('review', {**settings, 'key': key}, execute)
+        return routed('review', {**settings, 'key': key, 'request_timeout': timeout,
+                                 'report_corrections': corrections}, execute)
     finally:
         progress.reset(token)
 
@@ -368,29 +402,37 @@ def review_report(settings, key, candidate, rebuild, notes=None, checkpoint=None
     notes = deepcopy(notes or [])
     if current['snapshot'].get('quality_review', {}).get('version') == VERSION:
         return current
+    corrections = settings.get('report_corrections') or ReportCorrections({'count': len(notes)})
+    settings = {**settings, 'report_corrections': corrections}
+    def finish(status, rounds):
+        current['snapshot']['quality_review'] = {'version': VERSION, 'rounds': rounds,
+                                                'status': status, 'corrections': corrections.count}
+        return current
     try:
-        # Resume a saved revision at verification; never repeat drafting on retry.
-        for attempt in range(len(notes), 2):
+        # Drafting and review share four revisions, including resumed jobs.
+        while not corrections.final or corrections.messages('review'):
+            before = corrections.count
             snapshot = current['snapshot']
             p, c, e = snapshot['project'], snapshot['company'], snapshot['evidence']
             context = packet('report', p, c, e, current)
             context['previous_findings'] = notes[-1]['findings'] if notes else []
             context['previous_changes'] = {k: v for k, v in notes[-1].items() if k not in ('checks', 'findings') and v} if notes else {}
+            context['final_revision'] = corrections.count >= MAX_REVISIONS - 1
             result = _request(settings, key, context)
             check_cancelled()
             changed = any(result.get(k) for k in ('project_patch','coverage_reasons','coverage_statuses','framing','proposal','stage_review'))
             if not changed and all(v == 'pass' for v in result['checks'].values()):
-                current['snapshot']['quality_review'] = {'version': VERSION, 'rounds': notes + [result]}
-                return current
-            if attempt:
-                break
+                return finish('revision_limit' if context['final_revision'] or corrections.final else 'passed', notes + [result])
             apply_corrections(p, result)
             proposal = Proposal.model_validate(result.get('proposal') or snapshot['proposal']).model_dump()
-            validate_report_proposal(proposal, p, e)
+            validate_report_proposal(proposal, p, e, content=not (context['final_revision'] or corrections.final))
             ground_low_scores(proposal, p, c, e, p.get('messages', []))
             current = rebuild(p, c, e, proposal)
+            if corrections.count == before:
+                corrections.revised()
+            corrections.clear_retry('review')
             notes.append(result)
             if checkpoint: checkpoint(current, notes)
     except (ValueError, httpx.HTTPError, KeyError, TypeError) as error:
         raise ValueError('报告审查未完成，可继续审查；已保存的资料和报告处理进度仍然保留。') from error
-    raise ValueError('报告修订后仍有待解决的问题，可继续审查；最终报告尚未发布。')
+    return finish('revision_limit', notes)

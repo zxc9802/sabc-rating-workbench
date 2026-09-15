@@ -11,6 +11,13 @@ from sabc.model_output import ModelResponseError
 audit = ContextVar('model_routing_audit', default=None)
 
 
+def provider_failure(error):
+    return isinstance(error, httpx.HTTPError) or (
+        isinstance(error, ModelResponseError) and error.stage in {
+            'http', 'timeout', 'transport_json', 'transport_schema',
+            'stream_json', 'stream_transport', 'response_incomplete'})
+
+
 def mixtoken_route():
     key = os.getenv('SABC_MIXTOKEN_API_KEY', '').strip()
     if not key:
@@ -42,6 +49,7 @@ def deepseek():
 
 
 def routed(role, preferred, execute):
+    corrections = preferred.get('report_corrections')
     fallback = deepseek()
     primary = {**preferred, 'primary': True, 'deepseek': False}
     fal_key = os.getenv('SABC_FAL_API_KEY', '').strip()
@@ -68,34 +76,47 @@ def routed(role, preferred, execute):
     if not routes:
         raise ValueError('模型连接尚未配置，请联系管理员')
     for index, config in enumerate(routes):
-        check_cancelled()
-        started = time.monotonic()
-        event = {'role': role, 'model': config['model'], 'primary': config['primary'], 'attempt': config.get('attempt', 1),
-                 'provider': urlparse(config.get('base_url', '')).hostname}
-        try:
-            result = execute(config)
+        config = {**config, 'correction_deadline': time.monotonic() + preferred.get('request_timeout', 90)}
+        if corrections is not None:
+            config.update(report_corrections=corrections, single_attempt=True,
+                          format_retry=corrections.messages(role))
+        while True:
             check_cancelled()
-        except Exception as error:
-            event.update(status='failed', error_type=type(error).__name__)
-            if isinstance(error, httpx.HTTPStatusError):
-                event['http_status'] = error.response.status_code
-            if isinstance(error, ModelResponseError):
-                event.update(error_stage=error.stage, error_details=error.details)
-                if error.retry_messages and index + 1 < len(routes):
-                    following = routes[index + 1]
-                    if (following['model'], following.get('base_url')) == (config['model'], config.get('base_url')):
-                        following['format_retry'] = error.retry_messages
-            if role in ('analysis', 'report_chat') and progress.get():
-                progress.get()('')
-            if index == len(routes) - 1:
-                raise
-        else:
-            event['status'] = 'success'
-            return result
-        finally:
-            event['elapsed_seconds'] = round(time.monotonic() - started, 2)
-            if audit.get():
-                audit.get()(event)
+            started = time.monotonic()
+            event = {'role': role, 'model': config['model'], 'primary': config['primary'], 'attempt': config.get('attempt', 1),
+                     'provider': urlparse(config.get('base_url', '')).hostname}
+            try:
+                result = execute(config)
+                check_cancelled()
+            except Exception as error:
+                event.update(status='failed', error_type=type(error).__name__)
+                if isinstance(error, httpx.HTTPStatusError):
+                    event['http_status'] = error.response.status_code
+                if isinstance(error, ModelResponseError):
+                    event.update(error_stage=error.stage, error_details=error.details)
+                if role in ('analysis', 'report_chat') and progress.get():
+                    progress.get()('')
+                if isinstance(error, ModelResponseError) and error.stage in {
+                        'response_json', 'response_schema', 'response_validation'}:
+                    if not error.retry_messages or time.monotonic() >= config['correction_deadline']:
+                        raise
+                    if corrections is not None:
+                        corrections.retry(role, error)
+                    # Keep the latest draft and correction on the same provider and deadline.
+                    config['format_retry'] = error.retry_messages
+                    continue
+                if not provider_failure(error) or index == len(routes) - 1:
+                    raise
+                break
+            else:
+                event['status'] = 'success'
+                if corrections is not None:
+                    corrections.clear_retry(role)
+                return result
+            finally:
+                event['elapsed_seconds'] = round(time.monotonic() - started, 2)
+                if audit.get():
+                    audit.get()(event)
 
 
 def authorization(route, key):

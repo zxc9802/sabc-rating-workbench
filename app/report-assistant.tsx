@@ -90,7 +90,10 @@ export function ReportAssistant({ projectId, report, disabled, onRevise }: { pro
       </header>
       {expanded && <div id="report-qa-history" className="report-qa-history">
         {!turns.length && !job && <p className="source-location">可以问我评分依据、风险判断，或试点建议该怎么执行。</p>}
-        {turns.map(turn => <div className="report-qa-turn" key={turn.id}><p><strong>你：</strong>{turn.question}</p><ChatMarkdown evidence={report.snapshot.evidence}>{turn.reply}</ChatMarkdown>{onRevise && <button type="button" className="secondary" disabled={disabled || !!job || sending} onClick={() => onRevise(report.id, turn.id)}>根据此问题修订并生成新版本</button>}</div>)}
+        {turns.map(turn => <div className="report-qa-turn" key={turn.id}><p><strong>你：</strong>{turn.question}</p><ChatMarkdown evidence={report.snapshot.evidence}>{turn.reply}</ChatMarkdown>{onRevise && <div className="report-revision-action">
+          <button type="button" className="secondary" aria-describedby={`report-revision-note-${turn.id}`} disabled={disabled || !!job || sending} onClick={() => onRevise(report.id, turn.id)}>根据此问题修订并生成新版本</button>
+          <span id={`report-revision-note-${turn.id}`}>仅在需要纠正报告时使用；将重新核查原始资料，生成新版本并保留旧报告。</span>
+        </div>}</div>)}
         {job && <div className="report-qa-turn"><p><strong>你：</strong>{job.question}</p>{job.partial_reply ? <ChatMarkdown streaming evidence={report.snapshot.evidence}>{job.partial_reply}</ChatMarkdown> : <p role="status">正在结合这份报告回答…</p>}</div>}
       </div>}
       {error && <p className="report-qa-error" role="alert">{error} <button type="button" className="text-button" onClick={() => setReload(v => v + 1)}>重新连接</button></p>}
