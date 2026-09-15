@@ -97,6 +97,20 @@ a { color: var(--accent); }
 .dossier-figure figcaption { display: flex; align-items: center; justify-content: center; gap: 12px; color: #d5d2c8; font-size: 11px; letter-spacing: .04em; min-height: 30px; }
 .dossier-figure figcaption i { font-style: normal; color: #dcbf8c; margin: 0 7px; }
 .scene-toggle { width: 27px; height: 27px; display: grid; place-items: center; padding: 0; }
+.company-prompt { gap: 16px; padding: 20px 22px; margin: 0 0 20px; border: 1px solid #e6bf7d80; border-radius: 18px; color: var(--ink); background: linear-gradient(115deg, #d5aa5f33, #b28c4712 60%, #d6ad6626), #29313bd9; box-shadow: var(--glass-inset), 0 5px 24px #b58a3e12; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.company-prompt:hover { background: linear-gradient(115deg, #d5aa5f45, #b28c4720 60%, #d6ad6636), #29313bed; border-color: #f1c780b3; }
+.company-prompt-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 1px solid #f1c78055; border-radius: 13px; background: #f1c78016; color: var(--accent); }
+.company-prompt-copy { min-width: 0; }
+.company-prompt strong { font-size: 16px; color: #ffe4b5; line-height: 1.6; }
+.company-prompt small { margin-top: 5px; font-size: 12px; color: #d6cdbc; line-height: 1.8; }
+.company-prompt-action.primary { min-height: 46px; font-size: 13px; white-space: nowrap; }
+@media (max-width: 900px) {
+  .company-prompt { display: grid; grid-template-columns: 40px minmax(0, 1fr); padding: 18px; gap: 12px; margin: 0 0 20px; }
+  .company-prompt-icon { width: 40px; height: 40px; align-self: start; }
+  .company-prompt strong { font-size: 15px; }
+  .company-prompt small { font-size: 12px; }
+  .company-prompt-action { grid-column: 1 / -1; justify-content: center; width: 100%; margin-left: 0; }
+}
 .start-layout { display: flex; flex-direction: column; gap: 20px; }
 .project-composer { border-radius: 20px; }
 .composer-heading { padding-top: 22px; }.composer-heading h2 { font-size: 17px; font-weight: 550; }
@@ -119,9 +133,6 @@ select { color-scheme: dark; } option { color: var(--ink); background: #28333d; 
 .grade-S { color: #b4e2c8; background: #518b6e29; }.grade-A { color: #b9d5ef; background: #678aa429; }
 .grade-B { color: #f1d298; background: #a582492b; }.grade-C { color: #ecb4a9; background: #a45e512b; }.grade-NR { color: #ccd5dc; background: #a6b5c321; }
 .nr-explainer { border: 0; border-left: 1px solid var(--line); padding: 0 0 0 18px; font-size: 10px; }
-.company-prompt { color: #ddd6c6; background: linear-gradient(120deg, #c3a9761f, #d5e4f20a); border-color: #e4cd9d38; box-shadow: var(--glass-inset); border-radius: 15px; padding-block: 15px; margin-bottom: 22px; }
-.company-prompt:hover { background: #d6bd8921; }.company-prompt strong { font-size: 13px; font-weight: 500; }.company-prompt small { color: var(--muted); }
-.company-prompt-action { display: inline-flex; gap: 8px; align-items: center; font-size: 12px; white-space: nowrap; margin-left: auto; }
 .recent-projects { margin-top: 28px; }
 .project-list { border-radius: 16px; }.project-row { background: transparent; border-color: var(--line); }
 .project-row:hover { background: #d7e2ee0d; }.document-icon, .project-row > svg:last-child { color: #c6d0d8; }
@@ -225,7 +236,7 @@ select { color-scheme: dark; } option { color: var(--ink); background: #28333d; 
   .primary, .secondary { min-height: 40px; }.primary { padding-inline: 14px; }
   input, textarea, select, .field input, .field select, .field textarea, .chat-form textarea, .idea-input, .composer-options input { font-size: 16px; }
   .decision-guide { padding: 15px; }.grade-key { grid-template-columns: repeat(2, 1fr); gap: 12px; }.grade-key > div { font-size: 10px; }.grade-key > div:nth-child(2) { border: 0; }
-  .company-prompt { flex-wrap: wrap; gap: 10px; padding: 16px; margin-top: 0; }.company-prompt > span:nth-child(2) { flex: 1; }.company-prompt strong { font-size: 12px; }.company-prompt-action { font-size: 11px; }
+  .company-prompt { gap: 12px; padding: 16px; }.company-prompt strong { font-size: 15px; }
   .project-row { padding: 17px 10px; gap: 10px; }.project-row-title strong { font-size: 12px; }.project-delete { margin-right: 10px; }
   .project-tabs { flex-wrap: nowrap; gap: 2px; border-radius: 14px; padding: 4px; }
   .project-tabs button { font-size: 10px; padding: 9px 6px; white-space: normal; min-width: 0; }
