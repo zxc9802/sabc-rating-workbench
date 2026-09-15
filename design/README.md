@@ -15,8 +15,9 @@ only geometry and materials are exported to GLB. No external textures or paid
 assets are required. Three.js and its GLTFLoader are MIT licensed.
 
 `app/dossier-scene.tsx` loads Three.js and the GLB near the viewport, uses a capped
-pixel ratio, pauses offscreen/in background tabs, and releases GPU resources when
-the homepage unmounts. A pause button and reduced-motion preference control motion.
+pixel ratio, and releases GPU resources when the homepage unmounts. The model has a
+fixed pose with no automatic motion or pointer rotation. It renders on load,
+resize, and return to view, without a continuous animation loop.
 WebGL/model failures retain the rendered poster and do not block the workbench.
 
 `app/glass.css` applies the shared dark glass palette to existing components.
