@@ -14,6 +14,7 @@ export function DossierScene() {
   useEffect(() => { pausedRef.current = paused; refresh.current(); }, [paused]);
   useEffect(() => {
     const element = host.current!;
+    setStatus('loading');
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     pausedRef.current = motion.matches;
     setPaused(motion.matches);
@@ -62,6 +63,7 @@ export function DossierScene() {
         let visible = true;
         let pointerX = 0, pointerY = 0;
         let ready = false;
+        let rendered = false;
         const disposeModel = (model: import('three').Object3D) => model.traverse(object => {
           if (object instanceof THREE.Mesh) {
             object.geometry.dispose();
@@ -81,6 +83,10 @@ export function DossierScene() {
           }
           last = now;
           renderer.render(scene, camera);
+          if (!rendered) {
+            rendered = true;
+            setStatus('ready');
+          }
           if (!pausedRef.current) frame = requestAnimationFrame(draw);
         }
         const wake = () => { if (!frame && !disposed) frame = requestAnimationFrame(draw); };
@@ -138,7 +144,6 @@ export function DossierScene() {
         if (disposed || released) { disposeModel(gltf.scene); return; }
         sculpture.add(gltf.scene);
         ready = true;
-        setStatus('ready');
         resize();
       } catch {
         release();
@@ -161,7 +166,7 @@ export function DossierScene() {
 
   return <figure className="dossier-figure" data-scene-state={status}>
     <div className="dossier-viewport" ref={host} role="img" aria-label="三维项目评估档案：项目资料与证据汇入八维评估，形成 S、A、B、C 评级建议">
-      <img className={'dossier-poster ' + (status === 'ready' ? 'is-hidden' : '')} src="/models/sabc-dossier.png" width={1000} height={850} alt="" />
+      <img className={'dossier-poster ' + (status === 'ready' ? 'is-hidden' : '')} src="/models/sabc-dossier.png" width={1000} height={850} fetchPriority="high" alt="" />
     </div>
     <figcaption><span>资料 <i>→</i> 八维判断 <i>→</i> 评级建议</span>{status === 'ready' && <button type="button" className="scene-toggle" aria-label={paused ? '播放三维模型动画' : '暂停三维模型动画'} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? <Play size={12} /> : <Pause size={12} />}</button>}</figcaption>
   </figure>;

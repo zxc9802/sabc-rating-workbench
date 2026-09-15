@@ -83,16 +83,18 @@ a { color: var(--accent); }
 .status-dot { background: var(--accent); }.status-dot.ready { background: #a2d8ba; }
 .page-content { max-width: 1360px; padding-top: 32px; }
 .page-footer { color: var(--muted); background: #ffffff02; }
-.home-hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: center; min-height: 345px; margin: -10px 0 20px; }
+.home-hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: center; min-height: 315px; margin: -10px 0 20px; }
 .home-heading { margin: 0; position: relative; z-index: 1; }
 .home-eyebrow { display: block; font-size: 11px; font-weight: 500; letter-spacing: .16em; color: #d6c4a6; margin-bottom: 25px; }
 .home-heading h1 { font-size: clamp(32px, 3.3vw, 54px); line-height: 1.4; font-weight: 650; letter-spacing: -.045em; margin: 0 0 20px; }
 .home-heading p { font-size: 13px; color: #cad0d4; max-width: 38em; line-height: 1.9; }
 .dossier-figure { margin: 0 -24px 0 -30px; min-width: 0; position: relative; }
 .dossier-figure::before { content: ''; position: absolute; width: 75%; height: 18%; left: 15%; bottom: 17%; background: radial-gradient(ellipse, #e1b87745, #bac4cd10 42%, transparent 70%); filter: blur(15px); }
-.dossier-viewport { height: clamp(300px, 28vw, 390px); position: relative; }
+.dossier-viewport { height: clamp(280px, 25vw, 350px); position: relative; }
 .dossier-viewport canvas, .dossier-poster { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
-.dossier-poster { object-fit: contain; transition: opacity .7s; }
+.dossier-viewport canvas { opacity: 0; }
+.dossier-figure[data-scene-state='ready'] canvas { opacity: 1; }
+.dossier-poster { z-index: 1; object-fit: contain; transition: opacity .7s; }
 .dossier-poster.is-hidden { opacity: 0; pointer-events: none; }
 .dossier-figure figcaption { display: flex; align-items: center; justify-content: center; gap: 12px; color: #d5d2c8; font-size: 11px; letter-spacing: .04em; min-height: 30px; }
 .dossier-figure figcaption i { font-style: normal; color: #dcbf8c; margin: 0 7px; }
@@ -205,16 +207,16 @@ select { color-scheme: dark; } option { color: var(--ink); background: #28333d; 
 .stage-dimensions > div { background: #d4e3ef08; box-shadow: inset 0 1px 1px #fff1; }
 .stage-steps { color: var(--muted); }
 
-@media (min-width: 1600px) { .home-hero { min-height: 420px; }.home-heading h1 { font-size: 60px; }.dossier-viewport { height: 430px; }.idea-input { min-height: 130px; } }
+@media (min-width: 1600px) { .home-hero { min-height: 380px; }.home-heading h1 { font-size: 60px; }.dossier-viewport { height: 380px; }.idea-input { min-height: 130px; } }
 @media (max-width: 1150px) {
-  .home-hero { min-height: 300px; }.dossier-viewport { height: 310px; }
+  .home-hero { min-height: 280px; }.dossier-viewport { height: 280px; }
   .home-heading h1 { font-size: 35px; }.home-eyebrow { font-size: 9px; }
   .decision-guide { grid-template-columns: 1fr; gap: 10px; }.nr-explainer { border: 0; border-top: 1px solid var(--line); padding: 10px 0 0; }.nr-explainer br { display: none; }.nr-explainer small { margin-left: 12px; }
   .context-panel { padding: 18px 15px; }.project-tabs button { padding-inline: 12px; }
 }
 @media (max-width: 900px) {
   .home-hero { grid-template-columns: 1fr; gap: 0; }.home-heading { padding-top: 12px; }.home-heading h1 { font-size: 38px; }.home-heading p { max-width: none; }
-  .dossier-figure { margin: -12px 0 4px; }.dossier-viewport { height: 300px; }
+  .dossier-figure { margin: -12px 0 4px; }.dossier-viewport { height: 280px; }
   .decision-guide { display: grid; }.context-panel { gap: 15px; }
   .project-tabs { flex-wrap: wrap; }.project-tabs button { flex: 1; justify-content: center; }
   .form-aside { display: block; }.company-layout { gap: 22px; }
@@ -229,7 +231,7 @@ select { color-scheme: dark; } option { color: var(--ink); background: #28333d; 
   .home-hero { margin-top: 0; margin-bottom: 22px; }
   .home-heading { text-align: center; }.home-eyebrow { margin-bottom: 16px; font-size: 10px; }
   .home-heading h1 { font-size: 36px; line-height: 1.38; }.home-heading p { font-size: 12px; margin-bottom: 4px; }
-  .dossier-figure { margin: 0 -8px; }.dossier-viewport { height: 280px; }
+  .dossier-figure { margin: 0 -8px; }.dossier-viewport { height: 260px; }
   .dossier-figure figcaption { font-size: 10px; }
   .composer-heading h2 { font-size: 16px; }.idea-input { min-height: 144px; }
   .composer-options { max-width: none; }.composer-bottom { gap: 8px; }.composer-bottom > span { font-size: 9px; }
