@@ -21,6 +21,7 @@ from sabc.standard import REPORT, ground_low_scores, validate_rubric_reasons
 from sabc.streaming import progress, check_cancelled
 from sabc.streaming import completion
 from sabc.report_corrections import ReportCorrections, MAX_REVISIONS
+from sabc.report_inputs import basis as report_basis, PROMPT as REPORT_INPUT_PROMPT
 
 VERSION = 4
 PERSPECTIVES = {'facts', 'business', 'risk', 'consistency'}
@@ -70,17 +71,19 @@ collection任务：只修正访谈提取与覆盖理由；proposal和stage_revie
 若检查项将用户明确缺失的资料误记为known，用coverage_statuses修正，例如{"opportunity":{"comparison":"unknown"}}。只允许依据该项现存用户原话恢复unknown/external/future，不能改引文、增加核验或升级为known。应在首次检查时同时纠正状态和理由；不改字段则用{}。needs_answer专指必须向用户发问，与证据不足不同；没有questions不能标needs_answer。
 framing结构为{project_type,business_stage,purpose,quotes}；project_type仅growth/internal/strategic/asset/null，business_stage仅unknown/idea/pilot/operating，purpose仅unknown/new_project/continue/expand/research；quotes逐字段引用用户原话。对外收费的商业产品是growth，即使与战略相符也不能据此改为strategic。internal只指本企业自用的提效项目；strategic是主要建设组织能力而非直接销售产品；asset是以重资产投入为主。实际已商业化为operating，不能按工作台pre判成idea。外部整理者无经营授权时优先purpose=research，即使研究问题是继续经营或增投；目的范围与经营阶段分开。已有正确分类不重复提交。新增或改变任何分类同样必须提供findings并标revise。
 questions仅用于原始信息仍相互冲突且会影响本次判断、必须由用户回答的问题，每项{dimension,checkpoint,question,source_id,quote}。已明确unknown/external/future的项不得重新追问。能用原文纠正就直接纠正，不向用户问是否允许纠错。问题使用普通访谈语气，不出现审查、复核、顾问、私董会、后台流程或内部字段。没有问题用[]。
-report任务：审查candidate报告草稿、程序计算结果及原始问答。允许依照原文纠正模型提取的project_patch、coverage_reasons、coverage_statuses和framing；原始描述、用户回答、证据内容及等级不可修改。禁止重开访谈，questions为空；无法解决的证据缺口在报告保留未知。需修订时proposal返回完整修正版（不是片段），stage_review只在行动摘要需改时返回，其他用null。等级始终由程序重算，未知保持null。
+report任务：审查candidate报告草稿、程序计算结果及原始问答。允许依照原文纠正模型提取的project_patch、coverage_reasons、coverage_statuses和framing；原始描述、用户回答、证据内容及等级不可修改。禁止重开访谈，questions为空；无法解决的证据缺口在报告保留未知。需修订时proposal返回完整修正版（不是片段），只修改findings指向的字段及依赖它的摘要、建议、验证条件；其余正确字段原样保留，避免全文重写引入新错误。stage_review只在行动摘要需改时返回，其他用null。等级始终由程序重算，未知保持null。
+修订面向读者的报告文字时，结合上下文用通顺的整句说明证据已验证到哪一步、还缺什么及其影响，不只堆砌E0至E3代码，也不机械替换代码。保留必要代码时只在实际含义后的括号中辅助标注；不改原话引文和内部字段，不为这一文风要求另开一轮修订。
 rule_issues是程序已经发现的评分口径错误。若非空，须给出有原文依据的findings和完整proposal修订，不能只修改stage_review或声称全部通过。商业产品为客户提效不等于本公司内部提效，不能在商业市场维度改用内部任务量锚点。
 报告proposal须保留完整八维、非空reason，至少一项assumption，且每项validation_method/pass_threshold/fail_threshold均非空。未知时写取得依据的方法和待确认的业务条件，不虚构数值阈值，不删除验证任务。
 需要修订必须提供findings与具体修订；修正内容仍待下一次核查，不能在同一次输出声称已复核通过。上一轮修订已正确时不重复提交相同修改。
 不能把关键证据不足当作系统错误或强制补齐；NR可以是正确结果。审查通过仅表示本次内容一致，不代表证据已独立验证。
 只报告需要实际修正的实质错误，不做文风润色，不把正确保留的未知列为缺陷。一个维度既有已知子项又有未知子项时，整体unknown是合法的信息不足状态，不要求改为partial，也不因此改写理由。project是已经合并待确认修订的当前版本，不存在另一份需要同步的旧摘要；历史对话只用来追溯事实，不回头修订历史assistant发言。
+“缺少实测记录”用于说明报告的证据缺口时，不等于断言项目从未测试；若用户已明确尚未开展试验，“尚无实测”也符合原话。只有实际改变事实含义才修订，不为把“缺少”换成“尚未取得”重写完整报告。先判断句子的对象、范围和上下文，再判断是否遗漏限定。
 第二次调用会带previous_findings；逐项确认这些问题已解决后再检查当前内容。已有修订等价表达原意就通过，不要求逐字按你的偏好表述；发现新的实质错误仍不能放行。
 完全通过的精确格式：{"checks":{"facts":"pass","business":"pass","risk":"pass","consistency":"pass"},"findings":[],"project_patch":{},"coverage_reasons":{},"framing":null,"questions":[],"proposal":null,"stage_review":null}。
 逐句比对八维reason和各items.quote，不能因为检查项已verified就认为摘要正确；verified仅表示引用匹配。source_limit_flags列出程序发现的限定丢失，必须改为与原文一致的有限判断，不能直接标pass。若framing缺失且原文能明确判断，应补充有原文依据的分类并作为修订再次检查。
 items中的knowledge/subject只是程序派生的原话限定：not_obtained未取得资料、unknown不清楚、reported_absent用户明确否定，不能互换，也不表示已经独立核验。研究者个人的投入或损失上限不能替代运营方数据。
-source_limit_flags也会指向proposal及review；须修正对应完整proposal或stage_review。NR摘要由程序根据原话和缺口状态生成，无需另写摘要；其他报告内容仍须保留来源限定。result中的重复表述会随proposal修订由程序重算。
+source_limit_flags也会指向proposal及review；须修正对应完整proposal或stage_review。NR摘要由程序根据本次proposal中未知维度的missing_evidence生成，不再引用旧访谈缺口；须将每项缺口更新到本次范围，排除范围之外的未知不能作为暂缓依据，无需另写NR摘要；其他报告内容仍须保留来源限定。result中的重复表述会随proposal修订由程序重算。
 '''
 
 
@@ -108,7 +111,12 @@ def source_limit_flags(coverage, candidate=None):
                 yield {'target': path, 'claim': claim, 'source_limits': [quote]}
     # Result text is derived from the proposal; validate its editable source once.
     if candidate:
-        flags.extend(walk({k: candidate[k] for k in ('proposal', 'review') if k in candidate}, 'candidate'))
+        editable = {k: candidate[k] for k in ('proposal', 'review') if k in candidate}
+        if isinstance(editable.get('review'), dict):
+            # Coverage was checked per dimension above. Checking this copied tree
+            # against every dimension's limits confuses unrelated test scopes.
+            editable['review'] = {k: v for k, v in editable['review'].items() if k != 'coverage'}
+        flags.extend(walk(editable, 'candidate'))
     return flags
 
 
@@ -139,11 +147,11 @@ def packet(mode, project, company, evidence, candidate):
         candidate = {'result': candidate['result'], 'proposal': candidate['snapshot']['proposal'],
                      'review': current['lifecycle']['review']}
         try:
-            validate_rubric_reasons(candidate['proposal'], current)
-            report_grounding.validate(candidate['proposal'], project, company, evidence)
+            report_grounding.validate_report(candidate['proposal'], project, company, evidence)
         except ValueError as error:
             rule_issues.append(str(error))
     return {'mode': mode, 'sources': sources, 'conversation': dialogue,
+            **({'report_basis': report_basis(project)} if mode == 'report' else {}),
             'project': current,
             'evidence': [{k: v for k, v in e.items() if k not in ('content', 'images', 'frames')} for e in evidence],
             'candidate': candidate, 'source_limit_flags': source_limit_flags(life.get('coverage', {}), candidate),
@@ -197,6 +205,9 @@ def compact_context(context):
 
 def validate(value, context):
     result = Review.model_validate(value).model_dump(mode='json')
+    if result.get('proposal'):
+        report_grounding.normalize_evidence_refs(result['proposal'], context['evidence'], context['sources'])
+    report_errors = []
     if set(result['checks']) != PERSPECTIVES:
         raise ValueError('须完成全部四项检查')
     for item in result['findings'] + result['questions']:
@@ -241,7 +252,10 @@ def validate(value, context):
                 if (key not in CHECKS.get(dim, {}) or prior.get('source') != 'user'
                         or not prior.get('verified') or not UNAVAILABLE.search(quote)
                         or not any(quote in text for ident, text in context['sources'].items() if ident == 'description' or ident.startswith('turn-'))):
-                    raise ValueError('检查项状态修订须依据该项已匹配的用户未知原话')
+                    raise ValueError(
+                        f'coverage_statuses.{dim}.{key}：检查项状态修订须依据该项已匹配的用户未知原话；'
+                        f'该项现有原话为「{quote}」。当前不能据此修改状态，请移除此项状态修订，'
+                        '报告中的证据缺口仍可按实际来源在missing_evidence中说明。')
                 prior['status'] = status
         for dim, reason in result['coverage_reasons'].items():
             coverage[dim]['reason'] = reason
@@ -255,19 +269,29 @@ def validate(value, context):
             # The displayed NR summary is rebuilt from original source limitations.
             if candidate.get('result', {}).get('grade') == 'NR' and candidate.get('review'):
                 candidate['review']['summary'] = candidate['result'].get('deferral_reason', '')
-        if source_limit_flags(coverage, candidate):
-            raise ValueError('仍把资料未知或未取得写成客观不存在，须按对应原文修正覆盖理由或报告内容')
+        limits = source_limit_flags(coverage, candidate)
+        if limits:
+            message = '仍把资料未知或未取得写成客观不存在，须按对应原文修正覆盖理由或报告内容：\n' + '\n'.join(
+                f"{flag['target']}：待修正句「{flag['claim']}」；原话限定「{flag['source_limits'][0]}」"
+                for flag in limits)
+            if context['mode'] == 'report':
+                report_errors.append(message)
+            else:
+                raise ValueError(message)
     if context['mode'] == 'report' and result['questions']:
         raise ValueError('报告审查不能重开访谈，证据缺口须在报告保留')
     if context['mode'] == 'report':
         effective = {**context['project'], **result['project_patch']}
         if result['framing'] and result['framing'].get('project_type'):
             effective['project_type'] = result['framing']['project_type']
-        validate_report_proposal(result['proposal'] or context['candidate']['proposal'], effective, context['evidence'])
-        report_grounding.validate(result['proposal'] or context['candidate']['proposal'],
-            {**effective, 'messages': context['conversation']}, json.loads(context['sources']['company']),
-            [{**item, 'content': context['sources'].get('evidence-' + item['id'], '')} for item in context['evidence']],
-            required=context['candidate']['proposal'].get('grounding_version') == report_grounding.VERSION)
+        try:
+            report_grounding.validate_report(result['proposal'] or context['candidate']['proposal'],
+                {**effective, 'messages': context['conversation']}, json.loads(context['sources']['company']),
+                [{**item, 'content': context['sources'].get('evidence-' + item['id'], '')} for item in context['evidence']],
+                required=context['candidate']['proposal'].get('grounding_version') == report_grounding.VERSION)
+        except ValueError as error:
+            report_errors.append(str(error))
+        report_grounding.raise_issues(report_errors)
     for item in result['questions']:
         dim, key = item['dimension'], item['checkpoint']
         prior = context['project']['lifecycle']['coverage'].get(dim, {}).get('items', {}).get(key, {})
@@ -290,22 +314,24 @@ def validate(value, context):
 
 
 def validate_report_proposal(proposal, project, evidence, content=True):
-    if set(proposal['dimensions']) != set(DIMENSIONS) or (content and any(not d['reason'].strip() for d in proposal['dimensions'].values())):
-        raise ValueError('报告须保留完整八维及非空理由')
-    if content and (not proposal['assumptions'] or any(not all(a.get(k, '').strip() for k in ('validation_method', 'pass_threshold', 'fail_threshold')) for a in proposal['assumptions'])):
-        raise ValueError('报告须保留至少一项假设和非空validation_method/pass_threshold/fail_threshold；未知写待确认的业务条件，不编数值')
-    cited = list(proposal['dimensions'].values()) + proposal['assumptions'] + proposal['vetoes']
-    if any(ref not in {item['id'] for item in evidence} for item in cited for ref in item['evidence_ids']):
-        raise ValueError('报告不能引用不存在的证据')
-    if proposal.get('grounding_version') == report_grounding.VERSION and set(proposal.get('decision_facts', {})) != set(report_grounding.DECISION_FIELDS):
-        raise ValueError('报告缺少展示所需的decision_facts字段')
+    errors = []
+    try:
+        report_grounding.validate_shape(proposal, evidence, content)
+    except ValueError as error:
+        errors.append(str(error))
     if content:
-        validate_rubric_reasons(proposal, project)
+        try:
+            validate_rubric_reasons(proposal, project)
+        except ValueError as error:
+            errors.append(str(error))
+    report_grounding.raise_issues(errors)
 
 
 def delivery(value, context):
     """Decode the final revision without another content review."""
     result = Review.model_validate(value).model_dump(mode='json')
+    if result.get('proposal'):
+        report_grounding.normalize_evidence_refs(result['proposal'], context['evidence'], context['sources'])
     if set(result['project_patch']) - ((set(PROJECT_FIELDS) - {'name'}) | {'budget_requested'}):
         raise ValueError('不能修改原始描述、名称或未经授权的字段')
     if any(isinstance(v, dict) and '$ref' in v for v in result['project_patch'].values()):
@@ -337,7 +363,7 @@ def _request(settings, key, context):
     def execute(route):
         final_revision = context.get('final_revision') or (corrections is not None and corrections.final)
         deadline = min(time.monotonic() + timeout, route.get('correction_deadline', float('inf')))
-        task_prompt = PROMPT + (report_grounding.PROMPT if context.get('mode') == 'report' else '') + (REFERENCE_PROMPT if use_references else '')
+        task_prompt = PROMPT + (report_grounding.PROMPT + REPORT_INPUT_PROMPT if context.get('mode') == 'report' else '') + (REFERENCE_PROMPT if use_references else '')
         if context.get('previous_findings'):
             task_prompt += ('\n本次是修订后的验证：逐项检查previous_findings是否已由previous_changes修复，'
                             '并核对修改是否引入新的事实或计算矛盾。不要重新开展一轮开放式质疑，'
@@ -367,6 +393,10 @@ def _request(settings, key, context):
                     return delivery(parse_object(raw), context) if final_revision else validate(parse_object(raw), context)
                 except ValueError as error:
                     failure = format_failure(error, raw)
+                    if context.get('mode') == 'report':
+                        failure.retry_messages[-1]['content'] += (
+                            '\n这是报告内容补正：一次处理所列全部问题，依据原始资料修正相关事实、评分或来源限定。'
+                            '同步受影响的理由、缺口与建议，其余正确字段原样保留；不受格式修复中保留原评分的要求限制。')
                     if corrections is not None or attempt or route.get('single_attempt') or not route.get('primary') or time.monotonic() >= deadline:
                         raise failure
                     payload['messages'] += failure.retry_messages

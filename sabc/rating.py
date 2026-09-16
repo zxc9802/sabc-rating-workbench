@@ -25,9 +25,9 @@ S_CONDITIONS = ('repeatable', 'resources_available', 'portfolio_feasible', 'revi
 
 def upgrade_requirements():
     return {
-        'upgrade_a': f'总分至少{GRADE_THRESHOLDS["A"]}分，证据至少E2，无一票否决或B级封顶，投入在可用资源范围内。仍须按全部规则计算。',
-        'upgrade_s': f'总分至少{GRADE_THRESHOLDS["S"]}分，证据E3；' + '、'.join(DIMENSIONS[k][0] for k in S_DIMENSIONS)
-                     + '五维原始分均至少4分；重复验证成立、核心资源可获得、机会成本与资源组合合理、反方审查通过，无否决或封顶，值得集中核心资源。重复验证可来自同一项目多个周期，不强制新增区域或产品。',
+        'upgrade_a': f'需要通过本项目的小规模试点或其他可直接适用的验证，取得已核验的结果，支持各项关键假设（证据达到E2或以上）。同时，业务总分须至少{GRADE_THRESHOLDS["A"]}分，无一票否决或只能小规模验证的限制，投入也须在可用资源范围内。满足证据要求不代表自动升为A级，仍须综合上述条件重新评估。',
+        'upgrade_s': f'需要用多个周期或样本的重复验证结果，支持各项关键假设（证据达到E3）。同时，业务总分须至少{GRADE_THRESHOLDS["S"]}分，' + '、'.join(DIMENSIONS[k][0] for k in S_DIMENSIONS)
+                     + '这五维的原始分均须至少4分；核心资源可获得，机会成本与资源组合合理，主要风险及反对意见已审查，且无否决或评级上限限制，才具备集中资源投入的条件。重复验证可以在同一项目内完成，不强制新增区域或产品。',
     }
 
 

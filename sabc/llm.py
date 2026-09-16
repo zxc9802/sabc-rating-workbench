@@ -153,6 +153,8 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
     system += REPORT if report_requested else INTERVIEW
     if report_requested:
         system += report_grounding.PROMPT
+        from sabc.report_inputs import PROMPT as REPORT_INPUT_PROMPT
+        system += REPORT_INPUT_PROMPT
         system += '\n本轮任务：第一阶段问答已完成，后端开始整理报告草稿。根据已收集信息和已有证据生成完整proposal与stage_review（包括试点建议），不再提问或独立审查。questions为空，project_patch为空，dimension_coverage填空对象（程序保留已确认的访谈覆盖状态，无需重写），pilot_plan为null，reply只写“报告已生成。”。未知依据如实保留，不能编造。'
     else:
         system += '\n本轮任务：仅整理事实与八维覆盖状态，不生成或预备评分草稿。proposal、stage_review、pilot_plan必须为null。有问题直接追问；无可答缺口且questions为空时，reply只写“第一阶段问答已完成，正在整理报告。”。不要另说八维收集完毕，报告整理与审查由程序在本轮问答完成后独立执行。每个覆盖理由只需简洁说明事实或缺口。'
@@ -166,11 +168,21 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
     payload['messages'][0]['content']+='\n面向用户的reply、评分理由及验证说明禁止出现内部证据ID、数据库编号、字段名或growth等枚举代码。引用资料使用可读标题与来源网址；项目类型使用中文名称。内部ID仅允许出现在结构化evidence_ids等关联字段中。'
     payload['messages'][0]['content'] += FRAMING_PROMPT if not report_requested else '\n沿用输入framing中的项目类型、真实经营阶段与本次评估目的；framing返回null，不把工作台历史阶段当真实经营阶段。'
     if report_requested:
+        report_schema = ModelReply.model_json_schema()
+        proposal_schema = Proposal.model_json_schema()
+        report_schema.setdefault('$defs', {}).update(proposal_schema.pop('$defs', {}))
+        report_schema['properties']['proposal'] = proposal_schema
+        for name in ('Dimension', 'Assumption', 'Veto'):
+            refs_schema = report_schema['$defs'][name]['properties']['evidence_ids']
+            if evidence:
+                refs_schema['items']['enum'] = [e['id'] for e in evidence]
+            else:
+                refs_schema['maxItems'] = 0
         payload['messages'][0]['content'] += ('\n本轮为报告整理，输出完整JSON对象，严格遵循以下JSON Schema。'
             'proposal与stage_review必须为对象，questions、question_targets、data_requests为空数组。'
             'assessment_scope.source_id逐字复制输入conversation.source_id，或使用description，不用消息序号自行推算；'
             'quote逐字复制该来源连续原文。\n' +
-            json.dumps(ModelReply.model_json_schema(),ensure_ascii=False,separators=(',',':')))
+            json.dumps(report_schema,ensure_ascii=False,separators=(',',':')))
     payload['messages'] += settings.get('format_retry', [])
     if final_revision:
         payload['messages'][0]['content'] += '\n这是第4次也是最后一次修改。依据已有修改意见返回可直接交付的完整报告，不再提问或要求下一轮审查。'
@@ -216,27 +228,17 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
                         raise ValueError('阶段分析必须覆盖八个维度')
                     if parsed['proposal'] is not None:
                         parsed['proposal']=Proposal.model_validate(parsed['proposal']).model_dump()
-                        if report_requested:
-                            dimensions = parsed['proposal']['dimensions']
-                            if set(dimensions) != set(DIMENSIONS) or (not final_revision and any(not d['reason'].strip() for d in dimensions.values())):
-                                raise ValueError('报告须含完整八维及各维非空评分理由；模型漏写不能解释为用户资料不足。')
-                            evidence_ids = {e['id'] for e in evidence}
-                            cited = list(dimensions.values()) + parsed['proposal']['assumptions'] + parsed['proposal']['vetoes']
-                            if any(ref not in evidence_ids for item in cited for ref in item['evidence_ids']):
-                                raise ValueError('报告引用了输入中不存在的证据ID；须逐字使用现有ID，没有对应依据则留空，不能猜测或改写ID。')
-                            if final_revision and parsed['proposal']['grounding_version'] == report_grounding.VERSION:
-                                if set(parsed['proposal']['decision_facts']) != set(report_grounding.DECISION_FIELDS):
-                                    raise ValueError('报告缺少展示所需的decision_facts字段')
-                            if not final_revision:
-                                from sabc.standard import validate_rubric_reasons
-                                validate_rubric_reasons(parsed['proposal'], project)
+                        report_grounding.normalize_evidence_refs(parsed['proposal'], evidence,
+                            report_grounding.sources(project, company, evidence, messages))
                         from sabc.standard import ground_low_scores
                         ground_low_scores(parsed['proposal'], project, company, evidence, messages)
-                        assumptions=parsed['proposal']['assumptions']
-                        if not final_revision and (not assumptions or not all(all(a[k].strip() for k in ('validation_method','pass_threshold','fail_threshold')) for a in assumptions)):
+                        if report_requested:
+                            report_grounding.validate_report(parsed['proposal'], project, company, evidence, messages,
+                                                             required=True, content=not final_revision)
+                        elif not parsed['proposal']['assumptions'] or not all(
+                                all(a[k].strip() for k in ('validation_method', 'pass_threshold', 'fail_threshold'))
+                                for a in parsed['proposal']['assumptions']):
                             raise ValueError('模型评分建议缺少完整的关键假设及验证条件，请重试。')
-                        if report_requested and not final_revision:
-                            report_grounding.validate(parsed['proposal'], project, company, evidence, messages, required=True)
                     if project.get('lifecycle') and not report_requested:
                         from sabc.checkpoints import normalize
                         normalize(parsed, project, company, evidence, messages)
@@ -248,7 +250,8 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
                     if report_requested:
                         failure.retry_messages[-1]['content'] += ('\n本轮为报告校验补正：若错误涉及来源、评分或用户确认状态，'
                             '须依据原始资料重新判断并修正所有同类问题，必要时将分数或事实恢复未知。'
-                            '不能为了保留原分数改写引文，不能将未知原话标reported；不受“保留原评分”的格式修复要求限制。')
+                            '不能为了保留原分数改写引文，不能将未知原话标reported；不受“保留原评分”的格式修复要求限制。'
+                            '一次处理所列全部问题，只修订相关字段及受影响的摘要、建议和验证条件；其余正确内容保持原样。')
                     if corrections is not None or attempt or settings.get('deepseek') or settings.get('single_attempt') or time.monotonic() >= deadline:
                         raise failure
                     payload['messages'] += failure.retry_messages

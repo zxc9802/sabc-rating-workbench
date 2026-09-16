@@ -11,6 +11,7 @@ INTERVIEW = '''
 '''
 
 REPORT = '''
+报告面向不了解内部评级术语的外部读者。讨论证据时，结合当前项目用完整、通顺的句子说明已有材料、核验情况、尚缺的验证及其对决策的影响；不能只写“证据E0”或“达到E2”，也不要把代码逐字替换成长说明。需要保留E0至E3时，先说实际含义，再在首次出现处用括号标注，后文沿用自然说法。E0表示关键判断尚无已核验的支持，可能是设想、口述或尚待核验的材料，不等于完全没有资料或没有做过测试；E1表示已有间接、外部或适用性受限的依据；E2表示关键假设已有核验过的小规模直接验证支持；E3表示关键假设已有核验过的多周期或多样本重复验证支持。证据强度不等于项目好坏，达到证据要求也不保证升级。引用的原话、原始证据和JSON内部字段保持原样。
 报告按V1.0标准说明为何值得占用有限资源。先在本次分析内检验最可能失败的前提、竞争优势、投资回报、主业资源冲突和被低估的成本，再形成分数与建议；不新增独立调用。cons至少3条最强且互不重复的具体反对理由，分别覆盖适用的竞争、投资与内部资源视角，标明事实/推断/待验证，并与相应维度理由、关键假设或限制一致；pros至少3条具体有依据的支持理由，不把同一优点换词凑数。
 逐维使用正式标准的评分锚点，不把所有基本可行项目机械评为3或3.5，也不因希望得到某等级而加分：
 - 战略：3有价值但非当前核心战略；4高度符合战略且与主业明显协同；5直接服务核心战略、明显强化未来核心能力且为当前重要方向。
@@ -41,6 +42,7 @@ definition=项目一句话定义；goal_and_success=最终经营目标和成功�
 def validate_rubric_reasons(proposal, project):
     """Reject explicit extra requirements; never replace the model's score."""
     import re
+    errors = []
     for key, dim in proposal.get('dimensions', {}).items():
         score = dim.get('score')
         if score is None or score >= 5:
@@ -53,8 +55,24 @@ def validate_rubric_reasons(proposal, project):
         invalid |= bool(key == 'market' and project.get('project_type') == 'growth'
                         and re.search(r'内需型内部|(?:不适用|无需评估)外部市场规模', reason))
         if invalid:
-            raise ValueError(f'{key}评分理由使用了正式标准没有的额外门槛：{reason}。'
-                             '重新按该维原有锚点判断；可以保留原分但必须有本次范围内的真实依据，不得自动调高或迎合目标等级。')
+            errors.append(f'{key}评分理由使用了正式标准没有的额外门槛：{reason}。'
+                          '重新按该维原有锚点判断；可以保留原分但必须有本次范围内的真实依据，不得自动调高或迎合目标等级。')
+    if errors:
+        raise ValueError('\n'.join(errors))
+
+
+def reconcile_unknown_scores(proposal):
+    """Keep a withheld score and its displayed explanation in the same state."""
+    import re
+    for dim in proposal.get('dimensions', {}).values():
+        if dim.get('score') is not None and dim.get('basis') != 'unknown':
+            continue
+        dim.update(score=None, anchor_score=None, basis='unknown')
+        # Replace the contradictory judgement as a whole, not numbers inside
+        # source quotes or arbitrary business metrics. Original support stays intact.
+        if re.search(r'(?<![\d.])[0-5](?:\.\d+)?\s*分(?!钟)', dim.get('reason', '')):
+            gap = dim.get('missing_evidence', '').strip()
+            dim['reason'] = '现有依据不足以确定该维度的分数。' + (gap or '还需补充与本次评估范围对应的判断依据。')
 
 
 def ground_low_scores(proposal, project, company, evidence, messages):
@@ -71,6 +89,8 @@ def ground_low_scores(proposal, project, company, evidence, messages):
         quote = (dim.get('negative_fact') or '').strip()
         uncertain = re.search(r'可能|也许|未验证|尚未|未知|缺少|待确认|不一定|没证明', quote)
         if len(quote) < 6 or uncertain or not any(quote in s for s in sources):
-            dim.update(score=None, basis='unknown', missing_evidence=(
-                '低分所需的明确不利事实尚无可对应原文的依据；不能仅因缺资料判为低分。'
-                + dim.get('missing_evidence', '')))
+            gap = dim.get('missing_evidence', '').strip()
+            reason = '现有材料不足以证明本次范围内存在支持低分的明确不利事实，暂不评分。'
+            dim.update(score=None, anchor_score=None, basis='unknown',
+                       reason=reason + gap, missing_evidence=gap or '需补充支持该维度判断的实际记录；资料缺失不代表项目表现不佳。')
+    reconcile_unknown_scores(proposal)

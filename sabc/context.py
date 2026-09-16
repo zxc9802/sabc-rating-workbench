@@ -60,7 +60,11 @@ def model_context(project, company, evidence, messages):
         item['content']=content[:6000]
         item['context_truncated']=len(content)>6000
         selected.append(item)
-    return {'project':clean,'company':company,'evidence':selected,'conversation':recent,
+    report_basis = {}
+    if report_requested:
+        from sabc.report_inputs import basis
+        report_basis['report_basis'] = basis(project, messages)
+    return {'project':clean,'company':company,'evidence':selected,'conversation':recent, **report_basis,
             'context_limits':{'older_messages_omitted':max(0,len(messages)-len(recent)),
                               'conversation_chars_truncated': truncated,
                               'evidence_omitted':len(usable)-len(selected),

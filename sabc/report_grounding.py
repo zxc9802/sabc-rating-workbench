@@ -42,6 +42,15 @@ def historical_period(value):
     return bool(re.search(r'财报|业绩报告|报告期间|同比对比|历史(?:资料|数据|期间)', str(value or '')))
 
 
+def quote_error(item, texts):
+    text = re.sub(r'\s+', ' ', texts.get(item.get('source_id', ''), ''))
+    quote = re.sub(r'\s+', ' ', item.get('quote', '')).strip()
+    start = text.find(quote) if quote else -1
+    if start >= 0:
+        return f'引文可以找到，但前面还有限定「{text[max(0, start - 80):start]}」；请完整保留限定，或改用能独立支持该判断的其他原文。'
+    return '该source_id中没有这段连续原文；请逐字引用对应来源，不能拼接或改写。'
+
+
 def preserve_period(project):
     """Move an explicitly historical period; never invent a future duration."""
     patch = project.get('pending_patch', {})
@@ -52,46 +61,104 @@ def preserve_period(project):
         patch.pop('timeframe', None)
 
 
+def raise_issues(errors):
+    if errors:
+        raise ValueError('\n'.join(dict.fromkeys(errors)))
+
+
+def normalize_evidence_refs(proposal, evidence, source_ids):
+    """Conversation sources never count as independently verified evidence."""
+    evidence_ids = {item['id'] for item in evidence}
+    context_ids = {key for key in source_ids if key in ('description', 'company') or key.startswith('turn-')}
+    for item in list(proposal.get('dimensions', {}).values()) + proposal.get('assumptions', []) + proposal.get('vetoes', []):
+        item['evidence_ids'] = [key for key in item.get('evidence_ids', [])
+                                if key in evidence_ids or key not in context_ids]
+
+
+def validate_shape(proposal, evidence, content=True):
+    """Check independent report fields together; final delivery keeps shape checks."""
+    from sabc.rating import DIMENSIONS
+    errors = []
+    if set(proposal['dimensions']) != set(DIMENSIONS):
+        errors.append('报告须保留完整八维')
+    if content:
+        for key, dim in proposal['dimensions'].items():
+            if not dim['reason'].strip():
+                errors.append(f'{key}须保留非空评分理由')
+        if not proposal['assumptions']:
+            errors.append('报告缺少完整的关键假设：须保留至少一项关键假设')
+        for item in proposal['assumptions']:
+            for field in ('validation_method', 'pass_threshold', 'fail_threshold'):
+                if not item.get(field, '').strip():
+                    errors.append(f"报告缺少完整的关键假设：{item['id']}缺少{field}；未知写待确认的业务条件，不编数值")
+    refs = {item['id'] for item in evidence}
+    cited = list(proposal['dimensions'].values()) + proposal['assumptions'] + proposal['vetoes']
+    if any(ref not in refs for item in cited for ref in item['evidence_ids']):
+        errors.append('报告不能引用不存在的证据ID；evidence_ids只允许已上传资料的ID：'
+                      + json.dumps(sorted(refs), ensure_ascii=False)
+                      + '。访谈turn-*、description和company属于来源编号，只能放在support.source_id等来源字段；没有上传资料时所有evidence_ids必须为空数组。')
+    if proposal.get('grounding_version') == VERSION and set(proposal.get('decision_facts', {})) != set(DECISION_FIELDS):
+        errors.append('报告缺少展示所需的decision_facts字段')
+    raise_issues(errors)
+
+
+def validate_report(proposal, project, company, evidence, messages=None, *, required=False, content=True):
+    from sabc.standard import validate_rubric_reasons
+    checks = [lambda: validate_shape(proposal, evidence, content)]
+    if content:
+        checks += [lambda: validate_rubric_reasons(proposal, project),
+                   lambda: validate(proposal, project, company, evidence, messages, required)]
+    errors = []
+    for check in checks:
+        try:
+            check()
+        except ValueError as error:
+            errors.append(str(error))
+    raise_issues(errors)
+
+
 def validate(proposal, project, company, evidence, messages=None, required=False):
+    errors = []
     texts = sources(project, company, evidence, messages)
     strict = required or proposal.get('grounding_version') == VERSION
     if required and proposal.get('grounding_version') != VERSION:
-        raise ValueError('新报告及修订必须保留grounding_version=1和来源约束字段')
+        errors.append('新报告及修订必须保留grounding_version=1和来源约束字段')
     scope = proposal.get('assessment_scope') or {}
     if strict and not match_quote(scope, texts, user_only=True):
-        raise ValueError('评估主体与范围须引用用户原话，不能由账号公司或模型推断代替')
+        errors.append('评估主体与范围须引用用户原话，不能由账号公司或模型推断代替')
     if scope.get('level') == 'group' and re.search(r'不是(?:整个)?集团|非集团整体', scope.get('quote', '')):
-        raise ValueError('用户排除了集团整体，评估范围不能填group')
+        errors.append('用户排除了集团整体，评估范围不能填group')
     if scope.get('company_baseline'):
         baseline = {'source_id':scope.get('baseline_source_id', ''), 'quote':scope.get('baseline_quote', '')}
         if (not match_quote(baseline, texts, user_only=True)
                 or qualification(baseline['quote'], 'known')['knowledge'] in ('unknown', 'not_obtained', 'reported_absent')
                 or not re.search(r'公司(?:基线|资料|信息)|账号公司|基线资料', baseline['quote'])
                 or re.search(r'不适用|不能|不要|不是', baseline['quote'])):
-            raise ValueError('采用账号公司基线须有用户明确确认其适用于被评估主体的原话')
+            errors.append('采用账号公司基线须有用户明确确认其适用于被评估主体的原话')
     for key, dimension in proposal.get('dimensions', {}).items():
         score = dimension.get('score')
         direct = []
-        for item in dimension.get('support', []):
+        for index, item in enumerate(dimension.get('support', [])):
             if not match_quote(item, texts):
-                raise ValueError(f'{key}评分依据须引用实际来源连续原文，不能引用历史助手判断')
+                errors.append(f"{key}.support[{index}]（source_id={item.get('source_id', '')}）评分依据须引用实际来源连续原文，不能引用历史助手判断。"
+                              + quote_error(item, texts))
             if item['use'] == 'background':
                 continue
             if item['scope'] == 'researcher' and project.get('framing', {}).get('purpose') == 'research':
-                raise ValueError(f'{key}不能将研究者的资料或预算当作运营方能力')
+                errors.append(f'{key}不能将研究者的资料或预算当作运营方能力')
             if key in ('cash', 'return', 'resources') and item['scope'] in ('group', 'industry') and scope.get('level') != 'group':
-                raise ValueError(f'{key}集团或行业财务只能作背景，不能证明业务分部回报或承受能力')
+                errors.append(f'{key}集团或行业财务只能作背景，不能证明业务分部回报或承受能力')
             allocated = re.search(r'(?:已批准|已拨付|已划拨|已授权|确认提供)[^。；\n]{0,16}'
                                   + '(?:本业务|该业务|本项目|' + re.escape(scope.get('subject') or '本业务') + ')', item['quote'])
             if (key in ('cash', 'return', 'resources') and scope.get('level') != 'group'
                     and re.search(r'集团[^。；\n]{0,16}(?:现金|自由现金流|经营现金流|递延收入)', item['quote']) and not allocated):
-                raise ValueError(f'{key}引用仍是集团财务口径，不能改标签为分部依据')
+                errors.append(f'{key}引用仍是集团财务口径，不能改标签为分部依据')
             if qualification(item['quote'], 'known')['knowledge'] in ('unknown', 'not_obtained'):
-                raise ValueError(f'{key}原文表示未知或资料未取得，只能作背景，不能支持确定分数')
+                errors.append(f'{key}原文表示未知或资料未取得，只能作背景，不能支持确定分数')
             direct.append(item)
         if strict and score is not None:
             if dimension.get('anchor_score') != math.floor(score) or not direct:
-                raise ValueError(f'{key}须填写对应原始分的anchor_score及实际支撑原文；无法判断时保留null，不默认给3分')
+                errors.append(f'{key}须填写对应原始分的anchor_score及实际支撑原文；无法判断时保留null，不默认给3分')
     supported_text = '\n'.join(item['quote'] for dim in proposal.get('dimensions', {}).values()
                                for item in dim.get('support', []) if item['use'] == 'support')
     narratives = [dim.get('reason', '') for dim in proposal.get('dimensions', {}).values()]
@@ -102,7 +169,7 @@ def validate(proposal, project, company, evidence, messages=None, required=False
                 continue
             for claim in re.findall(r'边际零成本|营运资金周转极佳|主要合规与运营风险已被长期管理|现金牛', sentence):
                 if claim not in supported_text:
-                    raise ValueError('确定性结论“' + claim + '”缺少对应原文依据；须重新判断，不能只加免责声明保留分数')
+                    errors.append('确定性结论“' + claim + '”缺少对应原文依据；须重新判断，不能只加免责声明保留分数')
     if not strict:
         # Legacy drafts retain their shape, but known cross-scope contradictions
         # must not be accepted just because their referenced file exists.
@@ -110,23 +177,26 @@ def validate(proposal, project, company, evidence, messages=None, required=False
             dim = proposal.get('dimensions', {}).get(key, {})
             if (dim.get('score') is not None and re.search(r'集团', dim.get('reason', ''))
                     and re.search(r'缺少.*(?:分部|订阅业务).*(?:现金|成本|净利润)', dim.get('missing_evidence', ''))):
-                raise ValueError(f'{key}缺少本业务财务依据，却使用集团口径评分，须重新对应原文与档位')
+                errors.append(f'{key}缺少本业务财务依据，却使用集团口径评分，须重新对应原文与档位')
+        raise_issues(errors)
         return
     facts = proposal.get('decision_facts', {})
     if set(facts) != set(DECISION_FIELDS):
-        raise ValueError('须分别记录经营目标、成功标准、未来周期、最大损失的decision_facts，未知明确填unknown')
+        errors.append('须分别记录经营目标、成功标准、未来周期、最大损失的decision_facts，未知明确填unknown')
     for field, fact in facts.items():
         if fact['kind'] == 'reported':
             if not match_quote(fact, texts, user_only=True) or fact['text'] not in fact['quote']:
-                raise ValueError(f'{field}已确认内容须逐字来自用户原话；改写或建议不能冒充用户确认')
+                errors.append(f'{field}已确认内容须逐字来自用户原话；改写或建议不能冒充用户确认')
             if qualification(fact['quote'], 'known')['knowledge'] in ('unknown', 'not_obtained'):
-                raise ValueError(f'{field}用户原话包含未知限定，不能标reported')
+                errors.append(f'{field}用户原话包含未知限定，不能标reported')
             if field == 'timeframe' and historical_period(fact['text']):
-                raise ValueError('历史财报期间不能作为未来验证周期')
+                errors.append('历史财报期间不能作为未来验证周期')
         elif fact['kind'] == 'suggestion' and not fact['text'].strip():
-            raise ValueError(f'{field}建议内容不能为空')
+            errors.append(f'{field}建议内容不能为空')
     if len(proposal.get('strongest_objections', [])) != 3:
-        raise ValueError('报告须归纳三条最强反对意见，说明它们怎样影响当前判断')
+        errors.append('报告须归纳三条最强反对意见，说明它们怎样影响当前判断')
+
+    raise_issues(errors)
 
 
 def apply_decision_facts(project, proposal):
@@ -142,6 +212,11 @@ def apply_decision_facts(project, proposal):
             return '未知，现有资料无法确认'
         return ('建议、待确认：' if fact['kind'] == 'suggestion' else '') + fact['text']
     brief['goal_and_success'] = '经营目标：' + display('business_goal') + '；成功标准：' + display('success_metric')
+    if project.get('project_type') == 'internal':
+        from sabc.report_inputs import basis
+        workload = basis(project)['workload']
+        if workload:
+            brief['goal_and_success'] = brief['goal_and_success'].rstrip('。；; \n') + '。' + workload['note']
     brief['maximum_loss'] = display('maximum_loss')
     for field in ('business_goal', 'success_metric', 'timeframe'):
         fact = facts[field]

@@ -48,8 +48,13 @@ def complete_quote(quote, sources):
     return quote
 
 
-def gap_details(project):
-    """Build limitations from matched original quotes, never free-form model reasons."""
+def gap_details(project, dimensions=None):
+    """Use current report gaps, with source-qualified coverage for legacy reports."""
+    if dimensions is not None:
+        # New reports carry the current proposal's limitations.
+        # Interview coverage is historical: reusing it can undo a report correction.
+        return [dim['name'] + '：' + (dim.get('missing_evidence') or '相关依据尚待补充或核查')
+                for dim in dimensions if dim['score'] is None]
     sources = [project.get('description', '')] + [m.get('content', '') for m in project.get('messages', []) if m.get('role') == 'user']
     labels = {'not_obtained': '本次未取得相关资料，不能据此断定其不存在',
               'unknown': '用户尚不清楚，当前无法判断',
@@ -85,7 +90,11 @@ def unsupported_absence(text, limits, source_quotes=()):
     """A narrow guard for the missing-record/authorization errors seen in reports."""
     topics = (r'实测|测试|试点|记录', r'合规|授权|版权', r'案例|对照', '数据', '收入', '需求', '团队', '能力')
     for sentence in re.split(r'[。；\n]', text):
-        if not re.search(r'不存在|(?:无|没有|缺乏|不具备)(?:任何|相关|可用|运营方的?)?(?:实测|测试|试点|记录|合规|授权|版权|案例|对照|数据|收入|需求|团队|能力)', sentence):
+        # Missing support is a limitation of this report, not a claim that the
+        # underlying activity does not exist. Mask only that phrase: another
+        # absolute claim in the same sentence must still be checked.
+        fact_claim = re.sub(r'(?:尚无|暂无|未有|缺乏|缺少|没有|无)(?:任何|相关)?(?:实测|测试|试点)?(?:依据|证据)', '', sentence)
+        if not re.search(r'不存在|(?:无|没有|缺乏|不具备)(?:任何|相关|可用|运营方的?)?(?:实测|测试|试点|记录|合规|授权|版权|案例|对照|数据|收入|需求|团队|能力)', fact_claim):
             continue
         if re.search(r'不能|无法|不足以|不代表|不等于|并非|尚未取得|未取得|未检索到|未拿到|未确认|不了解|不知道|未知|(?:如果|若).*(?:确认|核查)|用户(?:明确)?(?:表示|说)|用户原话|(?:目前|现有|本次)(?:的)?(?:资料|材料|信息)(?:中)?(?:没有|不含)', sentence):
             continue

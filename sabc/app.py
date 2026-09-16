@@ -762,8 +762,10 @@ def evaluate(pid:str,body:dict):
 
 
 def build_assessment(project, c, e, proposal):
+    from sabc.standard import reconcile_unknown_scores
     p=deepcopy(project)
     proposal=deepcopy(proposal)
+    reconcile_unknown_scores(proposal)
     report_grounding.apply_decision_facts(p, proposal)
     p['proposal']=proposal
     p.pop('assessment_review', None)
@@ -771,7 +773,7 @@ def build_assessment(project, c, e, proposal):
     result=assess(p,c,e,proposal)
     if result['grade'] == 'NR':
         missing = '、'.join(result['missing']) or '足以支持八维判断的关键依据'
-        details = gap_details(p)
+        details = gap_details(p, result['dimensions'] if proposal.get('grounding_version') == report_grounding.VERSION else None)
         result['deferral_reason'] = ('暂缓评级：尚未形成可靠判断的关键依据包括' + missing + '。'
                                     + ('\n' + '\n'.join(details) if details else '')
                                     + '\n现有依据不足以给出可靠等级；资料未取得不代表相关事实不存在。')
