@@ -119,6 +119,21 @@ a { color: var(--accent); }
 .idea-input { min-height: 124px; background: transparent; font-size: 14px; }
 .composer-options { grid-template-columns: 1fr; max-width: 72%; padding-bottom: 16px; }
 .composer-bottom { border-color: var(--line); padding-block: 14px; }
+.project-attachments { margin: 0 24px 12px; padding: 14px; border: 1px dashed var(--line); border-radius: 12px; background: #15212a25; }
+.project-attachments.dragging { border-color: var(--accent); background: #edcd9112; }
+.project-upload-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.project-upload-heading > span, .project-upload-help { color: var(--muted); font-size: 11px; line-height: 1.7; }
+.project-upload-heading .upload-button { white-space: normal; }
+.project-upload-heading .upload-button[aria-disabled='true'] { opacity: .42; }
+.project-upload-help { margin: 8px 0 0; }
+.project-upload-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.project-upload-list li { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff06; font-size: 12px; }
+.project-upload-list li > svg { color: var(--accent); flex-shrink: 0; }
+.project-upload-list li > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-upload-list small { color: var(--muted); white-space: nowrap; }
+.project-upload-list button { display: grid; place-items: center; padding: 6px; border: 0; background: transparent; color: var(--muted); }
+.project-upload-error { margin: 8px 0 0; color: #ffc3ba; font-size: 12px; overflow-wrap: anywhere; }
+@media (max-width: 650px) { .project-attachments { margin-inline: 18px; padding: 12px; } }
 input, select, textarea {
   color: var(--ink); border-color: #cbdae536; border-radius: 11px;
   background: linear-gradient(160deg, #b8d1e217, #e4edf207 60%), #15212a68;

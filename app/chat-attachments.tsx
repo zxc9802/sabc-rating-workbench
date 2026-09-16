@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { waitForJob, type Evidence, type Job } from '../lib/types';
 
+export const ATTACHMENT_ACCEPT = '.txt,.md,.csv,.json,.docx,.xlsx,.pptx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,video/*';
+
 function event(target: HTMLVideoElement, name: string) {
   return new Promise<void>((resolve, reject) => {
     const done = () => { clearTimeout(timer); target.removeEventListener(name, ok); target.removeEventListener('error', fail); };
@@ -64,6 +66,14 @@ function upload(projectId: string, file: File, label: string, progress: (s: stri
   });
 }
 
+export async function uploadAttachment(projectId: string, file: File, status: (s: string) => void) {
+  status(`准备 ${file.name}`);
+  const prepared = await prepare(file, status);
+  const job = await upload(projectId, prepared.file, prepared.label, status);
+  status('上传完成，正在提取内容 / 识别画面…');
+  return await waitForJob<Evidence>(job.id);
+}
+
 export function ChatAttachments({ projectId, disabled, onBusy, onSaved }: { projectId: string; disabled: boolean; onBusy: (busy: boolean) => void; onSaved: () => Promise<void> }) {
   const [status, setStatus] = useState(''); const active = useRef(false); const input = useRef<HTMLInputElement>(null);
   const zone = useRef<HTMLDivElement>(null);
@@ -111,14 +121,11 @@ export function ChatAttachments({ projectId, disabled, onBusy, onSaved }: { proj
     active.current = true; onBusy(true); const start = performance.now();
     try {
       for (const file of Array.from(files)) {
-        setStatus(`准备 ${file.name}`); const prepared = await prepare(file, setStatus);
-        const job = await upload(projectId, prepared.file, prepared.label, setStatus);
-        setStatus('上传完成，正在提取内容 / 识别画面…');
-        await waitForJob<Evidence>(job.id);
+        await uploadAttachment(projectId, file, setStatus);
       }
       await onSaved(); setStatus(`附件已保存，待核验；用时 ${((performance.now() - start) / 1000).toFixed(1)} 秒。发送问题后参与分析。`);
     } catch (e) { setStatus(e instanceof Error ? e.message : '附件处理失败'); }
     finally { active.current = false; onBusy(false); if (input.current) input.current.value = ''; }
   }
-  return <div ref={zone} className="chat-attachments">{dragging && <div className="chat-drop-overlay" aria-hidden="true">松开即可上传文档、图片或视频<span>每批最多5个文件</span></div>}<label className="secondary upload-button">上传或拖入文档 / 图片 / 视频<input ref={input} type="file" multiple disabled={disabled} accept=".txt,.md,.csv,.json,.docx,.xlsx,.pptx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,video/*" onChange={e => void add(e.target.files)} /></label><small>文档≤20MB</small><p role="status">{status}</p></div>;
+  return <div ref={zone} className="chat-attachments">{dragging && <div className="chat-drop-overlay" aria-hidden="true">松开即可上传文档、图片或视频<span>每批最多5个文件</span></div>}<label className="secondary upload-button">上传或拖入文档 / 图片 / 视频<input ref={input} type="file" multiple disabled={disabled} accept={ATTACHMENT_ACCEPT} onChange={e => void add(e.target.files)} /></label><small>文档≤20MB</small><p role="status">{status}</p></div>;
 }
