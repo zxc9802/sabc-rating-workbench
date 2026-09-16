@@ -487,8 +487,8 @@ def generate_final_report(p,c,e,previous_report):
                     changes.append(name+'的分数或依据')
             if old['snapshot']['proposal'].get('decision_brief') != candidate['snapshot']['proposal'].get('decision_brief'):
                 changes.append('关键判断与升级说明')
-            for field,label in (('assessment_scope','评估主体与范围'),('pros','正方结论'),
-                                ('cons','反方结论'),('strongest_objections','最强反对意见')):
+            for field,label in (('assessment_scope','本次评估范围'),('pros','项目优势'),
+                                ('cons','项目劣势'),('strongest_objections','最大隐患')):
                 if old['snapshot']['proposal'].get(field) != candidate['snapshot']['proposal'].get(field):
                     changes.append(label)
             for field,label in (('timeframe','未来验证周期'),('data_period','历史资料期间')):
@@ -772,11 +772,13 @@ def build_assessment(project, c, e, proposal):
     life=lifecycle.state(p)
     result=assess(p,c,e,proposal)
     if result['grade'] == 'NR':
-        missing = '、'.join(result['missing']) or '足以支持八维判断的关键依据'
-        details = gap_details(p, result['dimensions'] if proposal.get('grounding_version') == report_grounding.VERSION else None)
-        result['deferral_reason'] = ('暂缓评级：尚未形成可靠判断的关键依据包括' + missing + '。'
+        current_gaps = proposal.get('grounding_version') == report_grounding.VERSION
+        explained = {dim['name'] + '尚无法判断' for dim in result['dimensions'] if dim['score'] is None} if current_gaps else set()
+        missing = '、'.join(item for item in result['missing'] if item not in explained)
+        details = gap_details(p, result['dimensions'] if current_gaps else None)
+        result['deferral_reason'] = ('暂缓评级：以下信息还不足以支持判断。' + ('还需确认：' + missing + '。' if missing else '')
                                     + ('\n' + '\n'.join(details) if details else '')
-                                    + '\n现有依据不足以给出可靠等级；资料未取得不代表相关事实不存在。')
+                                    + '\n先补齐影响判断的资料，再评等级；资料缺失不代表事实不存在。')
     if p.get('lifecycle'):
         result.update(stage=life['stage'], provisional=True,
                       status='待评级' if result['grade']=='NR' else '阶段暂定评级')

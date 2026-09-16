@@ -10,13 +10,18 @@ DIMENSIONS = {
     'replication': ('可复制性与复利资产', 10), 'cash': ('现金流与资金效率', 10),
     'risk': ('风险可控性', 10), 'opportunity': ('机会成本', 5),
 }
+REPORT_DIMENSIONS = {
+    'strategy': '是否符合公司方向', 'market': '有没有需求', 'return': '投入能否带来回报',
+    'resources': '人手和能力是否够用', 'replication': '能否复用和积累成果',
+    'cash': '资金能否周转', 'risk': '风险能否控制', 'opportunity': '是否值得优先做',
+}
 TYPES = {'growth': '商业增长', 'internal': '内部AI / 提效', 'strategic': '战略能力 / 资产', 'asset': '重资产 / 扩张'}
 PROJECT_FIELDS = {'name':'项目名称', 'project_type':'项目类型', 'target_user':'目标客户或内部用户',
                   'business_goal':'经营目标', 'value_mechanism':'收益或价值兑现机制',
                   'success_metric':'成功指标', 'timeframe':'验证周期', 'risks':'主要风险'}
 GRADES = ['C', 'B', 'A', 'S']
 ACTIONS = {'S':'集中资源，分阶段放大', 'A':'正式立项，分阶段投入',
-           'B':'小规模验证，禁止重仓', 'C':'当前不立项', 'NR':'补齐信息后再评级'}
+           'B':'先小规模试点，控制投入', 'C':'当前不立项', 'NR':'补齐信息后再评级'}
 GRADE_THRESHOLDS = {'S': 90, 'A': 75, 'B': 60}
 EVIDENCE_CAPS = (1, 1, 2, 3)
 S_DIMENSIONS = ('strategy', 'market', 'return', 'resources', 'replication')
@@ -25,9 +30,8 @@ S_CONDITIONS = ('repeatable', 'resources_available', 'portfolio_feasible', 'revi
 
 def upgrade_requirements():
     return {
-        'upgrade_a': f'需要通过本项目的小规模试点或其他可直接适用的验证，取得已核验的结果，支持各项关键假设（证据达到E2或以上）。同时，业务总分须至少{GRADE_THRESHOLDS["A"]}分，无一票否决或只能小规模验证的限制，投入也须在可用资源范围内。满足证据要求不代表自动升为A级，仍须综合上述条件重新评估。',
-        'upgrade_s': f'需要用多个周期或样本的重复验证结果，支持各项关键假设（证据达到E3）。同时，业务总分须至少{GRADE_THRESHOLDS["S"]}分，' + '、'.join(DIMENSIONS[k][0] for k in S_DIMENSIONS)
-                     + '这五维的原始分均须至少4分；核心资源可获得，机会成本与资源组合合理，主要风险及反对意见已审查，且无否决或评级上限限制，才具备集中资源投入的条件。重复验证可以在同一项目内完成，不强制新增区域或产品。',
+        'upgrade_a': f'先取得核实过的小规模测试结果，支持关键条件（E2及以上）；总分至少{GRADE_THRESHOLDS["A"]}分，投入不超出可用资源，且没有必须停止或只能试点的限制。满足后还需重新评估，不会自动升级。',
+        'upgrade_s': f'关键条件经过多个周期或样本验证（E3），总分至少{GRADE_THRESHOLDS["S"]}分，公司方向、需求、回报、人手与能力、复用成果这五项均至少4分。还需资源到位、与其他项目的投入安排合理、主要风险已检查，且没有必须停止或限制评级的情况。重复验证可在同一项目内完成。',
     }
 
 
@@ -81,7 +85,7 @@ def assess(project, company, evidence, proposal, today=None):
             'action':ACTIONS['NR'], 'pros':proposal.get('pros',[]), 'cons':proposal.get('cons',[]),
             'resource_plan':{}, 'unique_sources':0, 'evidence_evaluated':False,
             'upgrade_requirements':upgrade_requirements(),
-            'validation_plan':[], 'reassessment_triggers':['公司战略、预算或团队变更','关键证据更新或过期','试验触及通过或止损阈值']}
+            'validation_plan':[], 'reassessment_triggers':['公司方向、预算或团队有变化','关键资料更新或不再适用','试点达到目标，或触发停止条件']}
     # A verified decisive blocker does not require filling unrelated fields first.
     by_id={item['id']:item for item in evidence}
     superseded={item['supersedes'] for item in evidence if item.get('supersedes')}
@@ -119,8 +123,8 @@ def assess(project, company, evidence, proposal, today=None):
         dim=dimensions.get(key,{})
         score=dim.get('score')
         if score is None or dim.get('basis') == 'unknown' or not dim.get('reason'):
-            missing.append(label+'的方向性判断')
-            result['dimensions'].append({'key':key,'name':label,'weight':weight,'score':None,'weighted':None,
+            missing.append(REPORT_DIMENSIONS[key]+'尚无法判断')
+            result['dimensions'].append({'key':key,'name':REPORT_DIMENSIONS[key],'weight':weight,'score':None,'weighted':None,
                 'reason':dim.get('reason') or '现有依据不足以形成该维判断', 'basis':'unknown',
                 'missing_evidence':dim.get('missing_evidence') or '需补充支持该维判断的具体依据',
                 'evidence_ids':dim.get('evidence_ids',[])})
@@ -129,13 +133,13 @@ def assess(project, company, evidence, proposal, today=None):
             raise ValueError(label+'原始分必须为0至5，步长0.5')
         if score < 3 and dim.get('basis') != 'fact':
             missing.append(label+'的低分需有已知负面事实，不能因缺资料扣分')
-        result['dimensions'].append({'key':key,'name':label,'weight':weight,
+        result['dimensions'].append({'key':key,'name':REPORT_DIMENSIONS[key],'weight':weight,
             'score':score, 'weighted':round(score/5*weight,2),'reason':dim['reason'],
             'missing_evidence':dim.get('missing_evidence',''),
             'basis':dim.get('basis','assumption'),'evidence_ids':dim.get('evidence_ids',[])})
-    if not assumptions: missing.append('至少一个决定项目成立的关键假设')
-    if len([s for s in proposal.get('cons',[]) if s.strip()])<3: missing.append('至少3条反方审查意见')
-    if len([s for s in proposal.get('pros',[]) if s.strip()])<3: missing.append('至少3条支持理由')
+    if not assumptions: missing.append('至少一个需要验证的关键条件')
+    if len([s for s in proposal.get('cons',[]) if s.strip()])<3: missing.append('至少3条具体的项目劣势')
+    if len([s for s in proposal.get('pros',[]) if s.strip()])<3: missing.append('至少3条具体的项目优势')
     if missing:
         result['missing']=list(dict.fromkeys(missing))
         result['validation_plan']=[{'claim':a['claim'],'method':a.get('validation_method') or '先确认资料来源和负责人',
@@ -182,10 +186,10 @@ def assess(project, company, evidence, proposal, today=None):
     result['resource_plan']={'available_limit':available,
         'formula':'min(新项目预算, 可用现金 - 现金安全线)，最低为0',
         'proposed_budget':requested if requested<=available and grade in ('A','S') else None,
-        'note':'B级需先按关键假设拆解最小验证成本，再由负责人批准。' if grade=='B' else
+        'note':'先算清小规模试点需要多少钱，再由负责人批准。' if grade=='B' else
                'C级不建议新增投入。' if grade=='C' else '金额引用项目申报值，不代表自动批准；人员与周期需负责人确认。'}
-    result['validation_plan']=[{'claim':a['claim'], 'pass':a.get('pass_threshold') or '待定义可量化通过阈值',
-        'fail':a.get('fail_threshold') or '待定义失败与止损阈值',
+    result['validation_plan']=[{'claim':a['claim'], 'pass':a.get('pass_threshold') or '需确认怎样算有效',
+        'fail':a.get('fail_threshold') or '需确认何时停止或调整',
         'method':a.get('validation_method') or '补充本项目真实试验记录'}
         for a in sorted(result['assumptions'],key=lambda a:a['level'])[:2]]
     result['warnings']=list(dict.fromkeys(result['warnings']))

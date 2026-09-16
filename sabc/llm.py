@@ -149,7 +149,7 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
     if not report_requested:
         from sabc.checkpoints import PROMPT as CHECKPOINT_PROMPT
         system += CHECKPOINT_PROMPT
-    from sabc.standard import INTERVIEW, REPORT
+    from sabc.standard import INTERVIEW, REPORT, REPORT_LANGUAGE
     system += REPORT if report_requested else INTERVIEW
     if report_requested:
         system += report_grounding.PROMPT
@@ -170,6 +170,7 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
     if report_requested:
         report_schema = ModelReply.model_json_schema()
         proposal_schema = Proposal.model_json_schema()
+        proposal_schema['properties']['strongest_objections'].update(minItems=1, maxItems=1)
         report_schema.setdefault('$defs', {}).update(proposal_schema.pop('$defs', {}))
         report_schema['properties']['proposal'] = proposal_schema
         for name in ('Dimension', 'Assumption', 'Veto'):
@@ -183,6 +184,7 @@ company未建立/未确认与用户未提供应区分，不擅自确认公司基
             'assessment_scope.source_id逐字复制输入conversation.source_id，或使用description，不用消息序号自行推算；'
             'quote逐字复制该来源连续原文。\n' +
             json.dumps(report_schema,ensure_ascii=False,separators=(',',':')))
+        payload['messages'][0]['content'] += '\n最后检查面向读者的表达：' + REPORT_LANGUAGE
     payload['messages'] += settings.get('format_retry', [])
     if final_revision:
         payload['messages'][0]['content'] += '\n这是第4次也是最后一次修改。依据已有修改意见返回可直接交付的完整报告，不再提问或要求下一轮审查。'

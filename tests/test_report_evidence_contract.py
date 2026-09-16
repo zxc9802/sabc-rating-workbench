@@ -161,8 +161,9 @@ def test_source_quotes_cannot_drop_leading_negation(prefix):
 
 def test_s_rule_five_dimensions_match_engine():
     rule=rating.upgrade_requirements()['upgrade_s']
-    assert all(rating.DIMENSIONS[k][0] in rule for k in rating.S_DIMENSIONS)
-    assert '90' in rule and 'E3' in rule and '无否决' in rule
+    names={'strategy':'公司方向','market':'需求','return':'回报','resources':'人手与能力','replication':'复用成果'}
+    assert all(names[k] in rule for k in rating.S_DIMENSIONS)
+    assert '90' in rule and 'E3' in rule and '必须停止或限制评级' in rule
 
 
 def test_original_operating_statement_closes_history_without_reasking():

@@ -25,7 +25,7 @@ def test_revision_reuses_original_sources_and_keeps_previous_snapshot(client, mo
     second = client.get(url).json()['assessments'][0]
     assert second['id'] != first['id']
     assert second['result']['revision']['source_report_id'] == first['id']
-    assert '反方结论' in second['result']['revision']['changes']
+    assert '项目劣势' in second['result']['revision']['changes']
     assert client.get('/api/assessments/'+first['id']+'/export').json() == first
     assert captured[0]['report_revision']['question'] == '现金依据是不是用了集团口径？'
     assert all(m['content'] != '应核对原始资料，不是经营事实。' for m in captured[0]['messages'])

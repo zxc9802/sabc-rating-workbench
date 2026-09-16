@@ -63,8 +63,8 @@ def main():
             expect(document.locator('.rating-score')).to_contain_text('暂不计算')
             assert document.locator('.rating-score strong').evaluate('(el) => el.clientHeight < 60'), 'Score label wraps vertically'
             expect(document.locator('.rating-summary-text')).to_contain_text('E0')
-            expect(document).to_contain_text('规范化来源 1 个')
-            for title in ('项目基本信息', '八维业务判断', '正方结论', '反方结论', '最强反对意见', '关键判断与资源安排', '行动建议', '验证与退出'):
+            expect(document).to_contain_text('去重后的来源 1 个')
+            for title in ('项目基本信息', '八个方面的判断', '项目优势', '项目劣势', '最大隐患', '项目要点', '行动建议', '试点与停止条件'):
                 expect(document.get_by_role('heading', name=title, exact=True)).to_be_visible()
             page.screenshot(path=str(output / f'{case}-desktop.png'), full_page=True)
             document.locator('.rating-summary').screenshot(path=str(output / f'{case}-summary.png'))

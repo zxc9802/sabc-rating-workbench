@@ -193,8 +193,10 @@ def validate(proposal, project, company, evidence, messages=None, required=False
                 errors.append('历史财报期间不能作为未来验证周期')
         elif fact['kind'] == 'suggestion' and not fact['text'].strip():
             errors.append(f'{field}建议内容不能为空')
-    if len(proposal.get('strongest_objections', [])) != 3:
-        errors.append('报告须归纳三条最强反对意见，说明它们怎样影响当前判断')
+    # Earlier report versions stored three objections; keep those readable.
+    objections = proposal.get('strongest_objections', [])
+    if not 1 <= len(objections) <= 3 or any(not item.strip() for item in objections):
+        errors.append('报告须简要说明最大隐患及其影响；新报告只归纳一项，旧版最多三项仍兼容')
 
     raise_issues(errors)
 
@@ -211,7 +213,7 @@ def apply_decision_facts(project, proposal):
         if fact['kind'] == 'unknown':
             return '未知，现有资料无法确认'
         return ('建议、待确认：' if fact['kind'] == 'suggestion' else '') + fact['text']
-    brief['goal_and_success'] = '经营目标：' + display('business_goal') + '；成功标准：' + display('success_metric')
+    brief['goal_and_success'] = '想达到的目标：' + display('business_goal') + '；怎样算有效：' + display('success_metric')
     if project.get('project_type') == 'internal':
         from sabc.report_inputs import basis
         workload = basis(project)['workload']
@@ -234,6 +236,6 @@ assessment_scope={subject:本次被评估的企业或业务名称,level:project/
 source_id用description、company、conversation中的source_id、或evidence-加原始证据ID。quote为对应来源中连续原文，不引用assistant；subject写真实主体，scope只能为project/group/industry/researcher，集团填group，不能写company。metric说明指标，period写原始期间或未注明，unit写原始单位或不适用，use为support/background。引文优先选能保留完整含义的一至两句，不重复整段资料；必须保留决定性的否定、期间和范围，不截掉限制以制造正面事实。
 有分数必须有真正支持该档位的support；无法支撑方向时score与anchor_score均null，可保留background。理由逐项解释这些原文如何满足该档位的必要条件。收入/Bookings不是净利润或完整成本模型；集团现金不能证明分部现金健康；数字产品不等于零边际成本；没有违规证据不能证明已有成熟风控。没有不利事实不等于有六七成能力。缺口只能在不影响当前档位必要条件时与该分数并存，否则留空。不得为了保留分数只把事实改成推断。
 decision_facts固定四项business_goal/success_metric/timeframe/maximum_loss，每项{text,kind,source_id,quote}。kind=reported/suggestion/unknown；reported的text必须是quote中的连续子串，不能改写、概括或拼接多个句子。保留适用对象和完整限定。未来目标、预算或损失不能由财报代为确认。示例：用户说“管理层没有提供观察周期”，timeframe必须为{"kind":"unknown","text":"","source_id":"","quote":""}，不能标reported或填财报季度。模型提出的阈值用suggestion，不能回写为已确认目标。历史资料期间与未来验证周期分开；90天回访建议不等于确认周期。
-报告摘要、正反方、验证条件必须与上述同一组事实一致。每次使用集团数据都标集团范围；所有模型新设的数值阈值每次出现均标建议、待确认。关键评分必要条件缺失时，不用免责声明保留确定结论。strongest_objections必须是恰好三条字符串组成的数组：["反对理由及能否化解的判断","第二条理由与判断","第三条理由与判断"]，不能输出对象数组或额外的证据ID字段。
+报告摘要、项目优势、项目劣势、验证条件必须与上述同一组事实一致。每次使用集团数据都标集团范围；所有模型新设的数值阈值每次出现均标建议、待确认。关键评分必要条件缺失时，不用免责声明保留确定结论。新生成的strongest_objections只写一项字符串：["最重要的一个问题，其原因及后果；保留尚未验证等限定"]，与decision_brief.biggest_risk保持一致，不重复“最大隐患”标题，不罗列三条，不输出对象数组或额外证据ID字段。旧报告已有多项时不单为减少条数触发内容补正。
 升级A/S的通用条件由程序根据固定规则生成；不要另造门槛或把本次范围缩小为单个产品。模型只在验证任务中描述本项目的补证办法，不把可选验证路径写成新的通用规则。
 '''

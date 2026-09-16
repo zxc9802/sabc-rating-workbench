@@ -149,6 +149,10 @@ def test_report_schema_distinguishes_user_sources_from_uploaded_evidence(monkeyp
         llm._analyze({'base_url': 'https://model.example', 'model': 'test'}, '', {'_report_requested': True}, {}, [], [])
     assert '"maxItems":0' in seen['prompt']
     assert '"$ref":"#/$defs/SourceClaim"' in seen['prompt']
+    # The storage schema still accepts old reports, but new generation requests one risk.
+    schema = next(json.loads(line) for line in seen['prompt'].splitlines() if line.startswith('{"$defs":'))
+    risk = schema['properties']['proposal']['properties']['strongest_objections']
+    assert risk['minItems'] == risk['maxItems'] == 1
 
 
 def test_one_primary_correction_receives_all_errors_and_preserves_good_fields(monkeypatch):

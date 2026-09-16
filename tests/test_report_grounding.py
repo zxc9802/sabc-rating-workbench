@@ -1,4 +1,31 @@
 from sabc.standard import ground_low_scores
+import pytest
+
+
+@pytest.mark.parametrize('objections', [
+    ['实际效果尚未验证，可能增加复核工时。'],
+    ['需核查需求变化影响', '需核查成本变化影响', '需核查资源变化影响'],
+])
+def test_report_accepts_one_main_risk_and_legacy_three_without_changing_scores(objections):
+    from copy import deepcopy
+    from sabc import report_grounding
+    from tests.test_report_timeouts import report_input
+    p, c, e, reply = report_input()
+    proposal = reply['proposal']
+    before = deepcopy(proposal['dimensions'])
+    proposal['strongest_objections'] = objections
+    report_grounding.validate_report(proposal, p, c, e, required=True)
+    assert proposal['dimensions'] == before
+
+
+@pytest.mark.parametrize('objections', [[], ['  '], ['第一项', '', '第三项'], ['问题'] * 4])
+def test_main_risk_still_requires_meaningful_content(objections):
+    from sabc import report_grounding
+    from tests.test_report_timeouts import report_input
+    p, c, e, reply = report_input()
+    reply['proposal']['strongest_objections'] = objections
+    with pytest.raises(ValueError, match='最大隐患'):
+        report_grounding.validate_report(reply['proposal'], p, c, e, required=True)
 
 
 def test_possible_better_alternative_does_not_become_confirmed_low_score():

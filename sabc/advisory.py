@@ -17,7 +17,7 @@ from sabc.model_output import ModelResponseError, parse_object, format_failure
 from sabc.model_router import routed, endpoint, authorization
 from sabc.rating import DIMENSIONS, PROJECT_FIELDS
 from sabc.schema import Proposal, validate_amounts, validate_project_type
-from sabc.standard import REPORT, ground_low_scores, validate_rubric_reasons
+from sabc.standard import REPORT, REPORT_LANGUAGE, ground_low_scores, validate_rubric_reasons
 from sabc.streaming import progress, check_cancelled
 from sabc.streaming import completion
 from sabc.report_corrections import ReportCorrections, MAX_REVISIONS
@@ -374,7 +374,8 @@ def _request(settings, key, context):
         payload = {'model': route['model'], 'temperature': 0.1, 'max_tokens': 16000,
                    'response_format': {'type': 'json_object'},
                    'messages': [{'role': 'system', 'content': task_prompt + '\n返回结构严格遵循JSON Schema：' +
-                                 json.dumps(Review.model_json_schema(), ensure_ascii=False, separators=(',', ':'))},
+                                 json.dumps(Review.model_json_schema(), ensure_ascii=False, separators=(',', ':'))
+                                 + (REPORT_LANGUAGE if context.get('mode') == 'report' else '')},
                                 {'role': 'user', 'content': request_context}] + route.get('format_retry', [])}
         if route.get('stream'):
             payload['stream'] = True
