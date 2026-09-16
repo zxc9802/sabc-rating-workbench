@@ -739,13 +739,22 @@ def attachment(pid:str,file:UploadFile, label:str=Form('')):
         raise
 
 
-@app.post('/api/company/import')
+@app.post('/api/company/import',status_code=202)
 def import_company(file:UploadFile):
     content=file.file.read(20_000_001)
     if len(content)>20_000_000: raise ValueError('文件超过20MB')
-    try: return {'text':parse_file(file.filename or '',content),'note':'请核对并填写公司资料，导入内容不会自动成为已确认事实。'}
-    except ValueError: raise
-    except Exception: raise ValueError('文件无法解析') from None
+    name=Path(file.filename or '').name
+    if Path(name).suffix.lower() not in {'.txt','.md','.csv','.json','.docx','.xlsx','.pdf'}:
+        raise ValueError('请上传 TXT、MD、CSV、JSON、DOCX、XLSX 或可复制文字的PDF')
+    config=settings()
+    key=model_key(config)
+    def process():
+        from sabc.company_import import analyze_document
+        try: text=parse_file(name,content)
+        except ValueError: raise
+        except Exception: raise ValueError('文件无法解析，请检查文件是否损坏或受密码保护。') from None
+        return analyze_document(text,config,key)
+    return jobs.submit(store,str(uuid4()),'company-import',{'operation':'company_import','name':name},process,queue=True)
 
 
 @app.post('/api/projects/{pid}/assess')
