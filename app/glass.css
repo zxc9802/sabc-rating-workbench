@@ -178,9 +178,6 @@ select { color-scheme: dark; } option { color: var(--ink); background: #28333d; 
 .company-import-button:has(input:disabled) { opacity: .55; cursor: wait; }
 .company-import-help { grid-column: 2; display: grid; gap: 4px; color: var(--muted); font-size: 11px; line-height: 1.8; }
 .company-import-status { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; font-size: 13px; }
-.company-import-result { grid-column: 1 / -1; padding: 16px; border: 1px solid #bad4c43b; border-radius: 12px; background: #bad4c40b; font-size: 13px; line-height: 1.8; }
-.company-import-result strong { color: #c6e4d4; font-weight: 550; }.company-import-result p { margin: 5px 0 0; color: var(--muted); }
-.company-import-result ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
 @media (max-width: 650px) {
   .company-import { grid-template-columns: 40px minmax(0, 1fr); padding: 22px 18px; gap: 12px; }
   .company-import-icon { width: 40px; height: 40px; border-radius: 11px; }.company-import-icon svg { width: 23px; }
@@ -188,7 +185,7 @@ select { color-scheme: dark; } option { color: var(--ink); background: #28333d; 
   .company-import-button, .company-import-help { grid-column: 1 / -1; }.company-import-button { width: 100%; justify-content: center; font-size: 14px; }
 }
 .money-input input { background: transparent; box-shadow: none; }
-.import-preview, .stage-review, .scoring-confirmation, .resource-summary { background: #cadcea0d; border: 1px solid var(--line); box-shadow: inset 0 1px 1px #ffffff0c; }
+.stage-review, .scoring-confirmation, .resource-summary { background: #cadcea0d; border: 1px solid var(--line); box-shadow: inset 0 1px 1px #ffffff0c; }
 .review-note { background: #b3945621; color: #ead6ad; border: 1px solid #e2c28c30; }
 .source-row, .source-row.table-head { border-color: var(--line); }.source-row.table-head { background: #cfdfeb08; }
 .source-row a, .report-references summary { color: #ebcf9b; }

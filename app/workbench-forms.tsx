@@ -9,28 +9,27 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   return <label className="field"><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>;
 }
 
-type CompanyImportResult = { text: string; fields: RecordData; sources: Record<string, string>; warnings: string[] };
+type CompanyImportResult = { fields: RecordData };
 
 export function CompanyForm({ company, busy, save }: { company: RecordData; busy: boolean; save: (body: RecordData) => Promise<void> }) {
   const [form, setForm] = useState<RecordData>(company);
-  const [imported, setImported] = useState<CompanyImportResult | null>(null);
   const [importStatus, setImportStatus] = useState('');
   const [importName, setImportName] = useState('');
   const [importError, setImportError] = useState('');
   const [uploading, setUploading] = useState(false);
   // Periodic bootstrap refreshes must not replace an unsaved import draft.
-  useEffect(() => { setForm(company); setImported(null); setImportError(''); }, [company.id, company.version]);
+  useEffect(() => { setForm(company); setImportError(''); }, [company.id, company.version]);
   const set = (key: string, value: unknown) => setForm(f => ({ ...f, [key]: value }));
   async function readFile(file?: File) {
     if (!file || uploading || busy) return;
     if (file.size > 20_000_000) { setImportError('单个文件最大20MB，请拆分后上传。'); return; }
-    setUploading(true); setImportError(''); setImported(null); setImportName(file.name); setImportStatus('正在上传资料…');
+    setUploading(true); setImportError(''); setImportName(file.name); setImportStatus('正在上传资料…');
     try {
       const body = new FormData(); body.append('file', file);
       const job = await api<Job>('/company/import', 'POST', body);
       const result = await waitForJob<CompanyImportResult>(job.id, undefined, current => setImportStatus(current.phase === 'queued' ? '资料已上传，等待分析…' : '正在分析文档，整理可填写的信息…'));
-      setImported(result);
-      if (Object.keys(result.fields).length) setForm(current => ({ ...current, ...result.fields, confirmed: false }));
+      const fields = Object.fromEntries(['name', 'strategy', 'team', 'capabilities', 'budget', 'cash_available', 'cash_safety_line', 'active_projects', 'risk_policy'].map(key => [key, result.fields[key] ?? null]));
+      setForm(current => ({ ...current, ...fields, confirmed: false }));
     } catch (e) { setImportError(e instanceof Error ? e.message : '自动填写失败，请重试。'); }
     finally { setUploading(false); setImportStatus(''); }
   }
@@ -39,16 +38,11 @@ export function CompanyForm({ company, busy, save }: { company: RecordData; busy
       <div className="company-import-icon"><FileText size={28} /></div>
       <div className="company-import-copy"><h2>上传公司资料，自动填写</h2><p>上传公司介绍、经营计划或预算表，AI 帮你整理战略、团队、能力和资金信息，填入下方表单。</p></div>
       <label className="primary upload-button company-import-button">{uploading ? <LoaderCircle className="spin" size={20} /> : <Upload size={20} />}{uploading ? '正在分析资料…' : '上传文档并自动填写'}<input type="file" aria-label="上传公司文档并自动填写" accept=".txt,.md,.csv,.json,.docx,.xlsx,.pdf" disabled={busy || uploading} onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; void readFile(file); }} /></label>
-      <div className="company-import-help"><span>支持 Word、Excel、文字版 PDF、TXT、MD、CSV、JSON · 单个文件≤20MB</span><span>识别到的内容会更新对应字段，其余内容保留；核对后保存即可用于项目评估。</span></div>
+      <div className="company-import-help"><span>支持 Word、Excel、文字版 PDF、TXT、MD、CSV、JSON · 单个文件≤20MB</span><span>解析结果直接填入下方表单，未提供的信息留空；核对后保存即可用于项目评估。</span></div>
       {uploading && <p className="company-import-status" role="status">{importName} · {importStatus}</p>}
       {importError && <p className="inline-error company-import-status" role="alert">{importError}</p>}
-      {imported && <div className="company-import-result" role="status">
-        <strong>{Object.keys(imported.fields).length ? `已自动填写 ${Object.keys(imported.fields).length} 项，请核对下方内容` : '文档已读取，未找到可自动填写的公司信息'}</strong>
-        <p>{Object.keys(imported.fields).length ? '可直接修改填写结果，确认公司现状后点击“保存公司资料”。' : '原有填写内容已保留，可补充公司介绍、团队或预算资料后重试。'}</p>
-        {imported.warnings.length > 0 && <ul>{imported.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
-      </div>}
     </section>
-    <section className="form-section"><h2>当前方向与能力</h2>{imported && <details className="import-preview"><summary>查看从文档提取的原文 · {importName}</summary><pre>{imported.text}</pre></details>}<Field label="公司名称"><input value={text(form.name)} onChange={e => set('name', e.target.value)} placeholder="填写你所在的公司" /></Field><Field label="当前战略与优先事项" hint="写清现在最重要的经营目标，以及明确不做的事。"><textarea value={text(form.strategy)} onChange={e => set('strategy', e.target.value)} placeholder="例如：优先提升现有业务利润，暂不进入重资产行业。" rows={3} /></Field><div className="form-grid"><Field label="可调用的团队与时间"><textarea value={text(form.team)} onChange={e => set('team', e.target.value)} placeholder="岗位、可投入人数、老板可用时间" rows={3} /></Field><Field label="已经验证的能力"><textarea value={text(form.capabilities)} onChange={e => set('capabilities', e.target.value)} placeholder="有什么能力？哪些结果可以证明？" rows={3} /></Field></div></section><section className="form-section"><h2>预算与现金边界</h2><p className="section-description">金额统一使用人民币元。不确定时留空，系统会提示补充。</p><div className="form-grid three">{[['budget', '新项目可用预算'], ['cash_available', '当前可用现金'], ['cash_safety_line', '现金安全线']].map(([key, label]) => <Field label={label} key={key}><div className="money-input"><span>¥</span><input type="number" min={0} step="any" value={text(form[key])} onChange={e => set(key, e.target.value === '' ? null : Number(e.target.value))} placeholder="待填写" /></div></Field>)}</div></section><section className="form-section"><h2>其他资源占用与风险偏好</h2><Field label="正在进行的项目"><textarea value={text(form.active_projects)} onChange={e => set('active_projects', e.target.value)} placeholder="项目、资金和关键人员占用，哪些主业不能受影响" rows={3} /></Field><Field label="不可接受的风险"><textarea value={text(form.risk_policy)} onChange={e => set('risk_policy', e.target.value)} placeholder="最大试错损失、回本周期、平台依赖或行业红线" rows={3} /></Field><Field label="确认人"><input value={text(form.approved_by)} onChange={e => set('approved_by', e.target.value)} placeholder="负责确认以上资料的人" /></Field><label className="checkbox"><input type="checkbox" checked={form.confirmed === true} onChange={e => set('confirmed', e.target.checked)} /><span>我确认以上公司现状可用于当前项目评估</span></label><div className="form-actions"><span>保存后形成新版本，原有报告保持不变</span><button className="primary" disabled={busy} type="submit">{busy ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />} 保存公司资料</button></div></section></fieldset><aside className="form-aside"><ShieldCheck size={24} /><h2>同一个项目，适合的公司可能不同。</h2><p>市场机会相同，也可能因为预算、团队和主业安排不同，得到不同评级。</p><hr /><h3>当前资料版本</h3><p>{company.version ? 'v' + text(company.version) + ' · ' + displayDate(text(company.updated_at)) + ' 更新' : '尚未建立'}</p><h3>缺资料时怎么处理？</h3><p>先标记未知、补齐关键事实。不能因为公司资料缺失，就把项目判为C。</p></aside></form>;
+    <section className="form-section"><h2>当前方向与能力</h2><Field label="公司名称"><input value={text(form.name)} onChange={e => set('name', e.target.value)} placeholder="填写你所在的公司" /></Field><Field label="当前战略与优先事项" hint="写清现在最重要的经营目标，以及明确不做的事。"><textarea value={text(form.strategy)} onChange={e => set('strategy', e.target.value)} placeholder="例如：优先提升现有业务利润，暂不进入重资产行业。" rows={3} /></Field><div className="form-grid"><Field label="可调用的团队与时间"><textarea value={text(form.team)} onChange={e => set('team', e.target.value)} placeholder="岗位、可投入人数、老板可用时间" rows={3} /></Field><Field label="已经验证的能力"><textarea value={text(form.capabilities)} onChange={e => set('capabilities', e.target.value)} placeholder="有什么能力？哪些结果可以证明？" rows={3} /></Field></div></section><section className="form-section"><h2>预算与现金边界</h2><p className="section-description">金额统一使用人民币元。不确定时留空，系统会提示补充。</p><div className="form-grid three">{[['budget', '新项目可用预算'], ['cash_available', '当前可用现金'], ['cash_safety_line', '现金安全线']].map(([key, label]) => <Field label={label} key={key}><div className="money-input"><span>¥</span><input type="number" min={0} step="any" value={text(form[key])} onChange={e => set(key, e.target.value === '' ? null : Number(e.target.value))} placeholder="待填写" /></div></Field>)}</div></section><section className="form-section"><h2>其他资源占用与风险偏好</h2><Field label="正在进行的项目"><textarea value={text(form.active_projects)} onChange={e => set('active_projects', e.target.value)} placeholder="项目、资金和关键人员占用，哪些主业不能受影响" rows={3} /></Field><Field label="不可接受的风险"><textarea value={text(form.risk_policy)} onChange={e => set('risk_policy', e.target.value)} placeholder="最大试错损失、回本周期、平台依赖或行业红线" rows={3} /></Field><Field label="确认人"><input value={text(form.approved_by)} onChange={e => set('approved_by', e.target.value)} placeholder="负责确认以上资料的人" /></Field><label className="checkbox"><input type="checkbox" checked={form.confirmed === true} onChange={e => set('confirmed', e.target.checked)} /><span>我确认以上公司现状可用于当前项目评估</span></label><div className="form-actions"><span>保存后形成新版本，原有报告保持不变</span><button className="primary" disabled={busy} type="submit">{busy ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />} 保存公司资料</button></div></section></fieldset><aside className="form-aside"><ShieldCheck size={24} /><h2>同一个项目，适合的公司可能不同。</h2><p>市场机会相同，也可能因为预算、团队和主业安排不同，得到不同评级。</p><hr /><h3>当前资料版本</h3><p>{company.version ? 'v' + text(company.version) + ' · ' + displayDate(text(company.updated_at)) + ' 更新' : '尚未建立'}</p><h3>缺资料时怎么处理？</h3><p>先标记未知、补齐关键事实。不能因为公司资料缺失，就把项目判为C。</p></aside></form>;
 }
 
 export function ProjectForm({ project, types, busy, save }: { project: Project; types: Record<string, string>; busy: boolean; save: (body: RecordData) => Promise<void> }) {
